@@ -40,6 +40,7 @@
         <module>api-gateway</module>
         <module>common</module>
         <module>eureka-server</module>
+        <module>openai</module>
     </modules>
 
     <dependencyManagement>
