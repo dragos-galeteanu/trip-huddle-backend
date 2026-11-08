@@ -10,10 +10,24 @@ spring:
         jwt:
           issuer-uri: https://securetoken.google.com/jobbiegiggle
           jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
-  # TODO
-  #cloud:
-    #gateway:
-      #routes:
+  cloud:
+    gateway:
+      routes:
+        - id: user
+          uri: lb://USER
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: user
+                fallbackUri: forward:/fallback
+        - id: user-swagger
+          uri: lb://USER
+          predicates:
+            - Path=/user/v3/api-docs
+          filters:
+            - RewritePath=/user/v3/api-docs, /api-docs
   discovery:
     locator:
       enabled: true
@@ -27,12 +41,11 @@ eureka:
     register-with-eureka: true
     registry-fetch-interval-seconds: 5
 
-# TODO
-#resilience4j:
-#  timelimiter:
-#    instances:
-#      instance_name:
-#        timeoutDuration: 60s
+resilience4j:
+  timelimiter:
+    instances:
+      user:
+        timeoutDuration: 60s
 
 management:
   endpoints:
