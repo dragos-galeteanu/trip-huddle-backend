@@ -1,0 +1,47 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://securetoken.google.com/jobbiegiggle
+          jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
+  # TODO
+  #cloud:
+    #gateway:
+      #routes:
+  discovery:
+    locator:
+      enabled: true
+      lower-case-service-id: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+    registry-fetch-interval-seconds: 5
+
+# TODO
+#resilience4j:
+#  timelimiter:
+#    instances:
+#      instance_name:
+#        timeoutDuration: 60s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
