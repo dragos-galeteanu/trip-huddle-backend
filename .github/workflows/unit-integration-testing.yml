@@ -1,0 +1,46 @@
+name: Unit & Integration Testing
+
+on:
+  schedule:
+    - cron: '0 00 * * *'
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    branches:
+      - main
+      - e2e-testing
+      - live
+  push:
+    branches:
+      - main
+      - e2e-testing
+      - live
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run tests with timestamped output
+        env:
+          FIREBASE_ENABLED: false
+        run: |
+          mvn -B -ntp test \
+            -Dfirebase.enabled=false \
+            -Dsurefire.useFile=false \
+            -Dsurefire.printSummary=true \
+            -Dsurefire.reportFormat=plain
