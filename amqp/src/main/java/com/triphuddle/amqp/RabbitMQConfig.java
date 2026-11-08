@@ -1,5 +1,6 @@
 package com.triphuddle.amqp;
 
+import com.triphuddle.amqp.notification.NotificationEmailContract;
 import lombok.AllArgsConstructor;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.Declarable;
@@ -30,7 +31,10 @@ public class RabbitMQConfig {
 
     public static final String DEFAULT_DLQ_NAME = "default.dlq";
 
-    private static final List<String> QUEUE_NAMES = List.of();
+    private static final List<String> QUEUE_NAMES = List.of(
+            NotificationEmailContract.EMAIL_QUEUE_NAME,
+            NotificationEmailContract.EMAIL_DLQ_NAME
+    );
 
     private final ConnectionFactory connectionFactory;
 
