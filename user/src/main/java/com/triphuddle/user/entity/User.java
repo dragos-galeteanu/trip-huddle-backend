@@ -22,6 +22,7 @@ public class User extends BaseJpaEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = false, unique = true)
     private String phoneNumber;
 
     @Column(nullable = false)
