@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-push] Running test suite before push..."
+
+mvn -B -ntp test \
+  -Dsurefire.useFile=false \
+  -Dsurefire.printSummary=true \
+  -Dsurefire.reportFormat=plain \
+  -Dorg.slf4j.simpleLogger.showDateTime=true \
+  -Dorg.slf4j.simpleLogger.dateTimeFormat=yyyy-MM-dd'T'HH:mm:ss.SSSXXX
