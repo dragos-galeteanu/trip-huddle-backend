@@ -1,0 +1,41 @@
+name: Push live to branches
+
+on:
+  push:
+    branches:
+      - live
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set Git identity
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Fetch all branches
+        run: git fetch origin
+
+      # ---- E2E TESTING ----
+      - name: Merge live into e2e-testing
+        run: |
+          git checkout e2e-testing
+          git merge origin/live --no-edit
+          git push origin e2e-testing
+
+      # ---- MAIN ----
+      - name: Merge live into main
+        run: |
+          git checkout main
+          git merge origin/live --no-edit
+          git push origin main
