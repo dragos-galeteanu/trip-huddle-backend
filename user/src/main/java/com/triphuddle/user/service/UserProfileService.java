@@ -1,5 +1,8 @@
 package com.triphuddle.user.service;
 
+import com.triphuddle.amqp.RabbitMQMessageProducer;
+import com.triphuddle.amqp.user.UserProfilePictureUpdatedContract;
+import com.triphuddle.amqp.user.UserProfilePictureUpdatedEvent;
 import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -31,6 +35,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
     private final UserProfileRepository userProfileRepository;
     private final UserProfileMapper userProfileMapper;
     private final UserService userService;
+    private final RabbitMQMessageProducer messageProducer;
 
     @Override
     public UserProfileResponse create(CreateUserProfileRequest createUserProfileRequest) {
@@ -84,11 +89,51 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
                     .formatted(updateUserProfileRequest.getId(), updateUserProfileRequest.getUserId()));
         }
 
+        String previousProfilePictureUrl = userProfile.getProfilePictureUrl();
+        String previousCoverPictureUrl = userProfile.getCoverPictureUrl();
+
         userProfileMapper.updateEntityFromRequest(userProfile, updateUserProfileRequest);
 
         UserProfile saved = userProfileRepository.save(userProfile);
         log.info("UserProfile updated [id={}]", saved.getId());
+
+        publishPictureUpdatedIfChanged(saved, previousProfilePictureUrl, previousCoverPictureUrl);
         return userProfileMapper.toResponse(saved);
+    }
+
+    /**
+     * Publish a picture-updated event if either picture URL changed, and nothing otherwise.
+     *
+     * @param userProfile the saved profile
+     * @param previousProfilePictureUrl the profile picture URL as it was before the update
+     * @param previousCoverPictureUrl the cover picture URL as it was before the update
+     */
+    private void publishPictureUpdatedIfChanged(UserProfile userProfile,
+                                                String previousProfilePictureUrl,
+                                                String previousCoverPictureUrl) {
+
+        boolean profilePictureChanged = !Objects.equals(previousProfilePictureUrl, userProfile.getProfilePictureUrl());
+        boolean coverPictureChanged = !Objects.equals(previousCoverPictureUrl, userProfile.getCoverPictureUrl());
+
+        if (!profilePictureChanged && !coverPictureChanged) {
+            return;
+        }
+
+        messageProducer.publish(
+                new UserProfilePictureUpdatedEvent(
+                        userProfile.getUser().getId(),
+                        userProfile.getId(),
+                        userProfile.getProfilePictureUrl(),
+                        userProfile.getCoverPictureUrl(),
+                        profilePictureChanged,
+                        coverPictureChanged
+                ),
+                "",
+                UserProfilePictureUpdatedContract.USER_PROFILE_PICTURE_UPDATED_QUEUE_NAME
+        );
+        log.info("Event published for user profile picture update "
+                        + "[userProfileId={}, profilePictureChanged={}, coverPictureChanged={}]",
+                userProfile.getId(), profilePictureChanged, coverPictureChanged);
     }
 
     @Override
