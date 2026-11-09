@@ -9,15 +9,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
-public abstract class BaseController<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
+public abstract class BaseController<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 
     /**
      * Get the service associated with this controller.
      * @return the service
      */
-    protected abstract BaseService<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> getService();
+    protected abstract BaseService<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> getService();
 
     /**
      * Create a new resource.
@@ -29,18 +27,6 @@ public abstract class BaseController<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RES
     public ResponseEntity<RESPONSE> create(@Valid @RequestBody CREATE_REQUEST request) {
         RESPONSE response = getService().create(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
-
-    /**
-     * Get resource by ID.
-     * @param id the ID of the resource
-     * @return the response object containing the resource
-     */
-    @GetMapping("/{id}")
-    @Operation(summary = "Get resource by ID")
-    public ResponseEntity<RESPONSE> getById(@PathVariable UUID id) {
-        RESPONSE response = getService().getById(id);
-        return ResponseEntity.ok(response);
     }
 
     /**
@@ -66,29 +52,4 @@ public abstract class BaseController<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RES
         RESPONSE response = getService().update(request);
         return ResponseEntity.ok(response);
     }
-
-    /**
-     * Disable an existing resource by ID.
-     * @param id the ID of the resource
-     * @return the response object containing the disabled resource
-     */
-    @DeleteMapping("/{id}/disable")
-    @Operation(summary = "Disable an existing resource by ID")
-    public ResponseEntity<RESPONSE> disable(@PathVariable UUID id) {
-        RESPONSE response = getService().disable(id);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Delete an existing resource by ID.
-     * @param id the ID of the resource
-     * @return the response object containing the deleted resource
-     */
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete an existing resource by ID")
-    public ResponseEntity<RESPONSE> delete(@PathVariable UUID id) {
-        RESPONSE response = getService().delete(id);
-        return ResponseEntity.ok(response);
-    }
-
 }
