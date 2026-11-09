@@ -1,6 +1,6 @@
 package com.triphuddle.user.controller;
 
-import com.triphuddle.common.controller.BaseController;
+import com.triphuddle.common.controller.BaseJpaController;
 import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.service.BaseJpaService;
@@ -26,7 +26,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Tag(name = "Users")
-public class UserController extends BaseController<User, RegisterRequest, UpdateUserRequest, UserResponse> {
+public class UserController extends BaseJpaController<User, RegisterRequest, UpdateUserRequest, UserResponse> {
 
     private final UserService userService;
 
