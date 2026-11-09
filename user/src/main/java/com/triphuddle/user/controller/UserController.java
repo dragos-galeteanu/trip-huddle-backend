@@ -3,7 +3,7 @@ package com.triphuddle.user.controller;
 import com.triphuddle.common.controller.BaseController;
 import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.filter.PaginationFilter;
-import com.triphuddle.common.service.BaseService;
+import com.triphuddle.common.service.BaseJpaService;
 import com.triphuddle.user.dto.RegisterRequest;
 import com.triphuddle.user.dto.UpdateUserRequest;
 import com.triphuddle.user.dto.UserResponse;
@@ -31,7 +31,7 @@ public class UserController extends BaseController<User, RegisterRequest, Update
     private final UserService userService;
 
     @Override
-    protected BaseService<User, RegisterRequest, UpdateUserRequest, UserResponse> getService() {
+    protected BaseJpaService<User, RegisterRequest, UpdateUserRequest, UserResponse> getService() {
         return userService;
     }
 

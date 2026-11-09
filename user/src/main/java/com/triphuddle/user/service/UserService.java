@@ -12,7 +12,7 @@ import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.security.UserRole;
-import com.triphuddle.common.service.BaseService;
+import com.triphuddle.common.service.BaseJpaService;
 import com.triphuddle.common.service.FirebaseUserService;
 import com.triphuddle.user.dto.RegisterRequest;
 import com.triphuddle.user.dto.UpdateUserRequest;
@@ -39,7 +39,7 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
-public class UserService implements BaseService<User, RegisterRequest, UpdateUserRequest, UserResponse> {
+public class UserService implements BaseJpaService<User, RegisterRequest, UpdateUserRequest, UserResponse> {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
