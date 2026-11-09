@@ -17,6 +17,9 @@ public class UpdateUserProfileRequest {
     @NotNull(message = "ID is required")
     private UUID id;
 
+    @NotNull(message = "User ID is required")
+    private UUID userId;
+
     private String bio;
 
     @NotBlank(message = "Country code is required")
