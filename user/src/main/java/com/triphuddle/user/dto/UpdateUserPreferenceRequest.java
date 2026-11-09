@@ -15,6 +15,9 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UpdateUserPreferenceRequest {
 
+    @NotNull(message = "ID is required")
+    private String id;
+
     @NotNull(message = "User ID is required")
     private UUID userId;
 
