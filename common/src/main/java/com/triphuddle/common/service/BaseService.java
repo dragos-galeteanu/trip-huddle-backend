@@ -3,9 +3,7 @@ package com.triphuddle.common.service;
 import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.filter.PaginationFilter;
 
-import java.util.UUID;
-
-public interface BaseService<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
+public interface BaseService<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 
     /**
      * Creates a new resource.
@@ -13,20 +11,6 @@ public interface BaseService<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
      * @return the response object containing the created resource
      */
     RESPONSE create(CREATE_REQUEST request);
-
-    /**
-     * Get entity by id.
-     * @param id the id of the entity
-     * @return the entity object
-     */
-    ENTITY getEntityById(UUID id);
-
-    /**
-     * Get a resource by its ID.
-     * @param id the ID of the resource
-     * @return the response object containing the resource
-     */
-    RESPONSE getById(UUID id);
 
     /**
      * Get all resources matching the filter, with pagination and sorting applied.
@@ -41,18 +25,4 @@ public interface BaseService<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
      * @return the response object containing the updated resource
      */
     RESPONSE update(UPDATE_REQUEST request);
-
-    /**
-     * Disable an existing resource.
-     * @param id the ID of the resource
-     * @return the response object containing the disabled resource
-     */
-    RESPONSE disable(UUID id);
-
-    /**
-     * Delete an existing resource.
-     * @param id the ID of the resource
-     * @return the response object containing the deleted resource
-     */
-    RESPONSE delete(UUID id);
 }
