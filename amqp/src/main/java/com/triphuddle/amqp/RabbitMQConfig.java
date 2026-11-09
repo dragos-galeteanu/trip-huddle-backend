@@ -1,7 +1,7 @@
 package com.triphuddle.amqp;
 
 import com.triphuddle.amqp.notification.NotificationEmailContract;
-import com.triphuddle.amqp.user.UserProfilePictureContract;
+import com.triphuddle.amqp.user.UserProfilePictureUpdatedContract;
 import com.triphuddle.amqp.user.UserRegisteredContract;
 import lombok.AllArgsConstructor;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -37,7 +37,9 @@ public class RabbitMQConfig {
             NotificationEmailContract.EMAIL_QUEUE_NAME,
             NotificationEmailContract.EMAIL_DLQ_NAME,
             UserRegisteredContract.USER_REGISTERED_QUEUE_NAME,
-            UserRegisteredContract.USER_REGISTERED_DLQ_NAME
+            UserRegisteredContract.USER_REGISTERED_DLQ_NAME,
+            UserProfilePictureUpdatedContract.USER_PROFILE_PICTURE_UPDATED_QUEUE_NAME,
+            UserProfilePictureUpdatedContract.USER_PROFILE_PICTURE_UPDATED_DLQ_NAME
     );
 
     private final ConnectionFactory connectionFactory;
