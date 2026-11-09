@@ -4,7 +4,7 @@ import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
-import com.triphuddle.common.service.BaseService;
+import com.triphuddle.common.service.BaseJpaService;
 import com.triphuddle.user.dto.CreateUserProfileRequest;
 import com.triphuddle.user.dto.UpdateUserProfileRequest;
 import com.triphuddle.user.dto.UserProfileResponse;
@@ -26,7 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
-public class UserProfileService implements BaseService<UserProfile, CreateUserProfileRequest, UpdateUserProfileRequest, UserProfileResponse> {
+public class UserProfileService implements BaseJpaService<UserProfile, CreateUserProfileRequest, UpdateUserProfileRequest, UserProfileResponse> {
 
     private final UserProfileRepository userProfileRepository;
     private final UserProfileMapper userProfileMapper;
