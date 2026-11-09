@@ -18,6 +18,10 @@ spring:
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+  data:
+    mongodb:
+      uri: mongodb://${MONGODB_HOST:mongodb}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:jobbie_giggle_user}
+      auto-index-creation: true
   jpa:
     hibernate:
       ddl-auto: validate
