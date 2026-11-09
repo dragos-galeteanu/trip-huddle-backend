@@ -1,0 +1,17 @@
+package com.triphuddle.user.dto;
+
+import java.time.Instant;
+import java.util.UUID;
+
+public record UserPreferenceResponse(
+        String id,
+        UUID userId,
+        String languageCode,
+        String countryCode,
+        boolean marketingOptIn,
+        Instant createdAt,
+        Instant updatedAt,
+        Instant disabledAt,
+        Instant deletedAt
+) {
+}
