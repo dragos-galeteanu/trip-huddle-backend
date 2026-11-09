@@ -9,12 +9,11 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.util.ByteArrayDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.context.Context;
 import org.thymeleaf.ITemplateEngine;
+import org.thymeleaf.context.Context;
 
 import java.util.List;
 
@@ -71,6 +70,7 @@ public class EmailService {
             case EMAIL_VERIFICATION -> "email-verification";
             case PASSWORD_RESET -> "password-reset";
             case WELCOME -> "welcome";
+            case PROFILE_PICTURE_UPDATED -> "profile-picture-updated";
         };
     }
 
@@ -79,6 +79,7 @@ public class EmailService {
             case EMAIL_VERIFICATION -> "Verify your TripHuddle email address";
             case PASSWORD_RESET -> "Reset your TripHuddle password";
             case WELCOME -> "Welcome to TripHuddle!";
+            case PROFILE_PICTURE_UPDATED -> "Your TripHuddle profile pictures were updated";
         };
     }
 }

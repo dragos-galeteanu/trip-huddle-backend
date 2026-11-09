@@ -3,5 +3,6 @@ package com.triphuddle.amqp.notification;
 public enum NotificationEmailType {
     EMAIL_VERIFICATION,
     PASSWORD_RESET,
-    WELCOME
+    WELCOME,
+    PROFILE_PICTURE_UPDATED
 }
