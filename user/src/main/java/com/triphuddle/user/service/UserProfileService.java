@@ -1,6 +1,9 @@
 package com.triphuddle.user.service;
 
 import com.triphuddle.amqp.RabbitMQMessageProducer;
+import com.triphuddle.amqp.notification.NotificationEmailContract;
+import com.triphuddle.amqp.notification.NotificationEmailType;
+import com.triphuddle.amqp.notification.SendEmailRequest;
 import com.triphuddle.amqp.user.UserProfilePictureUpdatedContract;
 import com.triphuddle.amqp.user.UserProfilePictureUpdatedEvent;
 import com.triphuddle.common.dto.Paginated;
@@ -11,6 +14,7 @@ import com.triphuddle.common.service.BaseJpaService;
 import com.triphuddle.user.dto.CreateUserProfileRequest;
 import com.triphuddle.user.dto.UpdateUserProfileRequest;
 import com.triphuddle.user.dto.UserProfileResponse;
+import com.triphuddle.user.entity.User;
 import com.triphuddle.user.entity.UserProfile;
 import com.triphuddle.user.mapper.UserProfileMapper;
 import com.triphuddle.user.repository.UserProfileRepository;
@@ -23,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -102,7 +107,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
     }
 
     /**
-     * Publish a picture-updated event if either picture URL changed, and nothing otherwise.
+     * Publish a picture-updated event and its notification email if either picture URL changed, and nothing otherwise.
      *
      * @param userProfile the saved profile
      * @param previousProfilePictureUrl the profile picture URL as it was before the update
@@ -134,6 +139,22 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
         log.info("Event published for user profile picture update "
                         + "[userProfileId={}, profilePictureChanged={}, coverPictureChanged={}]",
                 userProfile.getId(), profilePictureChanged, coverPictureChanged);
+
+        User user = userProfile.getUser();
+        messageProducer.publish(
+                new SendEmailRequest(
+                        NotificationEmailType.PROFILE_PICTURE_UPDATED,
+                        user.getEmail(),
+                        Map.of(
+                                "firstName", user.getFirstName(),
+                                "profilePictureChanged", profilePictureChanged,
+                                "coverPictureChanged", coverPictureChanged
+                        )
+                ),
+                "",
+                NotificationEmailContract.EMAIL_QUEUE_NAME
+        );
+        log.info("Event published for user profile picture updated email [userProfileId={}]", userProfile.getId());
     }
 
     @Override
