@@ -5,11 +5,8 @@ import java.util.stream.Collectors;
 
 /**
  * Base mapper interface for converting between entities and DTOs.
- * @param <ENTITY> The entity type.
- * @param <REQUEST> The request DTO type.
- * @param <RESPONSE> The response DTO type.
  */
-public interface BaseMapper<ENTITY, REQUEST, RESPONSE> {
+public interface BaseMapper<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 
     /**
      * Converts an entity to a response DTO.
@@ -19,13 +16,20 @@ public interface BaseMapper<ENTITY, REQUEST, RESPONSE> {
     RESPONSE toResponse(ENTITY entity);
 
     /**
-     * Populates an entity's fields from a request DTO.
-     * Used for both creating new entities and updating existing ones.
+     * Populates an entity's fields from a create request DTO.
      *
-     * @param entity The entity to populate (can be new or existing).
+     * @param entity The entity to populate.
      * @param request The request DTO containing field values.
      */
-    void updateEntityFromRequest(ENTITY entity, REQUEST request);
+    void createEntityFromRequest(ENTITY entity, CREATE_REQUEST request);
+
+    /**
+     * Populates an entity's fields from an update request DTO.
+     *
+     * @param entity The entity to populate.
+     * @param request The request DTO containing field values.
+     */
+    void updateEntityFromRequest(ENTITY entity, UPDATE_REQUEST request);
 
     /**
      * Converts a list of entities to a list of response DTOs.
