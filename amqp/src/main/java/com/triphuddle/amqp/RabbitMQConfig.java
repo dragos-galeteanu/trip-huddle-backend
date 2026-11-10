@@ -1,6 +1,7 @@
 package com.triphuddle.amqp;
 
 import com.triphuddle.amqp.notification.NotificationQueues;
+import com.triphuddle.amqp.platform.PlatformQueues;
 import com.triphuddle.amqp.user.UserQueues;
 import lombok.AllArgsConstructor;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -35,7 +36,8 @@ public class RabbitMQConfig {
 
     private static final List<String> QUEUE_NAMES = Stream.of(
                     NotificationQueues.QUEUE_NAMES,
-                    UserQueues.QUEUE_NAMES
+                    UserQueues.QUEUE_NAMES,
+                    PlatformQueues.QUEUE_NAMES
             )
             .flatMap(List::stream)
             .toList();
