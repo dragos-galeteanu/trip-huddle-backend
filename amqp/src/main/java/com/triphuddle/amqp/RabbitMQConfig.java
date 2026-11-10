@@ -1,8 +1,7 @@
 package com.triphuddle.amqp;
 
-import com.triphuddle.amqp.notification.NotificationEmailContract;
-import com.triphuddle.amqp.user.UserProfilePictureUpdatedContract;
-import com.triphuddle.amqp.user.UserRegisteredContract;
+import com.triphuddle.amqp.notification.NotificationQueues;
+import com.triphuddle.amqp.user.UserQueues;
 import lombok.AllArgsConstructor;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.Declarable;
@@ -24,6 +23,7 @@ import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Configuration
 @Import(RabbitAutoConfiguration.class)
@@ -33,14 +33,12 @@ public class RabbitMQConfig {
 
     public static final String DEFAULT_DLQ_NAME = "default.dlq";
 
-    private static final List<String> QUEUE_NAMES = List.of(
-            NotificationEmailContract.EMAIL_QUEUE_NAME,
-            NotificationEmailContract.EMAIL_DLQ_NAME,
-            UserRegisteredContract.USER_REGISTERED_QUEUE_NAME,
-            UserRegisteredContract.USER_REGISTERED_DLQ_NAME,
-            UserProfilePictureUpdatedContract.USER_PROFILE_PICTURE_UPDATED_QUEUE_NAME,
-            UserProfilePictureUpdatedContract.USER_PROFILE_PICTURE_UPDATED_DLQ_NAME
-    );
+    private static final List<String> QUEUE_NAMES = Stream.of(
+                    NotificationQueues.QUEUE_NAMES,
+                    UserQueues.QUEUE_NAMES
+            )
+            .flatMap(List::stream)
+            .toList();
 
     private final ConnectionFactory connectionFactory;
 
