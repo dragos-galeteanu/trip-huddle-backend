@@ -28,6 +28,21 @@ spring:
             - Path=/user/v3/api-docs
           filters:
             - RewritePath=/user/v3/api-docs, /api-docs
+        - id: platform
+          uri: lb://PLATFORM
+          predicates:
+            - Path=/api/v1/platform/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: platform
+                fallbackUri: forward:/fallback
+        - id: platform-swagger
+          uri: lb://PLATFORM
+          predicates:
+            - Path=/platform/v3/api-docs
+          filters:
+            - RewritePath=/platform/v3/api-docs, /api-docs
   discovery:
     locator:
       enabled: true
@@ -45,6 +60,8 @@ resilience4j:
   timelimiter:
     instances:
       user:
+        timeoutDuration: 60s
+      platform:
         timeoutDuration: 60s
 
 management:

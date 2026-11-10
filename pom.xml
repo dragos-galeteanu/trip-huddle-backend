@@ -42,6 +42,7 @@
         <module>eureka-server</module>
         <module>notification</module>
         <module>openai</module>
+        <module>platform</module>
         <module>user</module>
     </modules>
 
