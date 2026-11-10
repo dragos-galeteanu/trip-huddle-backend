@@ -3,6 +3,7 @@ package com.triphuddle.apigateway.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
@@ -42,6 +43,10 @@ public class SecurityConfig {
                             .pathMatchers("/api/v1/payments/webhook", "/api/v1/payments/webhook/**").permitAll()
                             .pathMatchers("/api/v1/users/verify-email").permitAll()
                             .pathMatchers("/api/v1/users/forgot-password").permitAll()
+                            .pathMatchers(HttpMethod.GET,
+                                    "/api/v1/platform/countries/**",
+                                    "/api/v1/platform/currencies/**",
+                                    "/api/v1/platform/languages/**").permitAll()
                             .pathMatchers("/api/**").authenticated()
                             .anyExchange().authenticated();
                 })
