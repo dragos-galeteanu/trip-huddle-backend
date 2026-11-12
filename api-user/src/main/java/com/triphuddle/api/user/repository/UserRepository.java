@@ -22,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByEmailIgnoreCase(String email);
+
     @Query("SELECT u FROM User u WHERE u.firebaseSyncedRole IS NULL OR u.firebaseSyncedRole <> u.role")
     List<User> findUsersWithUnsyncedRoles();
 

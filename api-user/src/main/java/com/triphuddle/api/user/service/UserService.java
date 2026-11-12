@@ -5,6 +5,8 @@ import com.triphuddle.amqp.RabbitMQMessageProducer;
 import com.triphuddle.amqp.notification.NotificationEmailContract;
 import com.triphuddle.amqp.notification.NotificationEmailType;
 import com.triphuddle.amqp.notification.SendEmailRequest;
+import com.triphuddle.amqp.user.UserEmailVerifiedContract;
+import com.triphuddle.amqp.user.UserEmailVerifiedEvent;
 import com.triphuddle.amqp.user.UserRegisteredContract;
 import com.triphuddle.amqp.user.UserRegisteredEvent;
 import com.triphuddle.common.dto.Paginated;
@@ -126,6 +128,13 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         user.setEmailVerificationToken(null);
         userRepository.save(user);
         log.info("Email address of [userId={}] is verified", user.getId());
+
+        messageProducer.publish(
+                new UserEmailVerifiedEvent(user.getId(), user.getEmail()),
+                "",
+                UserEmailVerifiedContract.USER_EMAIL_VERIFIED_QUEUE_NAME
+        );
+        log.info("Event published for user email verification [userId={}]", user.getId());
 
         messageProducer.publish(
                 new SendEmailRequest(
