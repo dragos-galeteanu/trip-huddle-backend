@@ -1,5 +1,6 @@
 package com.triphuddle.user.repository;
 
+import com.triphuddle.user.entity.User;
 import com.triphuddle.user.entity.UserProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,4 +15,6 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
 
     @Query("select up.user.id from UserProfile up where up.id = :id")
     Optional<UUID> findOwnerUserIdById(@Param("id") UUID id);
+
+    boolean existsByUser(User user);
 }
