@@ -28,6 +28,21 @@ spring:
             - Path=/api-user/v3/api-docs
           filters:
             - RewritePath=/api-user/v3/api-docs, /api-docs
+        - id: api-group
+          uri: lb://API-GROUP
+          predicates:
+            - Path=/api/v1/groups/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: api-group
+                fallbackUri: forward:/fallback
+        - id: api-group-swagger
+          uri: lb://API-GROUP
+          predicates:
+            - Path=/api-group/v3/api-docs
+          filters:
+            - RewritePath=/api-group/v3/api-docs, /api-docs
         - id: api-platform
           uri: lb://API-PLATFORM
           predicates:
@@ -62,6 +77,8 @@ resilience4j:
       api-user:
         timeoutDuration: 60s
       api-platform:
+        timeoutDuration: 60s
+      api-group:
         timeoutDuration: 60s
 
 management:

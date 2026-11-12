@@ -40,13 +40,18 @@ public class SecurityConfig {
                         exchanges.pathMatchers("/*/v3/api-docs", "/*/swagger-ui/**").authenticated();
                     }
                     exchanges
-                            .pathMatchers("/api/v1/payments/webhook", "/api/v1/payments/webhook/**").permitAll()
+                            .pathMatchers(
+                                    "/api/v1/payments/webhook",
+                                    "/api/v1/payments/webhook/**").permitAll()
                             .pathMatchers("/api/v1/users/verify-email").permitAll()
                             .pathMatchers("/api/v1/users/forgot-password").permitAll()
                             .pathMatchers(HttpMethod.GET,
                                     "/api/v1/platform/countries/**",
                                     "/api/v1/platform/currencies/**",
                                     "/api/v1/platform/languages/**").permitAll()
+                            .pathMatchers(HttpMethod.POST,
+                                    "/api/v1/groups/invitations/accept",
+                                    "/api/v1/groups/invitations/reject").permitAll()
                             .pathMatchers("/api/**").authenticated()
                             .anyExchange().authenticated();
                 })
