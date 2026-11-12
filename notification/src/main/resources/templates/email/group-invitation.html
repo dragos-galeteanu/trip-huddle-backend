@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<!--/*
+  Template: email/group-invitation
+  Sent for NotificationEmailType.GROUP_INVITATION
+  Subject is set by EmailService ("You have been invited to a group on TripHuddle").
+
+  templateData variables:
+    groupName      (String, required)  name of the group the recipient is invited to
+    isAdminRole    (Boolean, optional) true when the invitee joins as an Admin; a line says so
+    acceptUrl      (String, required)  frontend link that accepts the invitation
+    rejectUrl      (String, required)  frontend link that rejects the invitation
+    expiresInDays  (Number, optional)  days until the invitation expires; the line is hidden when absent
+*/-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>You have been invited to a group on TripHuddle</title>
+    <!--[if mso]>
+    <style>body, table, td, a, h1, p { font-family: Arial, Helvetica, sans-serif !important; }</style>
+    <![endif]-->
+</head>
+<body style="margin:0; padding:0; width:100%; background-color:#F2F5F6; -webkit-font-smoothing:antialiased;">
+
+<div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; color:#F2F5F6;">
+    You have been invited to join a group &mdash; accept or decline in one click.
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F2F5F6;">
+    <tr>
+        <td align="center" style="padding:32px 16px;">
+
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+                <tr>
+                    <td align="center" style="padding:0 0 24px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:22px; font-weight:700; letter-spacing:-0.3px; color:#0A5F5A;">
+                        TripHuddle
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="background-color:#FFFFFF; border:1px solid #E3E8EB; border-radius:10px; padding:40px 40px 32px 40px;">
+
+                        <h1 style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:24px; line-height:32px; font-weight:700; color:#1A2B33;">
+                            You're invited to a group
+                        </h1>
+
+                        <p style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                            Hi there,
+                        </p>
+
+                        <p style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                            You have been invited to join
+                            <strong style="color:#1A2B33;" th:text="${groupName}">the group</strong>
+                            on TripHuddle, where a group plans a trip in one place.
+                        </p>
+
+                        <p style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;" th:if="${isAdminRole}">
+                            You would join as an <strong style="color:#1A2B33;">Admin</strong>, so you could invite and manage other members.
+                        </p>
+
+                        <p style="margin:0 0 28px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                            If you don't have a TripHuddle account yet, accepting will take you through creating one.
+                        </p>
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;">
+                            <tr>
+                                <td align="center" bgcolor="#0D7D77" style="border-radius:6px;">
+                                    <a href="#" th:href="${acceptUrl}"
+                                       style="display:inline-block; padding:14px 30px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:600; line-height:20px; color:#FFFFFF; text-decoration:none; border-radius:6px;">
+                                        Accept invitation
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="margin:0 0 28px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:22px; color:#5B6B73;">
+                            Not interested?
+                            <a href="#" th:href="${rejectUrl}" style="color:#0D7D77; text-decoration:underline;">Decline the invitation</a>.
+                            <span th:if="${expiresInDays != null}" th:text="|This invitation expires in ${expiresInDays} days.|">This invitation expires in 7 days.</span>
+                        </p>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E3E8EB;">
+                            <tr>
+                                <td style="padding:24px 0 0 0;">
+                                    <p style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:20px; color:#5B6B73;">
+                                        Anything we can help with? Just reply, or write to
+                                        <a href="mailto:contact@shinesofthub.com" style="color:#0D7D77; text-decoration:underline;">contact@shinesofthub.com</a>.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:24px 16px 0 16px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; line-height:20px; color:#7A8A92; text-align:center;">
+                        <p style="margin:0 0 6px 0;">You're receiving this email because a TripHuddle group Admin invited this address. If you weren't expecting it, you can ignore it.</p>
+                        <p style="margin:0 0 6px 0;">SHINESOFT SOLUTIONS SRL</p>
+                        <p style="margin:0;">
+                            &copy; <span th:text="${#dates.year(#dates.createNow())}">2026</span> SHINESOFT SOLUTIONS SRL. All rights reserved.
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
