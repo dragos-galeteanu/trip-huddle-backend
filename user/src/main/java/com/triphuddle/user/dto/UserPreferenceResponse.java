@@ -8,7 +8,7 @@ public record UserPreferenceResponse(
         UUID userId,
         String languageCode,
         String countryCode,
-        boolean marketingOptIn,
+        boolean isMarketingOptIn,
         Instant createdAt,
         Instant updatedAt,
         Instant disabledAt,

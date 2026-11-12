@@ -32,5 +32,5 @@ public class UpdateUserPreferenceRequest {
     private String countryCode;
 
     @NotNull(message = "Marketing opt-in is required")
-    private Boolean marketingOptIn;
+    private Boolean isMarketingOptIn;
 }

@@ -28,5 +28,5 @@ public class CreateUserPreferenceRequest {
     @Pattern(regexp = "^[A-Za-z]{2}$", message = "Country code must be a two-letter ISO 3166-1 alpha-2 code")
     private String countryCode;
 
-    private Boolean marketingOptIn;
+    private Boolean isMarketingOptIn;
 }
