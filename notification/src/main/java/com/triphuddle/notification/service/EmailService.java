@@ -71,6 +71,7 @@ public class EmailService {
             case PASSWORD_RESET -> "password-reset";
             case WELCOME -> "welcome";
             case PROFILE_PICTURE_UPDATED -> "profile-picture-updated";
+            case GROUP_INVITATION -> "group-invitation";
         };
     }
 
@@ -80,6 +81,7 @@ public class EmailService {
             case PASSWORD_RESET -> "Reset your TripHuddle password";
             case WELCOME -> "Welcome to TripHuddle!";
             case PROFILE_PICTURE_UPDATED -> "Your TripHuddle profile pictures were updated";
+            case GROUP_INVITATION -> "You have been invited to a group on TripHuddle";
         };
     }
 }
