@@ -45,15 +45,14 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
     @Override
     public UserProfileResponse create(CreateUserProfileRequest createUserProfileRequest) {
         UUID userId = createUserProfileRequest.getUserId();
-        User user = userService.getEntityById(userId);
 
-        if (userProfileRepository.existsByUser(user)) {
+        if (userProfileRepository.existsByUserId(userId)) {
             throw new IllegalStateException("UserProfile with userId=%s already exists".formatted(userId));
         }
 
         UserProfile userProfile = new UserProfile();
         userProfileMapper.createEntityFromRequest(userProfile, createUserProfileRequest);
-        userProfile.setUser(userService.getEntityById(createUserProfileRequest.getUserId()));
+        userProfile.setUser(userService.getEntityById(userId));
 
         UserProfile saved = userProfileRepository.save(userProfile);
         log.info("UserProfile created [id={}]", saved.getId());
