@@ -7,9 +7,9 @@
         <artifactId>triphuddle-backend</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>user</artifactId>
+    <artifactId>api-user</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>user</name>
+    <name>api-user</name>
     <description>User Module for managing users</description>
 
     <dependencies>
@@ -110,7 +110,7 @@
     </dependencies>
 
     <build>
-        <finalName>user</finalName>
+        <finalName>api-user</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

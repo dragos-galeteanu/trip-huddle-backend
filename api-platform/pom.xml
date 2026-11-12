@@ -7,9 +7,9 @@
         <artifactId>triphuddle-backend</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>platform</artifactId>
+    <artifactId>api-platform</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>platform</name>
+    <name>api-platform</name>
     <description>Platform Module for managing reference data and feature flags</description>
 
     <dependencies>
@@ -110,7 +110,7 @@
     </dependencies>
 
     <build>
-        <finalName>platform</finalName>
+        <finalName>api-platform</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

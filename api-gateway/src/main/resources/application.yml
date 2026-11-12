@@ -13,36 +13,36 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: user
-          uri: lb://USER
+        - id: api-user
+          uri: lb://API-USER
           predicates:
             - Path=/api/v1/users/**
           filters:
             - name: CircuitBreaker
               args:
-                name: user
+                name: api-user
                 fallbackUri: forward:/fallback
-        - id: user-swagger
-          uri: lb://USER
+        - id: api-user-swagger
+          uri: lb://API-USER
           predicates:
-            - Path=/user/v3/api-docs
+            - Path=/api-user/v3/api-docs
           filters:
-            - RewritePath=/user/v3/api-docs, /api-docs
-        - id: platform
-          uri: lb://PLATFORM
+            - RewritePath=/api-user/v3/api-docs, /api-docs
+        - id: api-platform
+          uri: lb://API-PLATFORM
           predicates:
             - Path=/api/v1/platform/**
           filters:
             - name: CircuitBreaker
               args:
-                name: platform
+                name: api-platform
                 fallbackUri: forward:/fallback
-        - id: platform-swagger
-          uri: lb://PLATFORM
+        - id: api-platform-swagger
+          uri: lb://API-PLATFORM
           predicates:
-            - Path=/platform/v3/api-docs
+            - Path=/api-platform/v3/api-docs
           filters:
-            - RewritePath=/platform/v3/api-docs, /api-docs
+            - RewritePath=/api-platform/v3/api-docs, /api-docs
   discovery:
     locator:
       enabled: true
@@ -59,9 +59,9 @@ eureka:
 resilience4j:
   timelimiter:
     instances:
-      user:
+      api-user:
         timeoutDuration: 60s
-      platform:
+      api-platform:
         timeoutDuration: 60s
 
 management:

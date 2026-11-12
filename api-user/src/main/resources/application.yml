@@ -1,6 +1,6 @@
 spring:
   application:
-    name: platform
+    name: api-user
   rabbitmq:
     host: ${RABBITMQ_HOST}
     port: 5672
@@ -14,13 +14,13 @@ spring:
           issuer-uri: https://securetoken.google.com/jobbiegiggle
           jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
   datasource:
-    url: jdbc:postgresql://postgres:5432/jobbie_giggle_platform
+    url: jdbc:postgresql://postgres:5432/jobbie_giggle_user
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
   data:
     mongodb:
-      uri: mongodb://${MONGODB_HOST:mongodb}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:jobbie_giggle_platform}
+      uri: mongodb://${MONGODB_HOST:mongodb}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:jobbie_giggle_user}
       auto-index-creation: true
   jpa:
     hibernate:
@@ -30,9 +30,16 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+firebase:
+  project-id: jobbiegiggle
+
+app:
+  base-url: http://localhost:8080
+  firebase-role-sync:
+    interval-ms: 60000
 
 server:
-  port: 8082
+  port: 8081
 
 eureka:
   client:
