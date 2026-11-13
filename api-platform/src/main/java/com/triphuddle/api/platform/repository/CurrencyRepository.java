@@ -1,13 +1,13 @@
 package com.triphuddle.api.platform.repository;
 
 import com.triphuddle.api.platform.entity.Currency;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.triphuddle.common.repository.BaseJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
 @Repository
-public interface CurrencyRepository extends JpaRepository<Currency, UUID> {
+public interface CurrencyRepository extends BaseJpaRepository<Currency, UUID> {
 
     boolean existsByCode(String code);
 

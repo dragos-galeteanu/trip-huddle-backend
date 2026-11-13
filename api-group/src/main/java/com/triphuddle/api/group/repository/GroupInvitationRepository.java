@@ -4,7 +4,7 @@ import com.triphuddle.api.group.entity.GroupInvitation;
 import com.triphuddle.api.group.entity.GroupInvitationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.triphuddle.common.repository.BaseJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface GroupInvitationRepository extends JpaRepository<GroupInvitation, UUID> {
+public interface GroupInvitationRepository extends BaseJpaRepository<GroupInvitation, UUID> {
 
     Optional<GroupInvitation> findByTokenAndDeletedAtIsNullAndDisabledAtIsNull(UUID token);
 

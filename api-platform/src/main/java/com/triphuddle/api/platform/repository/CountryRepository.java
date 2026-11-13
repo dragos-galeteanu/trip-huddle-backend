@@ -1,13 +1,13 @@
 package com.triphuddle.api.platform.repository;
 
 import com.triphuddle.api.platform.entity.Country;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.triphuddle.common.repository.BaseJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
 @Repository
-public interface CountryRepository extends JpaRepository<Country, UUID> {
+public interface CountryRepository extends BaseJpaRepository<Country, UUID> {
 
     boolean existsByAlpha2(String alpha2);
 

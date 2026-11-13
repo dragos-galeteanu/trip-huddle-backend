@@ -4,7 +4,7 @@ import com.triphuddle.api.group.entity.GroupMembership;
 import com.triphuddle.api.group.entity.GroupRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.triphuddle.common.repository.BaseJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
@@ -13,7 +13,7 @@ import java.util.UUID;
  * Methods ending in {@code DeletedAtIsNullAndDisabledAtIsNull} see active memberships only.
  */
 @Repository
-public interface GroupMembershipRepository extends JpaRepository<GroupMembership, UUID> {
+public interface GroupMembershipRepository extends BaseJpaRepository<GroupMembership, UUID> {
 
     boolean existsByGroupIdAndUserIdAndDeletedAtIsNullAndDisabledAtIsNull(UUID groupId, UUID userId);
 

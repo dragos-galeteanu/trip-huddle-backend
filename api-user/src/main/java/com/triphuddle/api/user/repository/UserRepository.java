@@ -1,18 +1,17 @@
 package com.triphuddle.api.user.repository;
 
 import com.triphuddle.api.user.entity.User;
+import com.triphuddle.common.repository.BaseJpaRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository extends BaseJpaRepository<User, UUID> {
 
     boolean existsByFirebaseUid(String firebaseUid);
 
@@ -23,9 +22,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
 
     Optional<User> findByEmailIgnoreCase(String email);
-
-    @Query("SELECT u FROM User u WHERE u.firebaseSyncedRole IS NULL OR u.firebaseSyncedRole <> u.role")
-    List<User> findUsersWithUnsyncedRoles();
 
     @Query("SELECT u FROM User u WHERE u.firebaseSyncedRole IS NULL OR u.firebaseSyncedRole <> u.role")
     Slice<User> findUsersWithUnsyncedRoles(Pageable pageable);
