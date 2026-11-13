@@ -11,6 +11,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * Request body for creating a group invitation.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

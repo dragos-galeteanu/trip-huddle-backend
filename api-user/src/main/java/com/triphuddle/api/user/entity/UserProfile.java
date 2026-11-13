@@ -6,6 +6,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * The public profile of a user: biography, pictures and links.
+ */
 @Entity
 @Table(name = "user_profiles")
 @Data

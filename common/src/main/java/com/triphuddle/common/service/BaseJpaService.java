@@ -2,6 +2,14 @@ package com.triphuddle.common.service;
 
 import java.util.UUID;
 
+/**
+ * Adds the operations addressed by UUID: get, disable and delete.
+ *
+ * @param <ENTITY> the type of the entity
+ * @param <CREATE_REQUEST> the type of the create request
+ * @param <UPDATE_REQUEST> the type of the update request
+ * @param <RESPONSE> the type of the response
+ */
 public interface BaseJpaService<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE>
         extends BaseService<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 

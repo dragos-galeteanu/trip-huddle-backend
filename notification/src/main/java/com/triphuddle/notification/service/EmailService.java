@@ -17,6 +17,9 @@ import org.thymeleaf.context.Context;
 
 import java.util.List;
 
+/**
+ * Renders an email from its Thymeleaf template and sends it over SMTP.
+ */
 @Slf4j
 @Service
 public class EmailService {
@@ -35,6 +38,12 @@ public class EmailService {
         this.fromAddress = DISPLAY_NAME + " <" + fromAddress + ">";
     }
 
+    /**
+     * Render the template for the request's type and send it, with any attachments.
+     *
+     * @param request the email to send
+     * @throws MessagingException if the message cannot be built
+     */
     public void send(SendEmailRequest request) throws MessagingException {
         String templateName = resolveTemplate(request.type());
         String subject = resolveSubject(request.type());

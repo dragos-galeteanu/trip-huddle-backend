@@ -55,6 +55,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Manages group invitations: sending, answering by token, canceling,
+ * and turning an accepted one into a membership once its user is known.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -117,6 +121,12 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         return groupInvitationMapper.toResponse(saved);
     }
 
+    /**
+     * Ask the notification service to email the invitation with its accept and reject links.
+     *
+     * @param groupInvitation the invitation to send
+     * @param group the group the invitation is for
+     */
     private void publishInvitationEmail(GroupInvitation groupInvitation, Group group) {
         // The links open frontend pages that POST the token, so a mail scanner following them changes nothing.
         String acceptUrl = "%s/group-invitations/accept?token=%s".formatted(frontendUrl, groupInvitation.getToken());
@@ -160,6 +170,13 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         return Paginated.of(groupInvitationPage, groupInvitationMapper::toResponseList);
     }
 
+    /**
+     * Get the invitations of a group that have not been deleted, with pagination.
+     *
+     * @param groupId the ID of the group
+     * @param filter pagination parameters
+     * @return a paginated response object containing the invitations of the group
+     */
     @Transactional(readOnly = true)
     public Paginated<GroupInvitationResponse> getAllByGroup(UUID groupId, PaginationFilter filter) {
         Page<GroupInvitation> groupInvitationPage = groupInvitationRepository
@@ -228,6 +245,16 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         return groupInvitationMapper.toResponse(saved);
     }
 
+    /**
+     * Accept a pending invitation by its token and publish the accepted event after the commit.
+     *
+     * @param token the token from the invitation email
+     * @param authentication the caller, or null if not signed in
+     * @return the response object containing the accepted invitation
+     * @throws ResourceNotFoundException if no usable invitation has the token
+     * @throws IllegalStateException if the invitation is not pending or has expired
+     * @throws AccessDeniedException if the caller is signed in with another email address
+     */
     public GroupInvitationResponse accept(UUID token, Authentication authentication) {
         GroupInvitation groupInvitation = getEntityByToken(token);
         requirePending(groupInvitation);
@@ -257,6 +284,14 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         return groupInvitationMapper.toResponse(saved);
     }
 
+    /**
+     * Reject a pending invitation by its token and publish the rejected event.
+     *
+     * @param token the token from the invitation email
+     * @return the response object containing the rejected invitation
+     * @throws ResourceNotFoundException if no usable invitation has the token
+     * @throws IllegalStateException if the invitation is not pending
+     */
     public GroupInvitationResponse reject(UUID token) {
         GroupInvitation groupInvitation = getEntityByToken(token);
         requirePending(groupInvitation);
@@ -276,6 +311,14 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         return groupInvitationMapper.toResponse(saved);
     }
 
+    /**
+     * Cancel a pending invitation and publish the canceled event; its email links stop working.
+     *
+     * @param id the ID of the invitation
+     * @return the response object containing the canceled invitation
+     * @throws ResourceNotFoundException if the invitation does not exist
+     * @throws IllegalStateException if the invitation is not pending
+     */
     public GroupInvitationResponse cancel(UUID id) {
         GroupInvitation groupInvitation = getEntityById(id);
         requirePending(groupInvitation);
@@ -295,6 +338,13 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         return groupInvitationMapper.toResponse(saved);
     }
 
+    /**
+     * Make the given user a member through an accepted invitation; repeating it changes nothing.
+     *
+     * @param groupInvitationId the ID of the invitation
+     * @param userId the ID of the user the invitation belongs to
+     * @throws IllegalStateException if the invitation is still pending, so that the message is retried
+     */
     public void linkUser(UUID groupInvitationId, UUID userId) {
         GroupInvitation groupInvitation = groupInvitationRepository.findById(groupInvitationId).orElse(null);
 
@@ -311,6 +361,12 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         link(groupInvitation, userId);
     }
 
+    /**
+     * Make a user a member through every accepted invitation waiting for their email address.
+     *
+     * @param userId the ID of the user
+     * @param email the email address the user has just verified
+     */
     public void linkVerifiedEmail(UUID userId, String email) {
         if (email == null) {
             return;
@@ -323,6 +379,12 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         groupInvitations.forEach(groupInvitation -> link(groupInvitation, userId));
     }
 
+    /**
+     * Create the membership for an accepted, not yet linked invitation and record the user on it.
+     *
+     * @param groupInvitation the invitation to link
+     * @param userId the ID of the user who becomes a member
+     */
     private void link(GroupInvitation groupInvitation, UUID userId) {
         boolean isLinkable = groupInvitation.getStatus() == GroupInvitationStatus.ACCEPTED
                 && groupInvitation.getAcceptedByUserId() == null
@@ -355,11 +417,24 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         log.info("GroupInvitation linked to user [id={}, userId={}]", groupInvitation.getId(), userId);
     }
 
+    /**
+     * Find the invitation a token belongs to, leaving out deleted and disabled ones.
+     *
+     * @param token the token from the invitation email
+     * @return the invitation
+     * @throws ResourceNotFoundException if no usable invitation has the token
+     */
     private GroupInvitation getEntityByToken(UUID token) {
         return groupInvitationRepository.findByTokenAndDeletedAtIsNullAndDisabledAtIsNull(token)
                 .orElseThrow(() -> new ResourceNotFoundException("GroupInvitation with the given token not found"));
     }
 
+    /**
+     * Refuse to act on an invitation that was already answered or canceled.
+     *
+     * @param groupInvitation the invitation to check
+     * @throws IllegalStateException if the invitation is not pending
+     */
     private void requirePending(GroupInvitation groupInvitation) {
         if (groupInvitation.getStatus() == GroupInvitationStatus.CANCELED) {
             throw new IllegalStateException(
@@ -372,6 +447,12 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         }
     }
 
+    /**
+     * Publish an event once the current transaction commits, or at once if there is none.
+     *
+     * @param event the event to publish
+     * @param queueName the queue to publish to
+     */
     private void publishAfterCommit(Object event, String queueName) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             messageProducer.publish(event, "", queueName);

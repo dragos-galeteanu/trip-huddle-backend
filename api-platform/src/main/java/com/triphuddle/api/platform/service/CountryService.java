@@ -26,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Manages countries and publishes an event when one is created, disabled or deleted.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional

@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * Request body for updating a group membership.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

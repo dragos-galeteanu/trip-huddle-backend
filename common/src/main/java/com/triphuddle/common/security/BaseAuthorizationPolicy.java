@@ -13,6 +13,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Contract for a resource's authorization policy, called from {@code @PreAuthorize} on its controller.
+ * Also provides the role and ownership checks the policies are built from.
+ *
+ * @param <CREATE_REQUEST> the type of the create request
+ * @param <UPDATE_REQUEST> the type of the update request
+ * @param <ID> the type of the ID the resource's routes carry
+ */
 public interface BaseAuthorizationPolicy<CREATE_REQUEST, UPDATE_REQUEST, ID> {
 
     Logger log = LoggerFactory.getLogger(BaseAuthorizationPolicy.class);
@@ -174,17 +182,14 @@ public interface BaseAuthorizationPolicy<CREATE_REQUEST, UPDATE_REQUEST, ID> {
     }
 
     /**
-     * Check if the user is authenticated.
-     *
-     * <p>An {@link AnonymousAuthenticationToken} does not count. It reports itself as
-     * authenticated - that is how Spring Security models "nobody is signed in" where anonymous
-     * authentication is enabled - and taking it at its word would hand an unauthenticated caller
-     * everything behind this check.</p>
+     * Check if the user is authenticated; an anonymous authentication does not count.
      *
      * @param authentication the authentication object
      * @return true if the user is authenticated, false otherwise
      */
     default boolean isAuthenticated(Authentication authentication) {
+        // An AnonymousAuthenticationToken reports itself as authenticated; taking it at its word
+        // would hand an unauthenticated caller everything behind this check.
         return authentication != null
                 && authentication.isAuthenticated()
                 && !(authentication instanceof AnonymousAuthenticationToken);

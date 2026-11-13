@@ -36,6 +36,13 @@ public class GroupInvitationAuthorizationPolicy
         return isAdminOrSupportOrInspector(authentication);
     }
 
+    /**
+     * Check if the user can list the invitations of a group.
+     *
+     * @param authentication the authentication object
+     * @param groupId the ID of the group
+     * @return true if the user is staff or an Admin of the group, false otherwise
+     */
     public boolean canGetAllByGroup(Authentication authentication, UUID groupId) {
         return isAdminOrSupportOrInspector(authentication) || groupAccess.isGroupAdmin(authentication, groupId);
     }
@@ -46,6 +53,13 @@ public class GroupInvitationAuthorizationPolicy
                 || groupAccess.isGroupAdmin(authentication, resolveGroupId(updateGroupInvitationRequest.getId()));
     }
 
+    /**
+     * Check if the user can cancel an invitation.
+     *
+     * @param authentication the authentication object
+     * @param id the ID of the invitation
+     * @return true if the user is Admin, Support or an Admin of the invitation's group, false otherwise
+     */
     public boolean canCancel(Authentication authentication, UUID id) {
         return isAdminOrSupport(authentication) || groupAccess.isGroupAdmin(authentication, resolveGroupId(id));
     }

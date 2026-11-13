@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * A group of users, remembered with the user who created it.
+ */
 @Entity
 @Table(name = "groups")
 @Data

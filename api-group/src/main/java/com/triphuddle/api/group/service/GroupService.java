@@ -34,6 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Manages groups; the creator of a group becomes its first Admin.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -89,6 +92,12 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         return Paginated.of(groupPage, groupMapper::toResponseList);
     }
 
+    /**
+     * Get the groups the current user is an active member of, with pagination.
+     *
+     * @param filter pagination parameters
+     * @return a paginated response object containing the current user's groups
+     */
     @Transactional(readOnly = true)
     public Paginated<GroupResponse> getMine(PaginationFilter filter) {
         UUID userId = SecurityUtils.extractUserId(SecurityContextHolder.getContext().getAuthentication());

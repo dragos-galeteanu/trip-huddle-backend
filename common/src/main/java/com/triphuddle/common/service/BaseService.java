@@ -3,6 +3,13 @@ package com.triphuddle.common.service;
 import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.filter.PaginationFilter;
 
+/**
+ * Operations every resource service has whatever its ID type: create, list and update.
+ *
+ * @param <CREATE_REQUEST> the type of the create request
+ * @param <UPDATE_REQUEST> the type of the update request
+ * @param <RESPONSE> the type of the response
+ */
 public interface BaseService<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 
     /**

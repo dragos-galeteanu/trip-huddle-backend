@@ -8,6 +8,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * A language, identified by its code, with its native name and writing direction.
+ */
 @Entity
 @Table(name = "languages")
 @Data

@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * Request body for updating an user profile.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

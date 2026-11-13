@@ -31,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Manages group memberships and keeps every group with at least one active Admin.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -95,6 +98,13 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         return Paginated.of(groupMembershipPage, groupMembershipMapper::toResponseList);
     }
 
+    /**
+     * Get the memberships of a group that have not been deleted, with pagination.
+     *
+     * @param groupId the ID of the group
+     * @param filter pagination parameters
+     * @return a paginated response object containing the memberships of the group
+     */
     @Transactional(readOnly = true)
     public Paginated<GroupMembershipResponse> getAllByGroup(UUID groupId, PaginationFilter filter) {
         Page<GroupMembership> groupMembershipPage = groupMembershipRepository
@@ -168,6 +178,12 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         return groupMembershipMapper.toResponse(saved);
     }
 
+    /**
+     * Refuse to take the Admin role away from the last active Admin of a group.
+     *
+     * @param groupMembership the membership about to be demoted, disabled or deleted
+     * @throws IllegalStateException if the membership is the only active Admin of its group
+     */
     private void requireAnotherAdmin(GroupMembership groupMembership) {
         boolean isActiveAdmin = groupMembership.getRole() == GroupRole.ADMIN
                 && groupMembership.getDeletedAt() == null

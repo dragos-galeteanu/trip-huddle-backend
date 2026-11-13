@@ -21,6 +21,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * REST endpoints for group invitations under {@code /api/v1/groups/invitations}.
+ * Accepting and rejecting need no sign-in: the token in the email is the proof.
+ */
 @RestController
 @RequestMapping("/api/v1/groups/invitations")
 @RequiredArgsConstructor
@@ -55,6 +59,13 @@ public class GroupInvitationController extends BaseJpaController<GroupInvitation
         return super.getAll(filter);
     }
 
+    /**
+     * Get the invitations of a group, with pagination.
+     *
+     * @param groupId the ID of the group
+     * @param filter pagination filter
+     * @return a paginated response object containing the invitations of the group
+     */
     @GetMapping("/group/{groupId}")
     @Operation(summary = "Get the invitations of a group")
     @PreAuthorize("@GroupInvitationPolicy.canGetAllByGroup(authentication, #groupId)")
@@ -63,6 +74,13 @@ public class GroupInvitationController extends BaseJpaController<GroupInvitation
         return ResponseEntity.ok(groupInvitationService.getAllByGroup(groupId, filter));
     }
 
+    /**
+     * Accept a group invitation by its token.
+     *
+     * @param groupInvitationTokenRequest the token from the invitation email
+     * @param authentication the caller, or null if not signed in
+     * @return the response object containing the accepted invitation
+     */
     @PostMapping("/accept")
     @Operation(summary = "Accept a group invitation by its token")
     public ResponseEntity<GroupInvitationResponse> accept(
@@ -70,6 +88,12 @@ public class GroupInvitationController extends BaseJpaController<GroupInvitation
         return ResponseEntity.ok(groupInvitationService.accept(groupInvitationTokenRequest.getToken(), authentication));
     }
 
+    /**
+     * Reject a group invitation by its token.
+     *
+     * @param groupInvitationTokenRequest the token from the invitation email
+     * @return the response object containing the rejected invitation
+     */
     @PostMapping("/reject")
     @Operation(summary = "Reject a group invitation by its token")
     public ResponseEntity<GroupInvitationResponse> reject(
@@ -77,6 +101,12 @@ public class GroupInvitationController extends BaseJpaController<GroupInvitation
         return ResponseEntity.ok(groupInvitationService.reject(groupInvitationTokenRequest.getToken()));
     }
 
+    /**
+     * Cancel a pending group invitation.
+     *
+     * @param id the ID of the invitation
+     * @return the response object containing the canceled invitation
+     */
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Cancel a pending group invitation")
     @PreAuthorize("@GroupInvitationPolicy.canCancel(authentication, #id)")

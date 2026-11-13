@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * REST endpoints for groups under {@code /api/v1/groups}.
+ */
 @RestController
 @RequestMapping("/api/v1/groups")
 @RequiredArgsConstructor
@@ -53,6 +56,12 @@ public class GroupController extends BaseJpaController<Group, CreateGroupRequest
         return super.getAll(filter);
     }
 
+    /**
+     * Get the groups the signed-in user belongs to, with pagination.
+     *
+     * @param filter pagination filter
+     * @return a paginated response object containing the user's groups
+     */
     @GetMapping("/mine")
     @Operation(summary = "Get the groups the current user is a member of")
     @PreAuthorize("@GroupPolicy.canGetMine(authentication)")

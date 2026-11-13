@@ -12,6 +12,9 @@ import org.springframework.context.annotation.Import;
 
 // Mongo comes in through `common` but this service stores nothing there; left on, its health
 // check would report the service down whenever no Mongo is reachable.
+/**
+ * Entry point of the group service, which owns groups, memberships and invitations.
+ */
 @SpringBootApplication(exclude = {MongoAutoConfiguration.class, MongoDataAutoConfiguration.class})
 @EnableDiscoveryClient
 @Import({
@@ -21,6 +24,11 @@ import org.springframework.context.annotation.Import;
 })
 public class GroupApplication {
 
+    /**
+     * Starts the service.
+     *
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
         SpringApplication.run(GroupApplication.class, args);
     }

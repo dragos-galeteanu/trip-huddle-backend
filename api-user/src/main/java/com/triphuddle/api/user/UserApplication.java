@@ -11,6 +11,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+/**
+ * Entry point of the user service, which owns users, their profiles and their preferences.
+ */
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableScheduling
@@ -23,6 +26,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 })
 public class UserApplication {
 
+    /**
+     * Starts the service.
+     *
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
         SpringApplication.run(UserApplication.class, args);
     }

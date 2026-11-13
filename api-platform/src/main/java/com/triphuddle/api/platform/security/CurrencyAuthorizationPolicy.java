@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * Reference data: readable by anyone, authenticated or not, writable by admins only.
+ * Reference data: readable by anyone, authenticated or not, writable by Admin or Support only.
  */
 @Component("CurrencyPolicy")
 public class CurrencyAuthorizationPolicy implements BaseAuthorizationPolicy<CreateCurrencyRequest, UpdateCurrencyRequest, UUID> {

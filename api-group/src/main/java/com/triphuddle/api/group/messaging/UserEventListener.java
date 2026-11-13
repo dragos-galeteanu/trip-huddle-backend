@@ -20,6 +20,11 @@ public class UserEventListener {
 
     private final GroupInvitationService groupInvitationService;
 
+    /**
+     * Link the user api-user matched to an accepted invitation.
+     *
+     * @param event the match between an invitation and a user
+     */
     @RabbitListener(
             queues = UserMatchedToGroupInvitationContract.USER_MATCHED_TO_GROUP_INVITATION_QUEUE_NAME,
             containerFactory = "simpleRabbitListenerContainerFactory"
@@ -30,6 +35,11 @@ public class UserEventListener {
         groupInvitationService.linkUser(event.groupInvitationId(), event.userId());
     }
 
+    /**
+     * Link the accepted invitations that were waiting for this user's email address to be verified.
+     *
+     * @param event the user and their verified email address
+     */
     @RabbitListener(
             queues = UserEmailVerifiedContract.USER_EMAIL_VERIFIED_QUEUE_NAME,
             containerFactory = "simpleRabbitListenerContainerFactory"

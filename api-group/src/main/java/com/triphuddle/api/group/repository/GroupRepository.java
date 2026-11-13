@@ -6,6 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
+/**
+ * Data access for {@link Group}.
+ */
 @Repository
 public interface GroupRepository extends BaseJpaRepository<Group, UUID> {
 }

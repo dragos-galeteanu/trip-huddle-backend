@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * REST endpoints for users under {@code /api/v1/users}, including registration and email verification.
+ */
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -35,12 +38,24 @@ public class UserController extends BaseJpaController<User, RegisterRequest, Upd
         return userService;
     }
 
+    /**
+     * Email a password reset link to the signed-in user.
+     *
+     * @param jwt the token of the signed-in user
+     * @return an empty response
+     */
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@AuthenticationPrincipal Jwt jwt) {
         userService.resetPassword(jwt.getClaimAsString("email"));
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Verify an email address from the link in the verification email.
+     *
+     * @param token the email verification token
+     * @return a small HTML page confirming the verification
+     */
     @GetMapping(value = "/verify-email", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> verifyEmail(@RequestParam UUID token) {
         userService.verifyEmail(token);
@@ -52,6 +67,13 @@ public class UserController extends BaseJpaController<User, RegisterRequest, Upd
                 """);
     }
 
+    /**
+     * Register the signed-in Firebase account as a platform user.
+     *
+     * @param jwt the token of the signed-in Firebase account
+     * @param registerRequest the details of the new user
+     * @return the response object containing the registered user
+     */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<UserResponse> register(
@@ -60,6 +82,12 @@ public class UserController extends BaseJpaController<User, RegisterRequest, Upd
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.register(jwt, registerRequest));
     }
 
+    /**
+     * Not supported: users are created through {@code /register}.
+     *
+     * @param registerRequest ignored
+     * @return a 405 Method Not Allowed response
+     */
     @Override
     public ResponseEntity<UserResponse> create(@RequestBody RegisterRequest registerRequest) {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();

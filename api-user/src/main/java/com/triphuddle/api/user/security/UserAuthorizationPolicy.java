@@ -8,6 +8,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+/**
+ * Users are readable by any signed-in user; a user is changed by themselves or by Admin or Support.
+ */
 @Component("UserPolicy")
 public class UserAuthorizationPolicy implements BaseAuthorizationPolicy<RegisterRequest, UpdateUserRequest, UUID> {
 

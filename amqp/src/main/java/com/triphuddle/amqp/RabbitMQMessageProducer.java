@@ -15,6 +15,13 @@ public class RabbitMQMessageProducer {
 
     private final AmqpTemplate amqpTemplate;
 
+    /**
+     * Publish a payload as JSON; an empty exchange with a queue name as routing key goes straight to that queue.
+     *
+     * @param payload the message to publish
+     * @param exchange the exchange to publish to, or an empty string for the default exchange
+     * @param routingKey the routing key, or the queue name on the default exchange
+     */
     public void publish(Object payload, String exchange, String routingKey) {
         log.info("Publishing to {} using routingKey {}. Payload: {}", exchange, routingKey, payload);
         amqpTemplate.convertAndSend(exchange, routingKey, payload);

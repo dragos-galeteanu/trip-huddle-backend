@@ -25,6 +25,11 @@ public class GroupInvitationEventListener {
     private final UserRepository userRepository;
     private final RabbitMQMessageProducer messageProducer;
 
+    /**
+     * Reply with the matching user if a verified one has the invited email address.
+     *
+     * @param event the accepted invitation
+     */
     @RabbitListener(
             queues = GroupInvitationAcceptedContract.GROUP_INVITATION_ACCEPTED_QUEUE_NAME,
             containerFactory = "simpleRabbitListenerContainerFactory"

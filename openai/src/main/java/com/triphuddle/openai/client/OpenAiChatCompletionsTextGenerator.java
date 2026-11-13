@@ -15,12 +15,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Generates text through the OpenAI chat completions endpoint.
+ */
 public class OpenAiChatCompletionsTextGenerator implements AiTextGenerator {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final OpenAiProperties properties;
 
+    /**
+     * @param restClient the HTTP client, already pointed at the OpenAI base URL
+     * @param objectMapper the JSON mapper used to read responses
+     * @param properties the OpenAI settings
+     */
     public OpenAiChatCompletionsTextGenerator(RestClient restClient, ObjectMapper objectMapper, OpenAiProperties properties) {
         this.restClient = restClient;
         this.objectMapper = objectMapper;

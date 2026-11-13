@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Members see their group's memberships; its Admins manage them, and a member can leave.
+ */
 @Component("GroupMembershipPolicy")
 @RequiredArgsConstructor
 public class GroupMembershipAuthorizationPolicy
@@ -40,6 +43,13 @@ public class GroupMembershipAuthorizationPolicy
         return isAdminOrSupportOrInspector(authentication);
     }
 
+    /**
+     * Check if the user can list the memberships of a group.
+     *
+     * @param authentication the authentication object
+     * @param groupId the ID of the group
+     * @return true if the user is staff or a member of the group, false otherwise
+     */
     public boolean canGetAllByGroup(Authentication authentication, UUID groupId) {
         return isAdminOrSupportOrInspector(authentication) || groupAccess.isGroupMember(authentication, groupId);
     }

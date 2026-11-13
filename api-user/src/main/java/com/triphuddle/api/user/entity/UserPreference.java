@@ -9,6 +9,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.UUID;
 
+/**
+ * The settings of a user: language, country and marketing consent. Stored in Mongo.
+ */
 @Document(collection = "user_preferences")
 @Data
 @EqualsAndHashCode(callSuper = true)

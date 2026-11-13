@@ -13,6 +13,9 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Request body for updating a country.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

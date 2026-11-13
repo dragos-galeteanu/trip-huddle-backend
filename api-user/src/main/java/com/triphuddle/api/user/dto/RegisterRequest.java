@@ -3,6 +3,9 @@ package com.triphuddle.api.user.dto;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+/**
+ * Request body for registering the signed-in Firebase account as a platform user.
+ */
 @Data
 public class RegisterRequest {
 

@@ -15,15 +15,30 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.util.List;
 
+/**
+ * Security for the group service: every route needs a token except accepting and rejecting an invitation.
+ */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig implements BaseSecurityConfig {
 
+    /**
+     * Registers the security filter chain as a bean.
+     *
+     * @param http the HttpSecurity object
+     * @return the configured SecurityFilterChain
+     * @throws Exception if an error occurs during configuration
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return BaseSecurityConfig.super.filterChain(http);
     }
 
+    /**
+     * Registers the converter that reads Firebase roles from the JWT as a bean.
+     *
+     * @return a converter that converts a JWT to an AbstractAuthenticationToken
+     */
     @Bean
     public Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter() {
         return BaseSecurityConfig.super.jwtAuthenticationConverter();

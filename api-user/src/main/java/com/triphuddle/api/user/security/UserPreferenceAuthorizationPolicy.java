@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Preferences are private: readable and changeable by their owner and by staff.
+ */
 @Component("UserPreferencePolicy")
 @RequiredArgsConstructor
 public class UserPreferenceAuthorizationPolicy

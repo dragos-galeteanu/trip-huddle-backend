@@ -12,6 +12,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * Request body for updating a currency.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

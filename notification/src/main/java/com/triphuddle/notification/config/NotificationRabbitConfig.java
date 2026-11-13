@@ -12,6 +12,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 
+/**
+ * RabbitMQ listener setup for emails: retries with backoff, then the email dead-letter queue.
+ */
 @Configuration
 @AllArgsConstructor
 public class NotificationRabbitConfig {
@@ -20,6 +23,11 @@ public class NotificationRabbitConfig {
     private final MessageConverter jacksonConverter;
     private final AmqpTemplate amqpTemplate;
 
+    /**
+     * Listener container factory used by the email listeners.
+     *
+     * @return the listener container factory
+     */
     @Bean
     public SimpleRabbitListenerContainerFactory notificationListenerContainerFactory() {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
@@ -29,6 +37,11 @@ public class NotificationRabbitConfig {
         return factory;
     }
 
+    /**
+     * Retries a failed email three times with exponential backoff, then republishes it to the email DLQ.
+     *
+     * @return the retry interceptor
+     */
     @Bean
     public RetryOperationsInterceptor emailRetryInterceptor() {
         return RetryInterceptorBuilder.stateless()

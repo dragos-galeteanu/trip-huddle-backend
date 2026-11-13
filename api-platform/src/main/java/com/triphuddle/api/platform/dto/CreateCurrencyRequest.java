@@ -10,6 +10,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Request body for creating a currency.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

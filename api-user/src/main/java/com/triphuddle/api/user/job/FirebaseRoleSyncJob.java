@@ -13,6 +13,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Scheduled job that copies platform roles to Firebase for users whose claims are out of date.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -25,6 +28,10 @@ public class FirebaseRoleSyncJob {
 
     private static final int BATCH_SIZE = 200;
 
+    /**
+     * Sync the claims of every user whose role differs from the one last sent to Firebase.
+     * Stops after three consecutive failures and leaves the rest for the next run.
+     */
     @Scheduled(fixedDelayString = "${app.firebase-role-sync.interval-ms}")
     @Transactional
     public void syncRoles() {

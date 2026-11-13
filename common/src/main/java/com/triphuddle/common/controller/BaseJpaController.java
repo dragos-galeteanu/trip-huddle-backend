@@ -9,6 +9,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.UUID;
 
+/**
+ * Adds the endpoints addressed by UUID: get, disable and delete.
+ *
+ * @param <ENTITY> the type of the entity
+ * @param <CREATE_REQUEST> the type of the create request
+ * @param <UPDATE_REQUEST> the type of the update request
+ * @param <RESPONSE> the type of the response
+ */
 public abstract class BaseJpaController<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE>
         extends BaseController<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 

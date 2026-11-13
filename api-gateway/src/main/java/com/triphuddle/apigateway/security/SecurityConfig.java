@@ -16,6 +16,9 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Gateway security: validates the Firebase JWT, applies CORS and decides which routes are public.
+ */
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
@@ -27,6 +30,12 @@ public class SecurityConfig {
     @Value("${app.swagger.public:false}")
     private boolean swaggerPublic;
 
+    /**
+     * Builds the filter chain: public routes first, then everything under {@code /api} needs a token.
+     *
+     * @param http the ServerHttpSecurity object
+     * @return the configured SecurityWebFilterChain
+     */
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         return http
@@ -62,6 +71,11 @@ public class SecurityConfig {
                 .build();
     }
 
+    /**
+     * CORS rules for {@code /api/**}, limited to the origins in {@code app.cors.allowed-origins}.
+     *
+     * @return the CORS configuration source
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -75,6 +89,11 @@ public class SecurityConfig {
         return source;
     }
 
+    /**
+     * Reactive converter that turns the Firebase {@code role} claim into a granted authority.
+     *
+     * @return the reactive JWT authentication converter
+     */
     @Bean
     public ReactiveJwtAuthenticationConverter reactiveJwtAuthenticationConverter() {
         ReactiveJwtAuthenticationConverter converter = new ReactiveJwtAuthenticationConverter();

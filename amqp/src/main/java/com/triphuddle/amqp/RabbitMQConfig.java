@@ -27,6 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * Shared RabbitMQ setup: JSON messages, retrying listeners and every queue the contracts define.
+ */
 @Configuration
 @Import(RabbitAutoConfiguration.class)
 @AllArgsConstructor
@@ -46,6 +49,11 @@ public class RabbitMQConfig {
 
     private final ConnectionFactory connectionFactory;
 
+    /**
+     * Template for publishing messages as JSON.
+     *
+     * @return the AMQP template
+     */
     @Bean
     public AmqpTemplate amqpTemplate() {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
@@ -54,6 +62,11 @@ public class RabbitMQConfig {
         return rabbitTemplate;
     }
 
+    /**
+     * Default listener container factory: JSON messages and the default retry policy.
+     *
+     * @return the listener container factory
+     */
     @Bean
     public SimpleRabbitListenerContainerFactory simpleRabbitListenerContainerFactory() {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
@@ -64,6 +77,11 @@ public class RabbitMQConfig {
         return factory;
     }
 
+    /**
+     * Retries a failed message three times with exponential backoff, then republishes it to the default DLQ.
+     *
+     * @return the retry interceptor
+     */
     @Bean
     public RetryOperationsInterceptor defaultRetryInterceptor() {
         return RetryInterceptorBuilder.stateless()
@@ -73,11 +91,21 @@ public class RabbitMQConfig {
                 .build();
     }
 
+    /**
+     * Converts messages to and from JSON.
+     *
+     * @return the message converter
+     */
     @Bean
     public MessageConverter jacksonConverter() {
         return new Jackson2JsonMessageConverter();
     }
 
+    /**
+     * Declares every contract queue and the default DLQ as durable queues on the broker.
+     *
+     * @return the queues to declare
+     */
     @Bean
     public Declarables allQueues() {
         List<Declarable> declarableList = new ArrayList<>(

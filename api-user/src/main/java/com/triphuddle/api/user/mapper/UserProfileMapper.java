@@ -9,6 +9,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
+/**
+ * Maps {@link UserProfile} to and from its request and response DTOs.
+ */
 @Mapper(componentModel = "spring")
 public interface UserProfileMapper extends BaseMapper<UserProfile, CreateUserProfileRequest, UpdateUserProfileRequest, UserProfileResponse> {
 

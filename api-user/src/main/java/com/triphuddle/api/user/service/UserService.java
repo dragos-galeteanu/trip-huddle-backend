@@ -34,6 +34,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Manages users: registration, email verification, password reset and Firebase claims.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -48,6 +51,14 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
     @Value("${app.base-url}")
     private String baseUrl;
 
+    /**
+     * Register a Firebase account as a platform user, or return the user it already is.
+     * Sets the Firebase claims and publishes the verification email and the user-registered event.
+     *
+     * @param jwt the token of the signed-in Firebase account
+     * @param registerRequest the details of the new user
+     * @return the response object containing the user
+     */
     @Transactional
     public UserResponse register(Jwt jwt, RegisterRequest registerRequest) {
         String firebaseUid = jwt.getSubject();
@@ -111,6 +122,12 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         log.info("Event published for user verification email [userId={}]", user.getId());
     }
 
+    /**
+     * Mark a user's email address as verified, then publish the email-verified event and the welcome email.
+     *
+     * @param token the email verification token
+     * @throws ResourceNotFoundException if no user has the token
+     */
     @Transactional
     public void verifyEmail(UUID token) {
         User user = userRepository.findByEmailVerificationToken(token)
@@ -148,6 +165,11 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         log.info("Event published for welcoming user email [userId={}]",  user.getId());
     }
 
+    /**
+     * Email a password reset link, in the background; an unknown email address is ignored.
+     *
+     * @param email the email address of the user
+     */
     public void resetPassword(String email) {
         CompletableFuture.runAsync(() -> {
             var userOpt = userRepository.findByEmail(email);

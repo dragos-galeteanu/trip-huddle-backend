@@ -9,6 +9,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Endpoints every resource has whatever its ID type: create, list and update.
+ *
+ * @param <CREATE_REQUEST> the type of the create request
+ * @param <UPDATE_REQUEST> the type of the update request
+ * @param <RESPONSE> the type of the response
+ */
 public abstract class BaseController<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 
     /**

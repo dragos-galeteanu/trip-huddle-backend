@@ -10,6 +10,9 @@ import lombok.ToString;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * An invitation for an email address to join a group, answered through its secret token.
+ */
 @Entity
 @Table(name = "group_invitations")
 @Data

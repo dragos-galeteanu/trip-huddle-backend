@@ -20,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Manages user preferences; a user has at most one.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional

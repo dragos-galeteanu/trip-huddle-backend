@@ -9,6 +9,9 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 
+/**
+ * A country, identified by its ISO 3166-1 codes, with its VAT and membership facts.
+ */
 @Entity
 @Table(name = "countries")
 @Data

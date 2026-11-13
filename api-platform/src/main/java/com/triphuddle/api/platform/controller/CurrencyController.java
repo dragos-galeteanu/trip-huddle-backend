@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * REST endpoints for currencies under {@code /api/v1/platform/currencies}; reads are public.
+ */
 @RestController
 @RequestMapping("/api/v1/platform/currencies")
 @RequiredArgsConstructor

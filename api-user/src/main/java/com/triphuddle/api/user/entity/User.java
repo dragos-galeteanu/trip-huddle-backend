@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * A platform user, linked to their Firebase account by {@code firebaseUid}.
+ */
 @Entity
 @Table(name = "users")
 @Data

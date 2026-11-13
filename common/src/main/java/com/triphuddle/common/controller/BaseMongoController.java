@@ -7,6 +7,14 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+/**
+ * Adds the endpoints addressed by Mongo ID: get, disable and delete.
+ *
+ * @param <ENTITY> the type of the entity
+ * @param <CREATE_REQUEST> the type of the create request
+ * @param <UPDATE_REQUEST> the type of the update request
+ * @param <RESPONSE> the type of the response
+ */
 public abstract class BaseMongoController<ENTITY, CREATE_REQUEST, UPDATE_REQUEST, RESPONSE>
         extends BaseController<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 

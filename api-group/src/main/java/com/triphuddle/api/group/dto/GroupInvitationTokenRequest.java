@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * Request body for accepting or rejecting a group invitation by its token.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

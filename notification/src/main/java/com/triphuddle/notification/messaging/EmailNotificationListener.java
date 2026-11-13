@@ -10,6 +10,9 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.mail.MailException;
 import org.springframework.stereotype.Component;
 
+/**
+ * Consumes email requests from the email queue and hands them to {@link EmailService}.
+ */
 @Slf4j
 @Component
 @AllArgsConstructor
@@ -17,6 +20,12 @@ public class EmailNotificationListener {
 
     private final EmailService emailService;
 
+    /**
+     * Send the requested email; a mail failure is retried, any other failure is dead-lettered at once.
+     *
+     * @param request the email to send
+     * @throws MailException if sending fails in a way worth retrying
+     */
     @RabbitListener(
             queues = NotificationEmailContract.EMAIL_QUEUE_NAME,
             containerFactory = "notificationListenerContainerFactory"

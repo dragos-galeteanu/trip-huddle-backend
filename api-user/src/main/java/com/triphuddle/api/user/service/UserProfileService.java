@@ -28,6 +28,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Manages user profiles and publishes an event when a profile or cover picture changes.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional

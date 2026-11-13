@@ -6,6 +6,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * A currency, identified by its code, with how its amounts are displayed.
+ */
 @Entity
 @Table(name = "currencies")
 @Data

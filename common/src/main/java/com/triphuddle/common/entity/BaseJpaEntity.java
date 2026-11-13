@@ -13,6 +13,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Columns every JPA entity has: ID, audit timestamps and the soft-disable and soft-delete timestamps.
+ */
 @Getter
 @Setter
 @MappedSuperclass

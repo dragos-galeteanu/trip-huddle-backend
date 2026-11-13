@@ -4,6 +4,9 @@ import com.triphuddle.openai.api.AiTextGenerator;
 import com.triphuddle.openai.dto.GenerateTextRequest;
 import com.triphuddle.openai.exception.OpenAiIntegrationException;
 
+/**
+ * Stand-in used while the OpenAI integration is disabled; it refuses every request.
+ */
 public class DisabledAiTextGenerator implements AiTextGenerator {
 
     @Override

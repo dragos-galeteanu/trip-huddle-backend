@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * REST endpoints for user profiles under {@code /api/v1/users/user-profiles}.
+ */
 @RestController
 @RequestMapping("/api/v1/users/user-profiles")
 @RequiredArgsConstructor

@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Profiles are readable by any signed-in user; a profile is changed by its owner or by Admin or Support.
+ */
 @Component("UserProfilePolicy")
 @RequiredArgsConstructor
 public class UserProfileAuthorizationPolicy implements BaseAuthorizationPolicy<CreateUserProfileRequest, UpdateUserProfileRequest, UUID> {

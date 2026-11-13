@@ -9,6 +9,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
+/**
+ * Maps {@link Group} to and from its request and response DTOs.
+ */
 @Mapper(componentModel = "spring")
 public interface GroupMapper extends BaseMapper<Group, CreateGroupRequest, UpdateGroupRequest, GroupResponse> {
 

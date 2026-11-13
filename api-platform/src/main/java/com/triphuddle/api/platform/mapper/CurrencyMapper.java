@@ -8,6 +8,9 @@ import com.triphuddle.api.platform.entity.Currency;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 
+/**
+ * Maps {@link Currency} to and from its request and response DTOs.
+ */
 @Mapper(componentModel = "spring")
 public interface CurrencyMapper extends BaseMapper<Currency, CreateCurrencyRequest, UpdateCurrencyRequest, CurrencyResponse> {
 

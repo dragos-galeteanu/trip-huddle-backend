@@ -9,6 +9,9 @@ import lombok.ToString;
 
 import java.util.UUID;
 
+/**
+ * A user's place in a group, with their role there. A user has at most one per group.
+ */
 @Entity
 @Table(name = "group_memberships")
 @Data

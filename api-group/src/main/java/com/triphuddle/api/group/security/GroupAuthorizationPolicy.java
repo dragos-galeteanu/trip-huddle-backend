@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+/**
+ * Any signed-in user can create a group; members see it, its Admins change it, staff oversee all.
+ */
 @Component("GroupPolicy")
 @RequiredArgsConstructor
 public class GroupAuthorizationPolicy implements BaseAuthorizationPolicy<CreateGroupRequest, UpdateGroupRequest, UUID> {
@@ -30,6 +33,12 @@ public class GroupAuthorizationPolicy implements BaseAuthorizationPolicy<CreateG
         return isAdminOrSupportOrInspector(authentication);
     }
 
+    /**
+     * Check if the user can list the groups they belong to.
+     *
+     * @param authentication the authentication object
+     * @return true if the user is signed in, false otherwise
+     */
     public boolean canGetMine(Authentication authentication) {
         return isAuthenticated(authentication);
     }

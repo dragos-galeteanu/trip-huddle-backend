@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * REST endpoints for languages under {@code /api/v1/platform/languages}; reads are public.
+ */
 @RestController
 @RequestMapping("/api/v1/platform/languages")
 @RequiredArgsConstructor
