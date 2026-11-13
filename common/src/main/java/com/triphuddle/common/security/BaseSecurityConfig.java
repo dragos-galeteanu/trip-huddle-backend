@@ -71,19 +71,14 @@ public interface BaseSecurityConfig {
 
     /**
      * Whether an unauthenticated request should still carry an anonymous authentication.
-     *
-     * <p>Off by default: a service whose every route needs a token has no use for one. Turn it on
-     * in a service that permits some routes <em>and</em> guards them with {@code @PreAuthorize}.
-     * Without it such a route is reached with no {@link org.springframework.security.core.Authentication}
-     * at all, and method security refuses the call before the expression is evaluated - so the
-     * policy never gets to say the route is open.</p>
-     *
-     * <p>Turning it on does not open anything: {@code anyRequest().authenticated()} still rejects
-     * an anonymous token, so only the explicitly permitted matchers are reachable.</p>
+     * Turn it on in a service whose public routes are also guarded by {@code @PreAuthorize}.
      *
      * @return true to keep anonymous authentication
      */
     default boolean anonymousAuthenticationEnabled() {
+        // Without an Authentication, method security refuses a permitted route before its policy
+        // is asked. Turning this on opens nothing: anyRequest().authenticated() still rejects an
+        // anonymous token, so only the explicitly permitted matchers are reachable.
         return false;
     }
 

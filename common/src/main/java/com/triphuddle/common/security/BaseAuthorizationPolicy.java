@@ -8,10 +8,19 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Contract for a resource's authorization policy, called from {@code @PreAuthorize} on its controller.
+ * Also provides the role and ownership checks the policies are built from.
+ *
+ * @param <CREATE_REQUEST> the type of the create request
+ * @param <UPDATE_REQUEST> the type of the update request
+ * @param <ID> the type of the ID the resource's routes carry
+ */
 public interface BaseAuthorizationPolicy<CREATE_REQUEST, UPDATE_REQUEST, ID> {
 
     Logger log = LoggerFactory.getLogger(BaseAuthorizationPolicy.class);
@@ -173,17 +182,14 @@ public interface BaseAuthorizationPolicy<CREATE_REQUEST, UPDATE_REQUEST, ID> {
     }
 
     /**
-     * Check if the user is authenticated.
-     *
-     * <p>An {@link AnonymousAuthenticationToken} does not count. It reports itself as
-     * authenticated - that is how Spring Security models "nobody is signed in" where anonymous
-     * authentication is enabled - and taking it at its word would hand an unauthenticated caller
-     * everything behind this check.</p>
+     * Check if the user is authenticated; an anonymous authentication does not count.
      *
      * @param authentication the authentication object
      * @return true if the user is authenticated, false otherwise
      */
     default boolean isAuthenticated(Authentication authentication) {
+        // An AnonymousAuthenticationToken reports itself as authenticated; taking it at its word
+        // would hand an unauthenticated caller everything behind this check.
         return authentication != null
                 && authentication.isAuthenticated()
                 && !(authentication instanceof AnonymousAuthenticationToken);
@@ -240,5 +246,38 @@ public interface BaseAuthorizationPolicy<CREATE_REQUEST, UPDATE_REQUEST, ID> {
             log.warn("Malformed subject in JWT [raw={}]", subject);
             return false;
         }
+    }
+
+    /**
+     * Resolve the ID of the user who owns the resource the route key points at. Override it where
+     * a resource's own ID differs from its owner's; the default denies ownership, never grants it.
+     *
+     * @param id the id of the resource, as its route carries it
+     * @return the owning user's ID, or empty if the resource does not exist or has no owner
+     */
+    default Optional<UUID> resolveOwnerUserId(ID id) {
+        return Optional.empty();
+    }
+
+    /**
+     * Check if the current user owns the resource the given route key points at. Prefer it over
+     * {@link #isCurrentUser(Authentication, UUID)} when the value is a resource ID, not a user ID.
+     *
+     * @param authentication the authentication object
+     * @param id the id of the resource, as its route carries it
+     * @return true if the current user owns the resource, false otherwise
+     */
+    default boolean isResourceOwner(Authentication authentication, ID id) {
+        if (authentication == null || id == null) {
+            log.debug("Resource-owner check denied: missing authentication or id");
+            return false;
+        }
+
+        return resolveOwnerUserId(id)
+                .map(ownerUserId -> isCurrentUser(authentication, ownerUserId))
+                .orElseGet(() -> {
+                    log.debug("Resource-owner check denied: no owner resolved [id={}]", id);
+                    return false;
+                });
     }
 }

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!--/*
+  Template: email/profile-picture-updated
+  Sent for NotificationEmailType.PROFILE_PICTURE_UPDATED
+  Subject is set by EmailService ("Your TripHuddle profile pictures were updated").
+
+  templateData variables:
+    firstName              (String, optional)  recipient's first name; falls back to "there"
+    profilePictureChanged  (Boolean, optional) whether the profile picture changed; its line is hidden when false or absent
+    coverPictureChanged    (Boolean, optional) whether the cover picture changed; its line is hidden when false or absent
+*/-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Your TripHuddle profile pictures were updated</title>
+    <!--[if mso]>
+    <style>body, table, td, a, h1, p { font-family: Arial, Helvetica, sans-serif !important; }</style>
+    <![endif]-->
+</head>
+<body style="margin:0; padding:0; width:100%; background-color:#F2F5F6; -webkit-font-smoothing:antialiased;">
+
+<div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; color:#F2F5F6;">
+    The pictures on your TripHuddle profile were just changed.
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F2F5F6;">
+    <tr>
+        <td align="center" style="padding:32px 16px;">
+
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+                <tr>
+                    <td align="center" style="padding:0 0 24px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:22px; font-weight:700; letter-spacing:-0.3px; color:#0A5F5A;">
+                        TripHuddle
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="background-color:#FFFFFF; border:1px solid #E3E8EB; border-radius:10px; padding:40px 40px 32px 40px;">
+
+                        <h1 style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:24px; line-height:32px; font-weight:700; color:#1A2B33;">
+                            Your profile has a new look
+                        </h1>
+
+                        <p style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;"
+                           th:with="greetingName=${firstName} ?: 'there'" th:text="|Hi ${greetingName},|">
+                            Hi there,
+                        </p>
+
+                        <p style="margin:0 0 20px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                            The pictures on your TripHuddle profile were just changed:
+                        </p>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px 0;">
+                            <tr th:if="${profilePictureChanged == true}">
+                                <td width="24" valign="top" style="padding:0 0 10px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; line-height:26px; color:#0D7D77;">&bull;</td>
+                                <td valign="top" style="padding:0 0 10px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                                    <strong style="color:#1A2B33;">Profile picture</strong> was updated
+                                </td>
+                            </tr>
+                            <tr th:if="${coverPictureChanged == true}">
+                                <td width="24" valign="top" style="padding:0 0 10px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; line-height:26px; color:#0D7D77;">&bull;</td>
+                                <td valign="top" style="padding:0 0 10px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                                    <strong style="color:#1A2B33;">Cover picture</strong> was updated
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E3E8EB;">
+                            <tr>
+                                <td style="padding:24px 0 0 0;">
+                                    <p style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:20px; color:#5B6B73;">
+                                        If you made this change, there's nothing else to do. If you didn't, reply to
+                                        this email or write to
+                                        <a href="mailto:contact@shinesofthub.com" style="color:#0D7D77; text-decoration:underline;">contact@shinesofthub.com</a>
+                                        so we can help secure your account.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:24px 16px 0 16px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; line-height:20px; color:#7A8A92; text-align:center;">
+                        <p style="margin:0 0 6px 0;">You're receiving this email because the pictures on your TripHuddle profile changed.</p>
+                        <p style="margin:0 0 6px 0;">SHINESOFT SOLUTIONS SRL</p>
+                        <p style="margin:0;">
+                            &copy; <span th:text="${#dates.year(#dates.createNow())}">2026</span> SHINESOFT SOLUTIONS SRL. All rights reserved.
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

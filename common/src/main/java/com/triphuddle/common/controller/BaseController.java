@@ -9,15 +9,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
-public abstract class BaseController<ENTITY> {
+/**
+ * Endpoints every resource has whatever its ID type: create, list and update.
+ *
+ * @param <CREATE_REQUEST> the type of the create request
+ * @param <UPDATE_REQUEST> the type of the update request
+ * @param <RESPONSE> the type of the response
+ */
+public abstract class BaseController<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> {
 
     /**
      * Get the service associated with this controller.
      * @return the service
      */
-    protected abstract BaseService<ENTITY> getService();
+    protected abstract BaseService<CREATE_REQUEST, UPDATE_REQUEST, RESPONSE> getService();
 
     /**
      * Create a new resource.
@@ -26,21 +31,9 @@ public abstract class BaseController<ENTITY> {
      */
     @PostMapping
     @Operation(summary = "Create a new resource")
-    public <RESPONSE, CREATE_REQUEST> ResponseEntity<RESPONSE> create(@Valid @RequestBody CREATE_REQUEST request) {
+    public ResponseEntity<RESPONSE> create(@Valid @RequestBody CREATE_REQUEST request) {
         RESPONSE response = getService().create(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
-
-    /**
-     * Get resource by ID.
-     * @param id the ID of the resource
-     * @return the response object containing the resource
-     */
-    @GetMapping("/{id}")
-    @Operation(summary = "Get resource by ID")
-    public <RESPONSE> ResponseEntity<RESPONSE> getById(@PathVariable UUID id) {
-        RESPONSE response = getService().getById(id);
-        return ResponseEntity.ok(response);
     }
 
     /**
@@ -50,7 +43,7 @@ public abstract class BaseController<ENTITY> {
      */
     @GetMapping
     @Operation(summary = "Get all resources with pagination")
-    public <RESPONSE> ResponseEntity<Paginated<RESPONSE>> getAll(@Valid @ModelAttribute PaginationFilter filter) {
+    public ResponseEntity<Paginated<RESPONSE>> getAll(@Valid @ModelAttribute PaginationFilter filter) {
         Paginated<RESPONSE> responses = getService().getAll(filter);
         return ResponseEntity.ok(responses);
     }
@@ -62,33 +55,8 @@ public abstract class BaseController<ENTITY> {
      */
     @PutMapping
     @Operation(summary = "Update resource")
-    public <RESPONSE, UPDATE_REQUEST> ResponseEntity<RESPONSE> update(@Valid @RequestBody UPDATE_REQUEST request) {
+    public ResponseEntity<RESPONSE> update(@Valid @RequestBody UPDATE_REQUEST request) {
         RESPONSE response = getService().update(request);
         return ResponseEntity.ok(response);
     }
-
-    /**
-     * Disable an existing resource by ID.
-     * @param id the ID of the resource
-     * @return the response object containing the disabled resource
-     */
-    @DeleteMapping("/{id}/disable")
-    @Operation(summary = "Disable an existing resource by ID")
-    public <RESPONSE> ResponseEntity<RESPONSE> disable(@PathVariable UUID id) {
-        RESPONSE response = getService().disable(id);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Delete an existing resource by ID.
-     * @param id the ID of the resource
-     * @return the response object containing the deleted resource
-     */
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete an existing resource by ID")
-    public <RESPONSE> ResponseEntity<RESPONSE> delete(@PathVariable UUID id) {
-        RESPONSE response = getService().delete(id);
-        return ResponseEntity.ok(response);
-    }
-
 }

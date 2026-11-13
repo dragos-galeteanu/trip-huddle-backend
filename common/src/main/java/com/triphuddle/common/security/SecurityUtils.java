@@ -7,6 +7,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.UUID;
 
+/**
+ * Helpers for reading the caller's identity from the security context.
+ */
 @Slf4j
 public final class SecurityUtils {
 

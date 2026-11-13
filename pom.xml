@@ -36,7 +36,15 @@
     </properties>
 
     <modules>
+        <module>amqp</module>
+        <module>api-gateway</module>
+        <module>api-group</module>
+        <module>api-platform</module>
+        <module>api-user</module>
         <module>common</module>
+        <module>eureka-server</module>
+        <module>notification</module>
+        <module>openai</module>
     </modules>
 
     <dependencyManagement>
