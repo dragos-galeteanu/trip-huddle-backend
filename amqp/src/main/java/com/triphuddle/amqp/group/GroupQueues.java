@@ -32,6 +32,8 @@ public class GroupQueues {
             GroupInvitationAcceptedContract.GROUP_INVITATION_ACCEPTED_QUEUE_NAME,
             GroupInvitationAcceptedContract.GROUP_INVITATION_ACCEPTED_DLQ_NAME,
             GroupInvitationRejectedContract.GROUP_INVITATION_REJECTED_QUEUE_NAME,
-            GroupInvitationRejectedContract.GROUP_INVITATION_REJECTED_DLQ_NAME
+            GroupInvitationRejectedContract.GROUP_INVITATION_REJECTED_DLQ_NAME,
+            GroupInvitationCanceledContract.GROUP_INVITATION_CANCELED_QUEUE_NAME,
+            GroupInvitationCanceledContract.GROUP_INVITATION_CANCELED_DLQ_NAME
     );
 }

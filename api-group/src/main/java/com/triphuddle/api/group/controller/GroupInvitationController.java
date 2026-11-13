@@ -77,6 +77,13 @@ public class GroupInvitationController extends BaseJpaController<GroupInvitation
         return ResponseEntity.ok(groupInvitationService.reject(groupInvitationTokenRequest.getToken()));
     }
 
+    @PostMapping("/{id}/cancel")
+    @Operation(summary = "Cancel a pending group invitation")
+    @PreAuthorize("@GroupInvitationPolicy.canCancel(authentication, #id)")
+    public ResponseEntity<GroupInvitationResponse> cancel(@PathVariable UUID id) {
+        return ResponseEntity.ok(groupInvitationService.cancel(id));
+    }
+
     @Override
     @PutMapping
     @PreAuthorize("@GroupInvitationPolicy.canUpdate(authentication, #updateGroupInvitationRequest)")

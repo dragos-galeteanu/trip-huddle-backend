@@ -46,6 +46,10 @@ public class GroupInvitationAuthorizationPolicy
                 || groupAccess.isGroupAdmin(authentication, resolveGroupId(updateGroupInvitationRequest.getId()));
     }
 
+    public boolean canCancel(Authentication authentication, UUID id) {
+        return isAdminOrSupport(authentication) || groupAccess.isGroupAdmin(authentication, resolveGroupId(id));
+    }
+
     @Override
     public boolean canDelete(Authentication authentication, UUID id) {
         return groupAccess.isGroupAdmin(authentication, resolveGroupId(id));

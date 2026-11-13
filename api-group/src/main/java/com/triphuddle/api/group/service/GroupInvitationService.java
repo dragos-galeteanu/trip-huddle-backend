@@ -3,6 +3,8 @@ package com.triphuddle.api.group.service;
 import com.triphuddle.amqp.RabbitMQMessageProducer;
 import com.triphuddle.amqp.group.GroupInvitationAcceptedContract;
 import com.triphuddle.amqp.group.GroupInvitationAcceptedEvent;
+import com.triphuddle.amqp.group.GroupInvitationCanceledContract;
+import com.triphuddle.amqp.group.GroupInvitationCanceledEvent;
 import com.triphuddle.amqp.group.GroupInvitationCreatedContract;
 import com.triphuddle.amqp.group.GroupInvitationCreatedEvent;
 import com.triphuddle.amqp.group.GroupInvitationDeletedContract;
@@ -29,7 +31,6 @@ import com.triphuddle.api.group.repository.GroupInvitationRepository;
 import com.triphuddle.api.group.repository.GroupMembershipRepository;
 import com.triphuddle.api.group.repository.GroupRepository;
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.security.SecurityUtils;
@@ -38,8 +39,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -157,39 +156,15 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
     @Override
     @Transactional(readOnly = true)
     public Paginated<GroupInvitationResponse> getAll(PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
-        Page<GroupInvitation> groupInvitationPage = groupInvitationRepository.findAll(pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                groupInvitationPage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                groupInvitationPage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                groupInvitationMapper.toResponseList(groupInvitationPage.getContent()),
-                paginationMetaData
-        );
+        Page<GroupInvitation> groupInvitationPage = groupInvitationRepository.findAll(filter.toPageable());
+        return Paginated.of(groupInvitationPage, groupInvitationMapper::toResponseList);
     }
 
     @Transactional(readOnly = true)
     public Paginated<GroupInvitationResponse> getAllByGroup(UUID groupId, PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
         Page<GroupInvitation> groupInvitationPage = groupInvitationRepository
-                .findByGroupIdAndDeletedAtIsNull(groupId, pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                groupInvitationPage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                groupInvitationPage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                groupInvitationMapper.toResponseList(groupInvitationPage.getContent()),
-                paginationMetaData
-        );
+                .findByGroupIdAndDeletedAtIsNull(groupId, filter.toPageable());
+        return Paginated.of(groupInvitationPage, groupInvitationMapper::toResponseList);
     }
 
     @Override
@@ -301,6 +276,25 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         return groupInvitationMapper.toResponse(saved);
     }
 
+    public GroupInvitationResponse cancel(UUID id) {
+        GroupInvitation groupInvitation = getEntityById(id);
+        requirePending(groupInvitation);
+
+        groupInvitation.setStatus(GroupInvitationStatus.CANCELED);
+
+        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+        log.info("GroupInvitation canceled [id={}]", saved.getId());
+
+        messageProducer.publish(
+                new GroupInvitationCanceledEvent(
+                        saved.getId(), saved.getGroup().getId(), saved.getEmail(), saved.getRole().name()),
+                "",
+                GroupInvitationCanceledContract.GROUP_INVITATION_CANCELED_QUEUE_NAME
+        );
+        log.info("Event published for group invitation cancellation [groupInvitationId={}]", saved.getId());
+        return groupInvitationMapper.toResponse(saved);
+    }
+
     public void linkUser(UUID groupInvitationId, UUID userId) {
         GroupInvitation groupInvitation = groupInvitationRepository.findById(groupInvitationId).orElse(null);
 
@@ -367,6 +361,11 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
     }
 
     private void requirePending(GroupInvitation groupInvitation) {
+        if (groupInvitation.getStatus() == GroupInvitationStatus.CANCELED) {
+            throw new IllegalStateException(
+                    "GroupInvitation with id=%s is no longer valid".formatted(groupInvitation.getId()));
+        }
+
         if (groupInvitation.getStatus() != GroupInvitationStatus.PENDING) {
             throw new IllegalStateException("GroupInvitation with id=%s is already %s"
                     .formatted(groupInvitation.getId(), groupInvitation.getStatus().name().toLowerCase(Locale.ROOT)));
