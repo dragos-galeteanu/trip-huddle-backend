@@ -3,14 +3,14 @@ package com.triphuddle.api.user.repository;
 import com.triphuddle.api.user.entity.UserPreference;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.Aggregation;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import com.triphuddle.common.repository.BaseMongoRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface UserPreferenceRepository extends MongoRepository<UserPreference, ObjectId> {
+public interface UserPreferenceRepository extends BaseMongoRepository<UserPreference, ObjectId> {
 
     boolean existsByUserId(UUID userId);
 
