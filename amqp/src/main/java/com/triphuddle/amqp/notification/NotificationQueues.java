@@ -6,6 +6,8 @@ import java.util.List;
 public class NotificationQueues {
     public static final List<String> QUEUE_NAMES = List.of(
             NotificationEmailContract.EMAIL_QUEUE_NAME,
-            NotificationEmailContract.EMAIL_DLQ_NAME
+            NotificationEmailContract.EMAIL_DLQ_NAME,
+            NotificationPushContract.PUSH_QUEUE_NAME,
+            NotificationPushContract.PUSH_DLQ_NAME
     );
 }
