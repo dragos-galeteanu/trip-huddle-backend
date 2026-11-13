@@ -9,6 +9,7 @@ import com.triphuddle.amqp.group.GroupDisabledContract;
 import com.triphuddle.amqp.group.GroupDisabledEvent;
 import com.triphuddle.amqp.group.GroupUpdatedContract;
 import com.triphuddle.amqp.group.GroupUpdatedEvent;
+import com.triphuddle.api.group.dto.CreateGroupMembershipRequest;
 import com.triphuddle.api.group.dto.CreateGroupRequest;
 import com.triphuddle.api.group.dto.GroupResponse;
 import com.triphuddle.api.group.dto.UpdateGroupRequest;
@@ -67,7 +68,7 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         log.info("Event published for group creation [groupId={}]", saved.getId());
 
         // The creator is the group's first Admin, so the group is never without one.
-        groupMembershipService.createMembership(saved, userId, GroupRole.ADMIN);
+        groupMembershipService.create(new CreateGroupMembershipRequest(saved.getId(), userId, GroupRole.ADMIN));
         return groupMapper.toResponse(saved);
     }
 
