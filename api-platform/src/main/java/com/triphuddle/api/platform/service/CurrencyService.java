@@ -8,7 +8,6 @@ import com.triphuddle.amqp.platform.CurrencyDeletedEvent;
 import com.triphuddle.amqp.platform.CurrencyDisabledContract;
 import com.triphuddle.amqp.platform.CurrencyDisabledEvent;
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.service.BaseJpaService;
@@ -21,8 +20,6 @@ import com.triphuddle.api.platform.repository.CurrencyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,20 +75,8 @@ public class CurrencyService implements BaseJpaService<Currency, CreateCurrencyR
     @Override
     @Transactional(readOnly = true)
     public Paginated<CurrencyResponse> getAll(PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
-        Page<Currency> currencyPage = currencyRepository.findAll(pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                currencyPage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                currencyPage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                currencyMapper.toResponseList(currencyPage.getContent()),
-                paginationMetaData
-        );
+        Page<Currency> currencyPage = currencyRepository.findAll(filter.toPageable());
+        return Paginated.of(currencyPage, currencyMapper::toResponseList);
     }
 
     @Override

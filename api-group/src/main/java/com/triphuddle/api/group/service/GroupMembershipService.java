@@ -19,15 +19,12 @@ import com.triphuddle.api.group.mapper.GroupMembershipMapper;
 import com.triphuddle.api.group.repository.GroupMembershipRepository;
 import com.triphuddle.api.group.repository.GroupRepository;
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.service.BaseJpaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -94,39 +91,15 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
     @Override
     @Transactional(readOnly = true)
     public Paginated<GroupMembershipResponse> getAll(PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
-        Page<GroupMembership> groupMembershipPage = groupMembershipRepository.findAll(pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                groupMembershipPage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                groupMembershipPage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                groupMembershipMapper.toResponseList(groupMembershipPage.getContent()),
-                paginationMetaData
-        );
+        Page<GroupMembership> groupMembershipPage = groupMembershipRepository.findAll(filter.toPageable());
+        return Paginated.of(groupMembershipPage, groupMembershipMapper::toResponseList);
     }
 
     @Transactional(readOnly = true)
     public Paginated<GroupMembershipResponse> getAllByGroup(UUID groupId, PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
         Page<GroupMembership> groupMembershipPage = groupMembershipRepository
-                .findByGroupIdAndDeletedAtIsNull(groupId, pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                groupMembershipPage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                groupMembershipPage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                groupMembershipMapper.toResponseList(groupMembershipPage.getContent()),
-                paginationMetaData
-        );
+                .findByGroupIdAndDeletedAtIsNull(groupId, filter.toPageable());
+        return Paginated.of(groupMembershipPage, groupMembershipMapper::toResponseList);
     }
 
     @Override

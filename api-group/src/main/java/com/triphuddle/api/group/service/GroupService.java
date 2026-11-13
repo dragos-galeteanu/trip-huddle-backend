@@ -20,7 +20,6 @@ import com.triphuddle.api.group.mapper.GroupMapper;
 import com.triphuddle.api.group.repository.GroupMembershipRepository;
 import com.triphuddle.api.group.repository.GroupRepository;
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.security.SecurityUtils;
@@ -28,8 +27,6 @@ import com.triphuddle.common.service.BaseJpaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,44 +85,20 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
     @Override
     @Transactional(readOnly = true)
     public Paginated<GroupResponse> getAll(PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
-        Page<Group> groupPage = groupRepository.findAll(pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                groupPage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                groupPage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                groupMapper.toResponseList(groupPage.getContent()),
-                paginationMetaData
-        );
+        Page<Group> groupPage = groupRepository.findAll(filter.toPageable());
+        return Paginated.of(groupPage, groupMapper::toResponseList);
     }
 
     @Transactional(readOnly = true)
     public Paginated<GroupResponse> getMine(PaginationFilter filter) {
         UUID userId = SecurityUtils.extractUserId(SecurityContextHolder.getContext().getAuthentication());
 
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
         Page<GroupMembership> membershipPage = groupMembershipRepository
-                .findByUserIdAndDeletedAtIsNullAndDisabledAtIsNull(userId, pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                membershipPage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                membershipPage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                membershipPage.getContent().stream()
-                        .map(GroupMembership::getGroup)
-                        .map(groupMapper::toResponse)
-                        .toList(),
-                paginationMetaData
-        );
+                .findByUserIdAndDeletedAtIsNullAndDisabledAtIsNull(userId, filter.toPageable());
+        return Paginated.of(membershipPage, memberships -> memberships.stream()
+                .map(GroupMembership::getGroup)
+                .map(groupMapper::toResponse)
+                .toList());
     }
 
     @Override

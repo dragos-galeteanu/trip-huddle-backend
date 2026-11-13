@@ -8,7 +8,6 @@ import com.triphuddle.amqp.platform.CountryDeletedEvent;
 import com.triphuddle.amqp.platform.CountryDisabledContract;
 import com.triphuddle.amqp.platform.CountryDisabledEvent;
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.service.BaseJpaService;
@@ -21,8 +20,6 @@ import com.triphuddle.api.platform.repository.CountryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -88,20 +85,8 @@ public class CountryService implements BaseJpaService<Country, CreateCountryRequ
     @Override
     @Transactional(readOnly = true)
     public Paginated<CountryResponse> getAll(PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
-        Page<Country> countryPage = countryRepository.findAll(pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                countryPage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                countryPage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                countryMapper.toResponseList(countryPage.getContent()),
-                paginationMetaData
-        );
+        Page<Country> countryPage = countryRepository.findAll(filter.toPageable());
+        return Paginated.of(countryPage, countryMapper::toResponseList);
     }
 
     @Override
@@ -130,14 +115,6 @@ public class CountryService implements BaseJpaService<Country, CreateCountryRequ
         return countryMapper.toResponse(saved);
     }
 
-    /**
-     * Set the default currency and language of a country from their IDs; a null ID clears the default.
-     *
-     * @param country the country to set the defaults on
-     * @param defaultCurrencyId the ID of the default currency, or null for none
-     * @param defaultLanguageId the ID of the default language, or null for none
-     * @throws ResourceNotFoundException if a given ID matches no currency or language
-     */
     private void setDefaults(Country country, UUID defaultCurrencyId, UUID defaultLanguageId) {
         country.setDefaultCurrency(defaultCurrencyId == null ? null : currencyService.getEntityById(defaultCurrencyId));
         country.setDefaultLanguage(defaultLanguageId == null ? null : languageService.getEntityById(defaultLanguageId));

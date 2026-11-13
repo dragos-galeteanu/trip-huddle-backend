@@ -1,7 +1,6 @@
 package com.triphuddle.api.user.service;
 
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.service.BaseMongoService;
@@ -15,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,20 +63,8 @@ public class UserPreferenceService implements BaseMongoService<UserPreference, C
     @Override
     @Transactional(readOnly = true)
     public Paginated<UserPreferenceResponse> getAll(PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
-        Page<UserPreference> userPreferencePage = userPreferenceRepository.findAll(pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                userPreferencePage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                userPreferencePage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                userPreferenceMapper.toResponseList(userPreferencePage.getContent()),
-                paginationMetaData
-        );
+        Page<UserPreference> userPreferencePage = userPreferenceRepository.findAll(filter.toPageable());
+        return Paginated.of(userPreferencePage, userPreferenceMapper::toResponseList);
     }
 
     @Override

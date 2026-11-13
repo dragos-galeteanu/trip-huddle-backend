@@ -7,7 +7,6 @@ import com.triphuddle.amqp.notification.SendEmailRequest;
 import com.triphuddle.amqp.user.UserProfilePictureUpdatedContract;
 import com.triphuddle.amqp.user.UserProfilePictureUpdatedEvent;
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.service.BaseJpaService;
@@ -21,8 +20,6 @@ import com.triphuddle.api.user.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,20 +72,8 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
     @Override
     @Transactional(readOnly = true)
     public Paginated<UserProfileResponse> getAll(PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
-        Page<UserProfile> userProfilePage = userProfileRepository.findAll(pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                userProfilePage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                userProfilePage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                userProfileMapper.toResponseList(userProfilePage.getContent()),
-                paginationMetaData
-        );
+        Page<UserProfile> userProfilePage = userProfileRepository.findAll(filter.toPageable());
+        return Paginated.of(userProfilePage, userProfileMapper::toResponseList);
     }
 
     @Override

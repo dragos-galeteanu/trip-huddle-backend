@@ -8,7 +8,6 @@ import com.triphuddle.amqp.platform.LanguageDeletedEvent;
 import com.triphuddle.amqp.platform.LanguageDisabledContract;
 import com.triphuddle.amqp.platform.LanguageDisabledEvent;
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.dto.PaginationMetaData;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.service.BaseJpaService;
@@ -21,8 +20,6 @@ import com.triphuddle.api.platform.repository.LanguageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,20 +75,8 @@ public class LanguageService implements BaseJpaService<Language, CreateLanguageR
     @Override
     @Transactional(readOnly = true)
     public Paginated<LanguageResponse> getAll(PaginationFilter filter) {
-        Pageable pageable = PageRequest.of(filter.getPage() - 1, filter.getPageSize());
-        Page<Language> languagePage = languageRepository.findAll(pageable);
-
-        PaginationMetaData paginationMetaData = new PaginationMetaData(
-                languagePage.getTotalElements(),
-                filter.getPageSize(),
-                filter.getPage(),
-                languagePage.getTotalPages()
-        );
-
-        return new Paginated<>(
-                languageMapper.toResponseList(languagePage.getContent()),
-                paginationMetaData
-        );
+        Page<Language> languagePage = languageRepository.findAll(filter.toPageable());
+        return Paginated.of(languagePage, languageMapper::toResponseList);
     }
 
     @Override
