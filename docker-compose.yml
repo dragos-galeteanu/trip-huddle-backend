@@ -1,0 +1,59 @@
+# Local infrastructure for the backend services: run `docker compose up -d`, then start the services.
+# Host names match the ones the services' application.yml files expect (postgres, mongodb, rabbitmq,
+# zipkin); when running the services outside Docker, point those names at 127.0.0.1 in /etc/hosts.
+#
+# Tables are not created here: each service validates its schema at startup, see docs/ARCHITECTURE.md.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/create-databases.sql:/docker-entrypoint-initdb.d/create-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-triphuddle}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-triphuddle}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VIRTUAL_HOST:-/}
+    ports:
+      - "5672:5672"
+      # STOMP, relayed to by api-chat so that socket events reach clients on every instance.
+      - "61613:61613"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ./docker/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    ports:
+      - "9411:9411"
+
+volumes:
+  postgres-data:
+  mongodb-data:
+  rabbitmq-data:
