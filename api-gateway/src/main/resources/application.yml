@@ -43,6 +43,26 @@ spring:
             - Path=/api-group/v3/api-docs
           filters:
             - RewritePath=/api-group/v3/api-docs, /api-docs
+        - id: api-chat
+          uri: lb://API-CHAT
+          predicates:
+            - Path=/api/v1/chats/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: api-chat
+                fallbackUri: forward:/fallback
+        # No circuit breaker or time limit here: they would cut every socket after 60 seconds.
+        - id: api-chat-websocket
+          uri: lb:ws://API-CHAT
+          predicates:
+            - Path=/ws/chats/**
+        - id: api-chat-swagger
+          uri: lb://API-CHAT
+          predicates:
+            - Path=/api-chat/v3/api-docs
+          filters:
+            - RewritePath=/api-chat/v3/api-docs, /api-docs
         - id: api-platform
           uri: lb://API-PLATFORM
           predicates:
@@ -79,6 +99,8 @@ resilience4j:
       api-platform:
         timeoutDuration: 60s
       api-group:
+        timeoutDuration: 60s
+      api-chat:
         timeoutDuration: 60s
 
 management:
