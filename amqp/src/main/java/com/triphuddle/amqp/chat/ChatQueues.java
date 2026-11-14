@@ -11,6 +11,8 @@ public class ChatQueues {
             ChatMessageEditedContract.CHAT_MESSAGE_EDITED_DLQ_NAME,
             ChatMessageDeletedContract.CHAT_MESSAGE_DELETED_QUEUE_NAME,
             ChatMessageDeletedContract.CHAT_MESSAGE_DELETED_DLQ_NAME,
+            ChatMessageDisabledContract.CHAT_MESSAGE_DISABLED_QUEUE_NAME,
+            ChatMessageDisabledContract.CHAT_MESSAGE_DISABLED_DLQ_NAME,
             ChatMessageReportedContract.CHAT_MESSAGE_REPORTED_QUEUE_NAME,
             ChatMessageReportedContract.CHAT_MESSAGE_REPORTED_DLQ_NAME
     );
