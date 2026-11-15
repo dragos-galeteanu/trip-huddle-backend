@@ -51,6 +51,11 @@ app:
       max-size-bytes: 20971520
       upload-url-ttl-minutes: 15
       download-url-ttl-minutes: 60
+    support:
+      max-ongoing-tickets-per-customer: 3
+      # A RESOLVED ticket nobody reopens closes on its own after this many days.
+      auto-close-after-days: ${CHAT_SUPPORT_AUTO_CLOSE_AFTER_DAYS:7}
+      auto-close-interval-ms: 600000
 
 server:
   port: 8084
