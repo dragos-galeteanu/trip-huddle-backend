@@ -1,6 +1,7 @@
 package com.triphuddle.api.chat.config;
 
 import com.triphuddle.common.security.BaseSecurityConfig;
+import com.triphuddle.common.security.StompAuthChannelInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
