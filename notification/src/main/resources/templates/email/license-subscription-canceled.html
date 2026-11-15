@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<!--/*
+  Template: email/license-subscription-canceled
+  Sent for NotificationEmailType.LICENSE_SUBSCRIPTION_CANCELED
+  Subject is set by EmailService ("Your TripHuddle subscription was canceled").
+
+  templateData variables:
+    firstName       (String, optional)  first name of the recipient; "Hi there" when absent
+    licenseName     (String, required)  name of the license
+    isGroup         (Boolean, required) whether the subscription is for a group the recipient bought it for
+    subscriptionUrl (String, required)  frontend link that opens the subscription
+    endsAt          (String, required)  when access ends, formatted
+    isGroupRemoved  (Boolean, required) whether it stopped because its group was disabled or deleted
+*/-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Your TripHuddle subscription was canceled</title>
+    <!--[if mso]>
+    <style>body, table, td, a, h1, p { font-family: Arial, Helvetica, sans-serif !important; }</style>
+    <![endif]-->
+</head>
+<body style="margin:0; padding:0; width:100%; background-color:#F2F5F6; -webkit-font-smoothing:antialiased;">
+
+<div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; color:#F2F5F6;">
+    Your subscription will not renew.
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F2F5F6;">
+    <tr>
+        <td align="center" style="padding:32px 16px;">
+
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+                <tr>
+                    <td align="center" style="padding:0 0 24px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:22px; font-weight:700; letter-spacing:-0.3px; color:#0A5F5A;">
+                        TripHuddle
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="background-color:#FFFFFF; border:1px solid #E3E8EB; border-radius:10px; padding:40px 40px 32px 40px;">
+
+                        <h1 style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:24px; line-height:32px; font-weight:700; color:#1A2B33;">
+                            Your subscription was canceled
+                        </h1>
+
+                        <p style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                            <span th:text="${firstName != null} ? |Hi ${firstName},| : 'Hi there,'">Hi there,</span>
+                        </p>
+
+                        <p style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                            <span th:if="${isGroupRemoved}">The group was disabled or deleted, so <span th:text="${isGroup} ? 'your group\'s' : 'your'">your</span> <strong style="color:#1A2B33;" th:text="${licenseName}">TripHuddle Plus</strong> subscription will not renew.</span><span th:unless="${isGroupRemoved}"><span th:text="${isGroup} ? 'Your group\'s' : 'Your'">Your</span> <strong style="color:#1A2B33;" th:text="${licenseName}">TripHuddle Plus</strong> subscription was canceled and will not renew.</span>
+                        </p>
+
+                        <p style="margin:0 0 16px 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#3C4C54;">
+                            Everything it includes stays available until <strong style="color:#1A2B33;" th:text="${endsAt}">1 January 2027</strong>.<span th:unless="${isGroupRemoved}"> Changed your mind? Resume it in the app before then.</span>
+                        </p>
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px 0;">
+                            <tr>
+                                <td align="center" bgcolor="#0D7D77" style="border-radius:6px;">
+                                    <a href="#" th:href="${subscriptionUrl}"
+                                       style="display:inline-block; padding:14px 30px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:600; line-height:20px; color:#FFFFFF; text-decoration:none; border-radius:6px;">
+                                        View your subscription
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E3E8EB;">
+                            <tr>
+                                <td style="padding:24px 0 0 0;">
+                                    <p style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:20px; color:#5B6B73;">
+                                        You can subscribe again in the app at any time.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:24px 16px 0 16px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; line-height:20px; color:#7A8A92; text-align:center;">
+                        <p style="margin:0 0 6px 0;">You're receiving this email about a subscription on your TripHuddle account.</p>
+                        <p style="margin:0 0 6px 0;">SHINESOFT SOLUTIONS SRL</p>
+                        <p style="margin:0;">
+                            &copy; <span th:text="${#dates.year(#dates.createNow())}">2026</span> SHINESOFT SOLUTIONS SRL. All rights reserved.
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

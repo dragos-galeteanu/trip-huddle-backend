@@ -2,6 +2,7 @@ package com.triphuddle.amqp;
 
 import com.triphuddle.amqp.chat.ChatQueues;
 import com.triphuddle.amqp.group.GroupQueues;
+import com.triphuddle.amqp.license.LicenseQueues;
 import com.triphuddle.amqp.notification.NotificationQueues;
 import com.triphuddle.amqp.platform.PlatformQueues;
 import com.triphuddle.amqp.user.UserQueues;
@@ -44,7 +45,8 @@ public class RabbitMQConfig {
                     UserQueues.QUEUE_NAMES,
                     PlatformQueues.QUEUE_NAMES,
                     GroupQueues.QUEUE_NAMES,
-                    ChatQueues.QUEUE_NAMES
+                    ChatQueues.QUEUE_NAMES,
+                    LicenseQueues.QUEUE_NAMES
             )
             .flatMap(List::stream)
             .toList();

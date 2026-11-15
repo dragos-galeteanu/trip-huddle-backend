@@ -85,6 +85,10 @@ public class EmailService {
             case SUPPORT_TICKET_REPLIED -> "support-ticket-replied";
             case SUPPORT_TICKET_RESOLVED -> "support-ticket-resolved";
             case SUPPORT_TICKET_CLOSED -> "support-ticket-closed";
+            case LICENSE_SUBSCRIPTION_ACTIVATED -> "license-subscription-activated";
+            case LICENSE_SUBSCRIPTION_RENEWAL_REMINDER -> "license-subscription-renewal-reminder";
+            case LICENSE_SUBSCRIPTION_CANCELED -> "license-subscription-canceled";
+            case LICENSE_SUBSCRIPTION_EXPIRED -> "license-subscription-expired";
         };
     }
 
@@ -99,6 +103,10 @@ public class EmailService {
             case SUPPORT_TICKET_REPLIED -> "Support replied to your TripHuddle ticket";
             case SUPPORT_TICKET_RESOLVED -> "Your TripHuddle support ticket was resolved";
             case SUPPORT_TICKET_CLOSED -> "Your TripHuddle support ticket was closed";
+            case LICENSE_SUBSCRIPTION_ACTIVATED -> "Your TripHuddle subscription is active";
+            case LICENSE_SUBSCRIPTION_RENEWAL_REMINDER -> "Your TripHuddle subscription renews soon";
+            case LICENSE_SUBSCRIPTION_CANCELED -> "Your TripHuddle subscription was canceled";
+            case LICENSE_SUBSCRIPTION_EXPIRED -> "Your TripHuddle subscription has ended";
         };
     }
 }
