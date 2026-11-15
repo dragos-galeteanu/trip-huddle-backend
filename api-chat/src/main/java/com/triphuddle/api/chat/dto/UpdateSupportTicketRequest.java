@@ -1,0 +1,20 @@
+package com.triphuddle.api.chat.dto;
+
+import com.triphuddle.api.chat.entity.TicketCategory;
+import com.triphuddle.api.chat.entity.TicketPriority;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * Request body for staff changing a ticket's priority or category; a missing field stays as it is.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateSupportTicketRequest {
+
+    private TicketPriority priority;
+
+    private TicketCategory category;
+}
