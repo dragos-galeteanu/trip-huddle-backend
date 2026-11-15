@@ -81,6 +81,10 @@ public class EmailService {
             case WELCOME -> "welcome";
             case PROFILE_PICTURE_UPDATED -> "profile-picture-updated";
             case GROUP_INVITATION -> "group-invitation";
+            case SUPPORT_TICKET_CREATED -> "support-ticket-created";
+            case SUPPORT_TICKET_REPLIED -> "support-ticket-replied";
+            case SUPPORT_TICKET_RESOLVED -> "support-ticket-resolved";
+            case SUPPORT_TICKET_CLOSED -> "support-ticket-closed";
         };
     }
 
@@ -91,6 +95,10 @@ public class EmailService {
             case WELCOME -> "Welcome to TripHuddle!";
             case PROFILE_PICTURE_UPDATED -> "Your TripHuddle profile pictures were updated";
             case GROUP_INVITATION -> "You have been invited to a group on TripHuddle";
+            case SUPPORT_TICKET_CREATED -> "Your TripHuddle support ticket";
+            case SUPPORT_TICKET_REPLIED -> "Support replied to your TripHuddle ticket";
+            case SUPPORT_TICKET_RESOLVED -> "Your TripHuddle support ticket was resolved";
+            case SUPPORT_TICKET_CLOSED -> "Your TripHuddle support ticket was closed";
         };
     }
 }
