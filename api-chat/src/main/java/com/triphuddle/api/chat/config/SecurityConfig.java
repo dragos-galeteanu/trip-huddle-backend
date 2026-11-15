@@ -1,7 +1,7 @@
 package com.triphuddle.api.chat.config;
 
 import com.triphuddle.common.security.BaseSecurityConfig;
-import com.triphuddle.common.security.StompAuthChannelInterceptor;
+import com.triphuddle.common.security.BaseStompAuthChannelInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -45,7 +45,7 @@ public class SecurityConfig implements BaseSecurityConfig {
     }
 
     /**
-     * The WebSocket handshake carries no token; {@link StompAuthChannelInterceptor} checks the one in CONNECT.
+     * The WebSocket handshake carries no token; {@link BaseStompAuthChannelInterceptor} checks the one in CONNECT.
      *
      * @return the request matchers permitted without authentication
      */
