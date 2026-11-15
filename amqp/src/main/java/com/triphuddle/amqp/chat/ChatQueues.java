@@ -14,6 +14,12 @@ public class ChatQueues {
             ChatMessageDisabledContract.CHAT_MESSAGE_DISABLED_QUEUE_NAME,
             ChatMessageDisabledContract.CHAT_MESSAGE_DISABLED_DLQ_NAME,
             ChatMessageReportedContract.CHAT_MESSAGE_REPORTED_QUEUE_NAME,
-            ChatMessageReportedContract.CHAT_MESSAGE_REPORTED_DLQ_NAME
+            ChatMessageReportedContract.CHAT_MESSAGE_REPORTED_DLQ_NAME,
+            SupportTicketCreatedContract.SUPPORT_TICKET_CREATED_QUEUE_NAME,
+            SupportTicketCreatedContract.SUPPORT_TICKET_CREATED_DLQ_NAME,
+            SupportTicketStatusChangedContract.SUPPORT_TICKET_STATUS_CHANGED_QUEUE_NAME,
+            SupportTicketStatusChangedContract.SUPPORT_TICKET_STATUS_CHANGED_DLQ_NAME,
+            SupportTicketRepliedContract.SUPPORT_TICKET_REPLIED_QUEUE_NAME,
+            SupportTicketRepliedContract.SUPPORT_TICKET_REPLIED_DLQ_NAME
     );
 }
