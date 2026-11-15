@@ -1,7 +1,7 @@
 package com.triphuddle.api.license.dto;
 
-import com.triphuddle.api.license.entity.BillingInterval;
-import com.triphuddle.api.license.entity.LicenseTarget;
+import com.triphuddle.amqp.license.BillingInterval;
+import com.triphuddle.amqp.license.LicenseTarget;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;

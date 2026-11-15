@@ -19,7 +19,7 @@ public record LicenseSubscriptionCanceledEvent(
         UUID subscriptionId,
         UUID licenseId,
         String licenseName,
-        String subscriberType,
+        LicenseTarget subscriberType,
         UUID subscriberId,
         UUID notifyUserId,
         UUID actorId,

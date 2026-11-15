@@ -41,7 +41,8 @@ public class SubscriptionMapper {
                 subscription.getCurrentPeriodEnd(), subscription.isAutoRenew(), subscription.getRenewalCount(),
                 subscription.getCanceledAt(), subscription.getActivatedAt(), subscription.getEndedAt(),
                 subscription.getEndReason(), subscription.getSwitchedToSubscriptionId(), subscription.isGranted(),
-                subscription.getGrantedByUserId(), entitlements, subscription.getCreatedAt(),
+                subscription.getGrantedByUserId(), subscription.isBilledByStripe(), subscription.getPastDueAt(),
+                entitlements, subscription.getCreatedAt(),
                 subscription.getUpdatedAt());
     }
 

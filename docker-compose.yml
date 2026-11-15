@@ -53,6 +53,20 @@ services:
     ports:
       - "9411:9411"
 
+  # Forwards test-mode Stripe events to the gateway on the host. Opt-in, as it needs a key:
+  #   STRIPE_SECRET_KEY=sk_test_... docker compose --profile stripe up -d stripe-cli
+  # Its signing secret, for STRIPE_WEBHOOK_SECRET, stays the same for the key:
+  #   docker compose run --rm stripe-cli listen --print-secret
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    profiles: ["stripe"]
+    environment:
+      STRIPE_API_KEY: ${STRIPE_SECRET_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: >-
+      listen --forward-to http://host.docker.internal:8080/api/v1/payments/webhook
+
 volumes:
   postgres-data:
   mongodb-data:

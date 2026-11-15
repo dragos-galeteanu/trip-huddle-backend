@@ -1,7 +1,7 @@
 package com.triphuddle.api.license.dto;
 
-import com.triphuddle.api.license.entity.BillingInterval;
-import com.triphuddle.api.license.entity.LicenseTarget;
+import com.triphuddle.amqp.license.BillingInterval;
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.entity.SubscriptionEndReason;
 import com.triphuddle.api.license.entity.SubscriptionStatus;
 
@@ -38,6 +38,8 @@ import java.util.UUID;
  * @param switchedToSubscriptionId the subscription that replaced it, or null
  * @param isGranted whether staff granted it for free
  * @param grantedByUserId who granted it, or null
+ * @param isBilledByStripe whether Stripe charges and renews it
+ * @param pastDueAt when renewing it failed while Stripe retries, or null
  * @param entitlements what the license grants now
  * @param createdAt when the subscription was created
  * @param updatedAt when the subscription was last updated
@@ -68,6 +70,8 @@ public record SubscriptionResponse(
         UUID switchedToSubscriptionId,
         boolean isGranted,
         UUID grantedByUserId,
+        boolean isBilledByStripe,
+        Instant pastDueAt,
         List<EntitlementResponse> entitlements,
         Instant createdAt,
         Instant updatedAt

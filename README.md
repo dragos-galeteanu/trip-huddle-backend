@@ -33,12 +33,20 @@ flowchart TB
     subgraph LICENSE[api-license :8085]
         LPG[(PostgreSQL)]
     end
+    subgraph PAYMENT[api-payment :8086]
+        PAPG[(PostgreSQL)]
+    end
+    ST[Stripe]
 
     GW -->|/api/v1/users| USER
     GW -->|/api/v1/platform| PLATFORM
     GW -->|/api/v1/groups| GROUP
     GW -->|/api/v1/chats, /ws/chats| CHAT
     GW -->|/api/v1/licenses| LICENSE
+    GW -->|/api/v1/payments| PAYMENT
+    PAYMENT -->|API calls| ST
+    PAYMENT <--> MQ
+    ST -.->|webhook events| GW
 
     MQ{{RabbitMQ}}
     USER <--> MQ
@@ -92,10 +100,12 @@ flowchart LR
 | `api-group` | service | 8083 | groups, memberships, invitations | [docs](../api-group/docs/README.md) |
 | `api-chat` | service | 8084 | private, group and support chats, support tickets, messages, real time over STOMP | [docs](../api-chat/docs/README.md) |
 | `api-license` | service | 8085 | licenses, entitlements, promotions and subscriptions | [docs](../api-license/docs/README.md) |
+| `api-payment` | service | 8086 | Stripe payments for subscriptions: checkout, renewals, failed payments, cancel and switching, invoices and refunds, daily reconciliation, the webhook and its event inbox, the Stripe catalog, and payment emails | [docs](../api-payment/docs/README.md) |
 | `notification` | service | 8090 | sends emails and push notifications requested by other services | [docs](../notification/docs/README.md) |
 | `openai` | service | 8088 | text generation behind one interface | [docs](../openai/docs/README.md) |
 | `common` | library | | base classes, security, pagination, error handling | [docs](../common/docs/README.md) |
 | `amqp` | library | | RabbitMQ setup and every message definition | [docs](../amqp/docs/README.md) |
+| `stripe` | library | | the Stripe client and webhook signature checks | [docs](../stripe/docs/README.md) |
 
 ```mermaid
 flowchart LR
@@ -106,6 +116,9 @@ flowchart LR
     CH --> A
     L[api-license] --> CM
     L --> A
+    PA[api-payment] --> CM
+    PA --> A
+    PA --> S[stripe]
     U --> A[amqp]
     P --> A
     G --> A
@@ -113,7 +126,7 @@ flowchart LR
     O[openai] --> A
 ```
 
-The gateway and the Eureka server depend on neither library.
+The gateway and the Eureka server depend on neither library. Only `api-payment` uses `stripe`.
 
 ## Principles
 
@@ -164,10 +177,15 @@ flowchart LR
     CH -- "SupportTicket*" --> U
     G -- "GroupMembership*, GroupDisabled, GroupDeleted" --> L[api-license]
     L -- "LicenseSubscription*" --> U
+    L -- "LicenseCatalogChanged, LicenseSubscription*" --> PA[api-payment]
+    U -- "UserContactUpdated, UserDisabled, UserDeleted" --> PA
+    G -- "GroupMembership*, GroupDisabled, GroupDeleted" --> PA
+    PA -- "PaymentSubscription*" --> L
+    PA -- "SendEmailRequest" --> N
     U -- "UserDevice*" --> N
 ```
 
-When two services need the same message, the publisher sends it to one queue per consumer: `api-group` sends its membership events to `api-chat`'s queues and to `api-license`'s `.license` queues.
+When two services need the same message, the publisher sends it to one queue per consumer: `api-group` sends its membership events to `api-chat`'s queues, `api-license`'s `.license` queues and `api-payment`'s `.payment` queues.
 
 A listener that throws is retried three times with a growing pause; after that the message goes to a dead-letter queue. Most created, updated, disabled and deleted events have no consumer yet; they exist so that future services can react without the publisher changing. The full catalogue is in the [amqp docs](../amqp/docs/README.md).
 
@@ -198,6 +216,7 @@ sequenceDiagram
 | `api-group` | `jobbie_giggle_group`: groups, memberships, invitations | none |
 | `api-chat` | `jobbie_giggle_chat`: conversations, participants, support tickets and their events, blocks, reports, chat users | chat messages |
 | `api-license` | `jobbie_giggle_license`: licenses, entitlements, promotions, subscriptions, promotion redemptions, group admins | none |
+| `api-payment` | `jobbie_giggle_payment`: received Stripe events, license products and prices, Stripe customers, billing subscriptions, invoices, refunds, user contacts, group admins | none |
 | `notification` | none | device tokens |
 
 Relational schemas are checked at startup (`ddl-auto: validate`), so the tables must exist before a service starts.
@@ -218,6 +237,7 @@ Relational schemas are checked at startup (`ddl-auto: validate`), so the tables 
 
 - PostgreSQL at host `postgres`, MongoDB at `mongodb`, RabbitMQ with the `rabbitmq_stomp` plugin (port 61613), Eureka at `eureka-server`, Zipkin at `zipkin`. `docker compose up -d` at the root starts all but Eureka for local development.
 - Environment: `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VIRTUAL_HOST`, `SMTP_PASSWORD`, and Google application default credentials for the Firebase Admin SDK (also used for FCM and for signing chat attachment URLs). Optionally `CHAT_ATTACHMENTS_BUCKET` to turn chat attachments on.
+- For `api-payment`: `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, without which it does not start, and a Stripe webhook endpoint pointing at `/api/v1/payments/webhook` on the gateway. Locally, `docker compose --profile stripe up -d stripe-cli` forwards test events.
 
 ## Adding a service
 

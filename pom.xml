@@ -25,7 +25,7 @@
              on every request and offers no way to override it per client, because its models are
              generated against exactly that version. So a bump here is a Stripe API upgrade, and
              StripeConfig fails startup if the two stop agreeing. 34.1.0 pins 2026-10-28.endive.
-             Here rather than in a module because payments-stripe owns the client and payments
+             Here rather than in a module because stripe owns the client and api-payment
              reads Stripe's own models: two modules on two versions is two API versions. -->
         <stripe.version>34.1.0</stripe.version>
         <!-- In the parent because the modules that carry MapStruct mappers each need the
@@ -41,12 +41,14 @@
         <module>api-gateway</module>
         <module>api-group</module>
         <module>api-license</module>
+        <module>api-payment</module>
         <module>api-platform</module>
         <module>api-user</module>
         <module>common</module>
         <module>eureka-server</module>
         <module>notification</module>
         <module>openai</module>
+        <module>stripe</module>
     </modules>
 
     <dependencyManagement>

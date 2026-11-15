@@ -1,6 +1,6 @@
 package com.triphuddle.api.license.repository;
 
-import com.triphuddle.api.license.entity.LicenseTarget;
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.entity.Subscription;
 import com.triphuddle.api.license.entity.SubscriptionStatus;
 import com.triphuddle.common.repository.BaseJpaRepository;
@@ -115,6 +115,7 @@ public interface SubscriptionRepository extends BaseJpaRepository<Subscription, 
 
     /**
      * Lock active subscriptions whose period is over, oldest end first, skipping those another instance holds.
+     * Those Stripe bills are left out: Stripe renews and ends them.
      *
      * @param now the current moment
      * @param pageable the batch to lock
@@ -126,7 +127,7 @@ public interface SubscriptionRepository extends BaseJpaRepository<Subscription, 
     @Query("""
             select s from Subscription s
             where s.status = com.triphuddle.api.license.entity.SubscriptionStatus.ACTIVE
-              and s.currentPeriodEnd <= :now and s.deletedAt is null
+              and s.currentPeriodEnd <= :now and s.isBilledByStripe = false and s.deletedAt is null
             order by s.currentPeriodEnd asc
             """)
     List<Subscription> lockDueForRenewal(@Param("now") Instant now, Pageable pageable);

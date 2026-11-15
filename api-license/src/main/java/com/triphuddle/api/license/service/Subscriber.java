@@ -1,7 +1,7 @@
 package com.triphuddle.api.license.service;
 
-import com.triphuddle.api.license.entity.LicenseTarget;
 
+import com.triphuddle.amqp.license.LicenseTarget;
 import java.util.UUID;
 
 /**

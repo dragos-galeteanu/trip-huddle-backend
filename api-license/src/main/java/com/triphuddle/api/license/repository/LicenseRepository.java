@@ -1,8 +1,8 @@
 package com.triphuddle.api.license.repository;
 
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.entity.License;
 import com.triphuddle.api.license.entity.LicenseStatus;
-import com.triphuddle.api.license.entity.LicenseTarget;
 import com.triphuddle.common.repository.BaseJpaRepository;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;

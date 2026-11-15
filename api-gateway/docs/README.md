@@ -11,12 +11,14 @@ The single public entry point, on port **8080**. It validates the Firebase token
 | `/api/v1/groups/**` | `api-group` | circuit breaker, 60s time limit |
 | `/api/v1/chats/**` | `api-chat` | circuit breaker, 60s time limit |
 | `/api/v1/licenses/**` | `api-license` | circuit breaker, 60s time limit |
+| `/api/v1/payments/**` | `api-payment` | circuit breaker, 60s time limit; includes the Stripe webhook |
 | `/ws/chats/**` | `api-chat`, as WebSocket (`lb:ws://`) | no circuit breaker or time limit: they would cut every socket |
 | `/api-user/v3/api-docs` | `api-user` `/api-docs` | OpenAPI document |
 | `/api-platform/v3/api-docs` | `api-platform` `/api-docs` | OpenAPI document |
 | `/api-group/v3/api-docs` | `api-group` `/api-docs` | OpenAPI document |
 | `/api-chat/v3/api-docs` | `api-chat` `/api-docs` | OpenAPI document |
 | `/api-license/v3/api-docs` | `api-license` `/api-docs` | OpenAPI document |
+| `/api-payment/v3/api-docs` | `api-payment` `/api-docs` | OpenAPI document |
 
 When a service does not answer, the circuit breaker forwards to `/fallback`.
 
@@ -28,6 +30,7 @@ flowchart LR
     GW -->|/api/v1/groups/**| G[api-group :8083]
     GW -->|/api/v1/chats/**, /ws/chats| CH[api-chat :8084]
     GW -->|/api/v1/licenses/**| L[api-license :8085]
+    GW -->|/api/v1/payments/**| PA[api-payment :8086]
     GW -.->|look up instances| E[eureka-server :8761]
 ```
 
@@ -42,7 +45,7 @@ Every route needs a valid Firebase JWT except:
 | `POST /api/v1/groups/invitations/accept`, `/reject` | the invitee may have no account; the token is the proof |
 | `/api/v1/users/verify-email` | opened from the verification email |
 | `/api/v1/users/forgot-password` | permitted here; no service route behind it yet |
-| `/api/v1/payments/webhook/**` | permitted here; no service route behind it yet |
+| `/api/v1/payments/webhook`, `/api/v1/payments/webhook/**` | Stripe calls it without a token; `api-payment` checks the Stripe signature |
 | `/ws/chats/**` | browsers cannot put a token on the WebSocket handshake; `api-chat` checks the one in the STOMP CONNECT frame |
 | `/actuator/health`, `/fallback` | health and fallback |
 

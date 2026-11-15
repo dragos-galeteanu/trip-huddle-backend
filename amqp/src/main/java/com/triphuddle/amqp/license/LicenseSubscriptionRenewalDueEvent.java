@@ -20,7 +20,7 @@ public record LicenseSubscriptionRenewalDueEvent(
         UUID subscriptionId,
         UUID licenseId,
         String licenseName,
-        String subscriberType,
+        LicenseTarget subscriberType,
         UUID subscriberId,
         UUID notifyUserId,
         Instant renewsAt,

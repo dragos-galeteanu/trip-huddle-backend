@@ -75,6 +75,8 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         messageProducer.publish(event, "", GroupMembershipCreatedContract.GROUP_MEMBERSHIP_CREATED_QUEUE_NAME);
         messageProducer.publish(event, "",
                 GroupMembershipCreatedContract.GROUP_MEMBERSHIP_CREATED_LICENSE_QUEUE_NAME);
+        messageProducer.publish(event, "",
+                GroupMembershipCreatedContract.GROUP_MEMBERSHIP_CREATED_PAYMENT_QUEUE_NAME);
         log.info("Event published for group membership creation [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
@@ -132,6 +134,8 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         messageProducer.publish(event, "", GroupMembershipUpdatedContract.GROUP_MEMBERSHIP_UPDATED_QUEUE_NAME);
         messageProducer.publish(event, "",
                 GroupMembershipUpdatedContract.GROUP_MEMBERSHIP_UPDATED_LICENSE_QUEUE_NAME);
+        messageProducer.publish(event, "",
+                GroupMembershipUpdatedContract.GROUP_MEMBERSHIP_UPDATED_PAYMENT_QUEUE_NAME);
         log.info("Event published for group membership update [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
@@ -151,6 +155,8 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         messageProducer.publish(event, "", GroupMembershipDisabledContract.GROUP_MEMBERSHIP_DISABLED_QUEUE_NAME);
         messageProducer.publish(event, "",
                 GroupMembershipDisabledContract.GROUP_MEMBERSHIP_DISABLED_LICENSE_QUEUE_NAME);
+        messageProducer.publish(event, "",
+                GroupMembershipDisabledContract.GROUP_MEMBERSHIP_DISABLED_PAYMENT_QUEUE_NAME);
         log.info("Event published for group membership disabling [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
@@ -175,6 +181,8 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         messageProducer.publish(event, "", GroupMembershipDeletedContract.GROUP_MEMBERSHIP_DELETED_QUEUE_NAME);
         messageProducer.publish(event, "",
                 GroupMembershipDeletedContract.GROUP_MEMBERSHIP_DELETED_LICENSE_QUEUE_NAME);
+        messageProducer.publish(event, "",
+                GroupMembershipDeletedContract.GROUP_MEMBERSHIP_DELETED_PAYMENT_QUEUE_NAME);
         log.info("Event published for group membership deletion [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }

@@ -135,7 +135,7 @@ A subscription belongs to a subscriber: a user for a `USER` license, a group for
 stateDiagram-v2
     [*] --> PENDING_PAYMENT: subscribe
     [*] --> ACTIVE: grant
-    PENDING_PAYMENT --> ACTIVE: activate
+    PENDING_PAYMENT --> ACTIVE: paid at checkout, or activated by staff
     PENDING_PAYMENT --> ENDED: cancel, or no payment within pending-expiry-hours
     ACTIVE --> ACTIVE: renew at period end
     ACTIVE --> EXPIRED: period ends without auto-renew
@@ -143,12 +143,22 @@ stateDiagram-v2
 ```
 
 - **One at a time:** a subscriber has at most one `ACTIVE` and at most one `PENDING_PAYMENT` subscription, enforced by partial unique indexes. Subscribing again to the active license is refused; subscribing to another one is a switch.
-- **Subscribing** needs a published license. A `GROUP` license needs a `groupId`, and only an admin of that group may subscribe it; a `USER` license takes none. The subscription waits for payment, and any promotion is redeemed at once, so the quoted price holds. Payments don't exist yet, so staff activate it.
-- **Activating** starts the first period now and ends the subscriber's active subscription, if any, as `SWITCHED`, pointing at its replacement. Proration comes with payments.
+- **Subscribing** needs a published license. A `GROUP` license needs a `groupId`, and only an admin of that group may subscribe it; a `USER` license takes none. The subscription waits for payment, and any promotion is redeemed at once, so the quoted price holds. The customer pays through Stripe Checkout in [api-payment](../../api-payment/docs/README.md#checkout).
+- **Activating** ends the subscriber's active subscription, if any, as `SWITCHED`, pointing at its replacement. It happens in one of two ways:
+  - **Paid at checkout:** `PaymentSubscriptionActivatedEvent` from api-payment activates it for the period Stripe billed, with auto-renew on. A payment for a subscription that no longer waits for it is refused with `LicenseSubscriptionActivationRefusedEvent`, so api-payment stops the Stripe subscription and flags a refund. This covers one that was canceled, timed out or activated by staff. A repeated payment event is ignored.
+  - **By staff** (`/activate`), e.g. after a bank transfer: the first period starts now with auto-renew off, as nothing bills it, so it expires at the end of the period.
+  - Proration of a switch comes in a later phase.
 - **Granting** gives a user (`userId`) or a group (`groupId`), matching the license's target, a license for free for 1 to 120 periods, active at once and without auto-renew. It also switches out the active subscription. Drafts can't be granted; archived licenses can.
 - **Cancelling** a pending subscription ends it and gives its promotion back. Cancelling an active one turns auto-renew off: it runs to the end of its period, and can be resumed before then. Granted subscriptions don't renew, so they can't be cancelled or resumed.
-- **Extending** pushes the end of an active subscription's period forward by 1 to 3650 days.
-- **Renewal:** periods follow the UTC calendar, so a monthly period from 31 January ends on the last day of February. At the end of a period, a subscription with auto-renew gets the next period and the others expire. Without payments a renewal only moves the period on. Subscriptions to archived licenses keep renewing.
+- **Cancelling and resuming a paid subscription** also reach Stripe: api-payment sets or clears `cancel_at_period_end` there.
+- **Extending** pushes the end of an active subscription's period forward by 1 to 3650 days. Subscriptions Stripe bills can't be extended, as Stripe charges the next period on its own date; refund them instead.
+- **Renewal:** periods follow the UTC calendar, so a monthly period from 31 January ends on the last day of February. Subscriptions to archived licenses keep renewing.
+  - **Granted, or activated by staff:** `SubscriptionRenewalJob` handles them. At the end of a period, one with auto-renew gets the next period, and the others expire.
+  - **Billed by Stripe** (`isBilledByStripe`): the job leaves them alone, and Stripe drives them through api-payment's events:
+    - `PaymentSubscriptionRenewedEvent`: Stripe charged the next period, which the subscription moves on to, counting down promoted periods. A repeated event changes nothing. A charge for a subscription that is over is refused, as at activation.
+    - `PaymentSubscriptionPastDueEvent`: the charge failed and Stripe retries. `pastDueAt` is set and access stays. The next paid renewal clears it.
+    - `PaymentSubscriptionEndedEvent`: Stripe ended it, at the end of a canceled period or after its last retry, so it `EXPIRED`.
+    - `PaymentSubscriptionRenewalChangedEvent`: auto-renew was turned off or on in Stripe, e.g. from the dashboard or because the user was disabled or deleted. This is applied as a cancel or resume with no actor, so the canceled email still goes out.
 - **Promoted periods:** `promotionPeriodsRemaining` starts at the promotion's `durationPeriods` and counts down at each renewal. At 0 the price goes back to the list price the subscription was promised. With a promotion and no count, every period stays discounted.
 
 ### Group subscriptions
@@ -164,7 +174,7 @@ stateDiagram-v2
 
 | Job | Every | Does |
 |---|---|---|
-| `SubscriptionRenewalJob` | `app.license.renewal-interval-ms` (1 min) | renews or expires active subscriptions whose period is over |
+| `SubscriptionRenewalJob` | `app.license.renewal-interval-ms` (1 min) | renews or expires active subscriptions whose period is over, except those Stripe bills |
 | `PendingSubscriptionTimeoutJob` | `app.license.pending-timeout-interval-ms` (10 min) | ends subscriptions waiting for payment longer than `app.license.pending-expiry-hours` (48, `LICENSE_PENDING_EXPIRY_HOURS`), giving their promotion back |
 | `RenewalReminderJob` | `app.license.renewal-reminder-interval-ms` (1 h) | publishes `LicenseSubscriptionRenewalDueEvent` for auto-renewals within `app.license.renewal-reminder-days` (3, `LICENSE_RENEWAL_REMINDER_DAYS`), once per period end; granted subscriptions are left out |
 
@@ -194,7 +204,7 @@ All three take batches of 50 rows with `SKIP LOCKED`, up to 20 batches per run, 
 | `POST /api/v1/licenses/subscriptions/{id}/cancel`, `/resume` | the subscriber or, for a group, its admins; Admin or Support |
 | `GET /api/v1/licenses/subscriptions?subscriberId=&licenseId=&status=` | Admin, Support or Inspector |
 | `POST /api/v1/licenses/subscriptions/grant` | Admin or Support |
-| `POST /api/v1/licenses/subscriptions/{id}/activate`, `/extend` | Admin or Support |
+| `POST /api/v1/licenses/subscriptions/{id}/activate`, `/extend` | Admin or Support; `/activate` is for payments made outside Stripe and leaves auto-renew off |
 
 The list is ordered cheapest first and then by name, and can be filtered by `target`. Each license carries its running automatic promotion, if any, and `promotedPriceMinor`, the price with it. Promotions are readable by Admin, Support and Inspector only, as listing them would reveal their codes. The public reads (list, one license, price quote) are listed in `additionalPermitAllMatchers()` and at the gateway, with anonymous authentication on so the policy is still asked, as in [api-platform](../../api-platform/docs/README.md#why-reads-work-without-a-token). `GET /api/v1/licenses/subscriptions` matches the one-segment public pattern too, so without a token it is a 403 from its policy rather than a 401.
 
@@ -283,6 +293,8 @@ CREATE TABLE license_subscriptions (
     is_granted                  BOOLEAN     NOT NULL,
     granted_by_user_id          UUID,
     reminded_period_end         TIMESTAMP(6) WITH TIME ZONE,
+    is_billed_by_stripe         BOOLEAN     NOT NULL DEFAULT FALSE,
+    past_due_at                 TIMESTAMP(6) WITH TIME ZONE,
     created_at                  TIMESTAMP(6) WITH TIME ZONE NOT NULL,
     updated_at                  TIMESTAMP(6) WITH TIME ZONE NOT NULL,
     disabled_at                 TIMESTAMP(6) WITH TIME ZONE,
@@ -330,18 +342,32 @@ If `license_subscriptions` already exists from the previous step, add the remind
 ALTER TABLE license_subscriptions ADD COLUMN reminded_period_end TIMESTAMP(6) WITH TIME ZONE;
 ```
 
+For payments in Stripe, add the billing columns:
+
+```sql
+ALTER TABLE license_subscriptions
+    ADD COLUMN is_billed_by_stripe BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN past_due_at TIMESTAMP(6) WITH TIME ZONE;
+```
+
 ## Messages
 
 Published once their transaction commits, so a rollback sends nothing.
 
 | | Message | When |
 |---|---|---|
-| publishes | `LicenseSubscriptionActivatedEvent` | a subscription starts, by activation or grant; carries the entitlements |
+| publishes | `LicenseSubscriptionPendingEvent` | a subscription is created and waits for payment; carries the list price, the first period's price and how many periods the promotion covers, for checkout |
+| publishes | `LicenseSubscriptionActivatedEvent` | a subscription starts, by activation or grant; carries the entitlements; also on a `.payment` queue |
 | publishes | `LicenseSubscriptionRenewedEvent` | a subscription moves on to its next period |
-| publishes | `LicenseSubscriptionCanceledEvent` | an active subscription stops renewing; `actorId` is null when its group went away |
-| publishes | `LicenseSubscriptionEndedEvent` | a subscription expires, or ends early (switched, pending canceled or timed out) |
+| publishes | `LicenseSubscriptionCanceledEvent` | an active subscription stops renewing; `actorId` is null when its group went away or Stripe stopped it; also on a `.payment` queue |
+| publishes | `LicenseSubscriptionEndedEvent` | a subscription expires, or ends early (switched, pending canceled or timed out); also on a `.payment` queue |
 | publishes | `LicenseSubscriptionRenewalDueEvent` | an auto-renewal is within `renewal-reminder-days` |
 | publishes | `LicenseEntitlementsChangedEvent` | a license's entitlements are replaced |
+| publishes | `LicenseCatalogChangedEvent` | a license is published or archived, or a published or archived one is updated; carries its whole state and `changedAt`, for api-payment's Stripe catalog. Drafts are never sent |
+| publishes | `LicenseSubscriptionActivationRefusedEvent` | a payment arrived for a subscription that can no longer take it: at activation, or a renewal of one that is over |
+| publishes | `LicenseSubscriptionResumedEvent` | a canceled subscription renews again; for api-payment |
 | consumes | `GroupMembership*`, `GroupDisabledEvent`, `GroupDeletedEvent` | from `api-group`, on the `.license` queues |
+| consumes | `PaymentSubscriptionActivatedEvent` | from `api-payment`, when the first payment went through at checkout or by a switch |
+| consumes | `PaymentSubscriptionRenewedEvent`, `PaymentSubscriptionPastDueEvent`, `PaymentSubscriptionEndedEvent`, `PaymentSubscriptionRenewalChangedEvent` | from `api-payment`, for subscriptions Stripe bills |
 
 Each event carries `notifyUserId`, who its emails go to: the user, or for a group whoever bought it (nobody for a group grant). `api-user` consumes the activated, canceled, ended and renewal-due events to send emails, so a service that wants to keep its own copy of entitlements needs its own queues for them, as with the group events.

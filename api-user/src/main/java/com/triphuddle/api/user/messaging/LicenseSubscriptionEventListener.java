@@ -9,6 +9,7 @@ import com.triphuddle.amqp.license.LicenseSubscriptionEndedContract;
 import com.triphuddle.amqp.license.LicenseSubscriptionEndedEvent;
 import com.triphuddle.amqp.license.LicenseSubscriptionRenewalDueContract;
 import com.triphuddle.amqp.license.LicenseSubscriptionRenewalDueEvent;
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.amqp.notification.NotificationEmailContract;
 import com.triphuddle.amqp.notification.NotificationEmailType;
 import com.triphuddle.amqp.notification.SendEmailRequest;
@@ -37,8 +38,6 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class LicenseSubscriptionEventListener {
-
-    private static final String GROUP = "GROUP";
 
     // Dates in UTC, as the periods are worked out in UTC.
     private static final DateTimeFormatter DATE_FORMAT =
@@ -118,7 +117,7 @@ public class LicenseSubscriptionEventListener {
     }
 
     private void send(NotificationEmailType type, UUID notifyUserId, UUID subscriptionId, String licenseName,
-                      String subscriberType, Map<String, Object> data) {
+                      LicenseTarget subscriberType, Map<String, Object> data) {
         if (notifyUserId == null) {
             log.info("Nobody to email about license subscription [subscriptionId={}, type={}]", subscriptionId, type);
             return;
@@ -133,7 +132,7 @@ public class LicenseSubscriptionEventListener {
 
         data.put("firstName", user.get().getFirstName());
         data.put("licenseName", licenseName);
-        data.put("isGroup", GROUP.equals(subscriberType));
+        data.put("isGroup", subscriberType == LicenseTarget.GROUP);
         data.put("subscriptionUrl", "%s/account/subscriptions/%s".formatted(frontendUrl, subscriptionId));
         messageProducer.publish(new SendEmailRequest(type, user.get().getEmail(), data), "",
                 NotificationEmailContract.EMAIL_QUEUE_NAME);

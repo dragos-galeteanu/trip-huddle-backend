@@ -1,5 +1,6 @@
 package com.triphuddle.api.license.entity;
 
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.common.entity.BaseJpaEntity;
 import jakarta.persistence.*;
 import lombok.Getter;

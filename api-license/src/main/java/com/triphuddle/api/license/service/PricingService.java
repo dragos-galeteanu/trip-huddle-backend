@@ -1,10 +1,10 @@
 package com.triphuddle.api.license.service;
 
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.config.LicenseProperties;
 import com.triphuddle.api.license.dto.PriceQuoteResponse;
 import com.triphuddle.api.license.entity.License;
 import com.triphuddle.api.license.entity.LicenseStatus;
-import com.triphuddle.api.license.entity.LicenseTarget;
 import com.triphuddle.api.license.entity.Promotion;
 import com.triphuddle.api.license.entity.PromotionState;
 import com.triphuddle.api.license.mapper.PromotionMapper;

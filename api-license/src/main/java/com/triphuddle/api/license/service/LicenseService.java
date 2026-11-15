@@ -5,7 +5,7 @@ import com.triphuddle.api.license.dto.EntitlementRequest;
 import com.triphuddle.api.license.dto.LicenseFilter;
 import com.triphuddle.api.license.dto.LicenseResponse;
 import com.triphuddle.api.license.dto.UpdateLicenseRequest;
-import com.triphuddle.api.license.entity.BillingInterval;
+import com.triphuddle.amqp.license.BillingInterval;
 import com.triphuddle.api.license.entity.License;
 import com.triphuddle.api.license.entity.LicenseEntitlement;
 import com.triphuddle.api.license.entity.LicenseStatus;
@@ -122,6 +122,9 @@ public class LicenseService {
                 request.getBillingInterval());
 
         License saved = licenseRepository.save(license);
+        if (saved.getStatus() != LicenseStatus.DRAFT) {
+            eventPublisher.catalogChanged(saved);
+        }
         log.info("License updated [id={}]", saved.getId());
         return toResponse(saved);
     }
@@ -162,6 +165,7 @@ public class LicenseService {
         license.setArchivedAt(null);
 
         License saved = licenseRepository.save(license);
+        eventPublisher.catalogChanged(saved);
         log.info("License published [id={}]", saved.getId());
         return toResponse(saved);
     }
@@ -182,6 +186,7 @@ public class LicenseService {
         license.setArchivedAt(Instant.now());
 
         License saved = licenseRepository.save(license);
+        eventPublisher.catalogChanged(saved);
         log.info("License archived [id={}]", saved.getId());
         return toResponse(saved);
     }

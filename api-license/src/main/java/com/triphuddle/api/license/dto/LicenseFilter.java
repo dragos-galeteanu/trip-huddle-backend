@@ -1,7 +1,7 @@
 package com.triphuddle.api.license.dto;
 
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.entity.LicenseStatus;
-import com.triphuddle.api.license.entity.LicenseTarget;
 import com.triphuddle.common.filter.PaginationFilter;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

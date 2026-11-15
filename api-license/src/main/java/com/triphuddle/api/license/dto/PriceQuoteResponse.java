@@ -1,6 +1,6 @@
 package com.triphuddle.api.license.dto;
 
-import com.triphuddle.api.license.entity.BillingInterval;
+import com.triphuddle.amqp.license.BillingInterval;
 
 import java.util.UUID;
 

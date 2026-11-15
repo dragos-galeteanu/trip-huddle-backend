@@ -110,7 +110,8 @@ Registering twice with the same Firebase account returns the existing user. If F
 | publishes | `UserRegisteredEvent` | a user registers |
 | publishes | `UserEmailVerifiedEvent` | a user verifies their email address |
 | publishes | `UserProfilePictureUpdatedEvent` | a profile or cover picture URL changes |
-| publishes | `UserDisabledEvent`, `UserDeletedEvent` | a user is disabled or deleted |
+| publishes | `UserDisabledEvent`, `UserDeletedEvent` | a user is disabled or deleted; to `api-chat`'s queue and to `api-payment`'s `.payment` queue |
+| publishes | `UserContactUpdatedEvent` | a user registers, verifies their email address, or changes their email address or name; the whole contact and `changedAt`, for `api-payment` |
 | publishes | `UserDeviceRegisteredEvent`, `UserDeviceUnregisteredEvent` | a device is registered or unregistered for push |
 | consumes | `GroupInvitationAcceptedEvent` | an invitation is accepted in `api-group` |
 | publishes | `UserMatchedToGroupInvitationEvent` | in reply, if a verified user has the invited email |

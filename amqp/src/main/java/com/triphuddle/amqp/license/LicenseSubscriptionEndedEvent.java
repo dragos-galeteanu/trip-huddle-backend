@@ -20,7 +20,7 @@ public record LicenseSubscriptionEndedEvent(
         UUID subscriptionId,
         UUID licenseId,
         String licenseName,
-        String subscriberType,
+        LicenseTarget subscriberType,
         UUID subscriberId,
         UUID notifyUserId,
         String status,

@@ -1,6 +1,6 @@
 package com.triphuddle.api.license.repository;
 
-import com.triphuddle.api.license.entity.LicenseTarget;
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.entity.PromotionRedemption;
 import com.triphuddle.common.repository.BaseJpaRepository;
 import org.springframework.stereotype.Repository;

@@ -1,7 +1,7 @@
 package com.triphuddle.api.license.security;
 
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.dto.SubscribeRequest;
-import com.triphuddle.api.license.entity.LicenseTarget;
 import com.triphuddle.api.license.entity.Subscription;
 import com.triphuddle.api.license.repository.GroupAdminRepository;
 import com.triphuddle.api.license.repository.SubscriptionRepository;

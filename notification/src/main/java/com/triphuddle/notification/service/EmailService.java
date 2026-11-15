@@ -89,6 +89,8 @@ public class EmailService {
             case LICENSE_SUBSCRIPTION_RENEWAL_REMINDER -> "license-subscription-renewal-reminder";
             case LICENSE_SUBSCRIPTION_CANCELED -> "license-subscription-canceled";
             case LICENSE_SUBSCRIPTION_EXPIRED -> "license-subscription-expired";
+            case LICENSE_PAYMENT_SUCCEEDED -> "license-payment-succeeded";
+            case LICENSE_PAYMENT_FAILED -> "license-payment-failed";
         };
     }
 
@@ -107,6 +109,8 @@ public class EmailService {
             case LICENSE_SUBSCRIPTION_RENEWAL_REMINDER -> "Your TripHuddle subscription renews soon";
             case LICENSE_SUBSCRIPTION_CANCELED -> "Your TripHuddle subscription was canceled";
             case LICENSE_SUBSCRIPTION_EXPIRED -> "Your TripHuddle subscription has ended";
+            case LICENSE_PAYMENT_SUCCEEDED -> "Your TripHuddle payment was received";
+            case LICENSE_PAYMENT_FAILED -> "We could not renew your TripHuddle subscription";
         };
     }
 }

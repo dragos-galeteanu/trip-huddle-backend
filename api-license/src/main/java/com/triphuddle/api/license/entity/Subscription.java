@@ -1,5 +1,7 @@
 package com.triphuddle.api.license.entity;
 
+import com.triphuddle.amqp.license.BillingInterval;
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.common.entity.BaseJpaEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -99,4 +101,12 @@ public class Subscription extends BaseJpaEntity {
 
     @Column(name = "granted_by_user_id")
     private UUID grantedByUserId;
+
+    // Stripe renews and ends it, through api-payment's events; the renewal job leaves it alone.
+    @Column(name = "is_billed_by_stripe", nullable = false)
+    private boolean isBilledByStripe;
+
+    // Set while Stripe retries a failed renewal; the subscription keeps its access meanwhile.
+    @Column(name = "past_due_at")
+    private Instant pastDueAt;
 }

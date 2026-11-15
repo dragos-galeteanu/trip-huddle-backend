@@ -1,8 +1,8 @@
 package com.triphuddle.api.license.dto;
 
-import com.triphuddle.api.license.entity.BillingInterval;
+import com.triphuddle.amqp.license.BillingInterval;
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.entity.LicenseStatus;
-import com.triphuddle.api.license.entity.LicenseTarget;
 
 import java.time.Instant;
 import java.util.List;

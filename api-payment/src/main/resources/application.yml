@@ -1,0 +1,114 @@
+spring:
+  application:
+    name: api-payment
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: 5672
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://securetoken.google.com/jobbiegiggle
+          jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
+  datasource:
+    url: jdbc:postgresql://postgres:5432/jobbie_giggle_payment
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+app:
+  payment:
+    # How often the inbox of received Stripe events is worked through.
+    event-interval-ms: ${PAYMENT_EVENT_INTERVAL_MS:5000}
+    # A failing event is retried with growing delays, then left FAILED for staff to replay.
+    event-max-attempts: ${PAYMENT_EVENT_MAX_ATTEMPTS:10}
+    # How often licenses changed in api-license are pushed to their Stripe Products and Prices.
+    catalog-sync-interval-ms: ${PAYMENT_CATALOG_SYNC_INTERVAL_MS:30000}
+    # Stripe Tax code of license products; empty uses the account's default from the Stripe dashboard.
+    product-tax-code: ${PAYMENT_PRODUCT_TAX_CODE:}
+    # Where Stripe Checkout sends the customer back to; {subscriptionId} is the license subscription's ID.
+    checkout-success-url: ${PAYMENT_CHECKOUT_SUCCESS_URL:http://localhost:3000/account/subscriptions/{subscriptionId}?checkout=success}
+    checkout-cancel-url: ${PAYMENT_CHECKOUT_CANCEL_URL:http://localhost:3000/account/subscriptions/{subscriptionId}?checkout=canceled}
+    # The subscription's page in the frontend, linked from the payment emails.
+    subscription-url: ${PAYMENT_SUBSCRIPTION_URL:http://localhost:3000/account/subscriptions/{subscriptionId}}
+    # The reconciliation job compares paid and pending subscriptions with Stripe, each once a day, to repair what
+    # a lost webhook missed.
+    reconcile-interval-ms: ${PAYMENT_RECONCILE_INTERVAL_MS:600000}
+    reconcile-every-hours: ${PAYMENT_RECONCILE_EVERY_HOURS:24}
+
+integration:
+  stripe:
+    # Test-mode keys locally; never commit real ones.
+    secret-key: ${STRIPE_SECRET_KEY}
+    # Printed by `stripe listen`, or shown on the endpoint in the Stripe dashboard.
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+    # Must equal the version stripe-java (see stripe.version in the root pom) speaks, and the webhook endpoint's version.
+    api-version: 2026-10-28.endive
+    webhook-tolerance-seconds: 300
+    connect-timeout-ms: 10000
+    read-timeout-ms: 30000
+    max-network-retries: 2
+
+server:
+        jwt:
+          issuer-uri: https://securetoken.google.com/jobbiegiggle
+          jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
+  datasource:
+    url: jdbc:postgresql://postgres:5432/jobbie_giggle_payment
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+app:
+  license:
+    # The one currency every license is priced in; prices are stored in its minor units.
+    currency: ${LICENSE_CURRENCY:EUR}
+    # A subscription still waiting for payment after this long is ended and gives its promotion back.
+    pending-expiry-hours: ${LICENSE_PENDING_EXPIRY_HOURS:48}
+    renewal-interval-ms: 60000
+    pending-timeout-interval-ms: 600000
+    renewal-reminder-days: ${LICENSE_RENEWAL_REMINDER_DAYS:3}
+    renewal-reminder-interval-ms: 3600000
+
+server:
+  port: 8086
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans

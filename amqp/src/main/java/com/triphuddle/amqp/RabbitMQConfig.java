@@ -4,6 +4,7 @@ import com.triphuddle.amqp.chat.ChatQueues;
 import com.triphuddle.amqp.group.GroupQueues;
 import com.triphuddle.amqp.license.LicenseQueues;
 import com.triphuddle.amqp.notification.NotificationQueues;
+import com.triphuddle.amqp.payment.PaymentQueues;
 import com.triphuddle.amqp.platform.PlatformQueues;
 import com.triphuddle.amqp.user.UserQueues;
 import lombok.AllArgsConstructor;
@@ -46,7 +47,8 @@ public class RabbitMQConfig {
                     PlatformQueues.QUEUE_NAMES,
                     GroupQueues.QUEUE_NAMES,
                     ChatQueues.QUEUE_NAMES,
-                    LicenseQueues.QUEUE_NAMES
+                    LicenseQueues.QUEUE_NAMES,
+                    PaymentQueues.QUEUE_NAMES
             )
             .flatMap(List::stream)
             .toList();

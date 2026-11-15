@@ -139,6 +139,7 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         // Once per consuming service, as a queue has only one consumer.
         messageProducer.publish(event, "", GroupDisabledContract.GROUP_DISABLED_QUEUE_NAME);
         messageProducer.publish(event, "", GroupDisabledContract.GROUP_DISABLED_LICENSE_QUEUE_NAME);
+        messageProducer.publish(event, "", GroupDisabledContract.GROUP_DISABLED_PAYMENT_QUEUE_NAME);
         log.info("Event published for group disabling [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }
@@ -155,6 +156,7 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         // Once per consuming service, as a queue has only one consumer.
         messageProducer.publish(event, "", GroupDeletedContract.GROUP_DELETED_QUEUE_NAME);
         messageProducer.publish(event, "", GroupDeletedContract.GROUP_DELETED_LICENSE_QUEUE_NAME);
+        messageProducer.publish(event, "", GroupDeletedContract.GROUP_DELETED_PAYMENT_QUEUE_NAME);
         log.info("Event published for group deletion [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }

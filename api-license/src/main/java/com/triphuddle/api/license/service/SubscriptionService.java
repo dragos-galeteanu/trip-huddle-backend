@@ -1,12 +1,12 @@
 package com.triphuddle.api.license.service;
 
+import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.license.dto.GrantSubscriptionRequest;
 import com.triphuddle.api.license.dto.SubscribeRequest;
 import com.triphuddle.api.license.dto.SubscriptionFilter;
 import com.triphuddle.api.license.dto.SubscriptionResponse;
 import com.triphuddle.api.license.entity.License;
 import com.triphuddle.api.license.entity.LicenseStatus;
-import com.triphuddle.api.license.entity.LicenseTarget;
 import com.triphuddle.api.license.entity.Promotion;
 import com.triphuddle.api.license.entity.PromotionRedemption;
 import com.triphuddle.api.license.entity.Subscription;
@@ -110,6 +110,7 @@ public class SubscriptionService {
 
         // Taken now rather than at activation, so the price quoted to the customer holds until they pay.
         promotion.ifPresent(found -> redeem(found, saved));
+        eventPublisher.pending(saved, now);
         log.info("Subscription created [id={}, licenseId={}, subscriberType={}, subscriberId={}, userId={}, "
                 + "promotionId={}]", saved.getId(), license.getId(), subscriber.type(), subscriber.id(), userId,
                 promotion.map(Promotion::getId).orElse(null));
@@ -117,8 +118,9 @@ public class SubscriptionService {
     }
 
     /**
-     * Activate a subscription waiting for payment: its first period starts now, and the subscriber's
-     * active subscription, if any, ends as switched.
+     * Activate a subscription waiting for payment by hand, e.g. after a bank transfer: its first period starts
+     * now and it does not renew, as nothing bills it. The subscriber's active subscription, if any, ends as
+     * switched.
      *
      * @param id the ID of the subscription
      * @param actorId who confirmed it
@@ -129,21 +131,174 @@ public class SubscriptionService {
         if (subscription.getStatus() != SubscriptionStatus.PENDING_PAYMENT) {
             throw new IllegalStateException("Subscription with id=%s is not waiting for payment".formatted(id));
         }
+        Instant now = Instant.now();
+        subscription.setAutoRenew(false);
+        Subscription saved = start(subscription, now, subscription.getBillingInterval().addTo(now, 1), actorId);
+        log.info("Subscription activated [id={}, actorId={}]", saved.getId(), actorId);
+        return subscriptionMapper.toResponse(saved);
+    }
 
+    /**
+     * Activate a subscription whose first payment went through at Stripe checkout, for the period Stripe billed.
+     * A subscription that no longer waits for payment is left alone, and api-payment is told to stop billing.
+     *
+     * @param id the ID of the subscription
+     * @param stripeSubscriptionId the Stripe subscription that bills it
+     * @param periodStart when the paid period started
+     * @param periodEnd when the paid period ends
+     */
+    public void activatePaid(UUID id, String stripeSubscriptionId, Instant periodStart, Instant periodEnd) {
+        Optional<Subscription> found = subscriptionRepository.lockById(id);
+        if (found.isEmpty()) {
+            log.error("Payment for an unknown subscription [id={}, stripeSubscriptionId={}]", id,
+                    stripeSubscriptionId);
+            return;
+        }
+        Subscription subscription = found.get();
+        if (subscription.getStatus() != SubscriptionStatus.PENDING_PAYMENT) {
+            // Activated by this payment already: the event was delivered again.
+            boolean isRepeat = subscription.getStatus() == SubscriptionStatus.ACTIVE
+                    && subscription.getActivatedByUserId() == null && !subscription.isGranted();
+            if (isRepeat) {
+                log.info("Subscription already activated by payment [id={}]", id);
+                return;
+            }
+            eventPublisher.activationRefused(subscription, stripeSubscriptionId);
+            log.warn("Payment refused, subscription no longer waits for it [id={}, status={}]", id,
+                    subscription.getStatus());
+            return;
+        }
+        subscription.setBilledByStripe(true);
+        Subscription saved = start(subscription, periodStart, periodEnd, null);
+        log.info("Subscription activated by payment [id={}, stripeSubscriptionId={}]", saved.getId(),
+                stripeSubscriptionId);
+    }
+
+    // One renewal: the next period, one more renewal, and one promoted period fewer.
+    private static void moveToNextPeriod(Subscription subscription, Instant start, Instant end) {
+        subscription.setCurrentPeriodStart(start);
+        subscription.setCurrentPeriodEnd(end);
+        subscription.setRenewalCount(subscription.getRenewalCount() + 1);
+        Integer remaining = subscription.getPromotionPeriodsRemaining();
+        if (subscription.getPromotion() != null && remaining != null) {
+            int left = Math.max(remaining - 1, 0);
+            subscription.setPromotionPeriodsRemaining(left);
+            if (left == 0) {
+                subscription.setPriceMinor(subscription.getListPriceMinor());
+            }
+        }
+    }
+
+    /**
+     * Move a Stripe-billed subscription on to the period Stripe just charged, and clear any failed renewal.
+     * A charge for a subscription that is over is refused, so api-payment stops billing it.
+     *
+     * @param id the ID of the subscription
+     * @param stripeSubscriptionId the Stripe subscription that bills it
+     * @param periodStart when the paid period started
+     * @param periodEnd when the paid period ends
+     */
+    public void renewPaid(UUID id, String stripeSubscriptionId, Instant periodStart, Instant periodEnd) {
+        Optional<Subscription> found = subscriptionRepository.lockById(id).filter(Subscription::isBilledByStripe);
+        if (found.isEmpty()) {
+            log.error("Renewal paid for an unknown or unbilled subscription [id={}, stripeSubscriptionId={}]", id,
+                    stripeSubscriptionId);
+            return;
+        }
+        Subscription subscription = found.get();
+        if (subscription.getStatus() != SubscriptionStatus.ACTIVE) {
+            eventPublisher.activationRefused(subscription, stripeSubscriptionId);
+            log.warn("Renewal paid for a subscription that is over [id={}, status={}]", id, subscription.getStatus());
+            return;
+        }
+        if (!periodEnd.isAfter(subscription.getCurrentPeriodEnd())) {
+            // The period already moved on: this event was delivered again, or a retry paid the current period.
+            if (subscription.getPastDueAt() != null) {
+                subscription.setPastDueAt(null);
+                log.info("Subscription no longer past due [id={}]", id);
+            }
+            return;
+        }
+        moveToNextPeriod(subscription, periodStart, periodEnd);
+        subscription.setPastDueAt(null);
+        Subscription saved = subscriptionRepository.save(subscription);
+        eventPublisher.renewed(saved);
+        log.info("Subscription renewed by payment [id={}, periodEnd={}]", saved.getId(), saved.getCurrentPeriodEnd());
+    }
+
+    /**
+     * Mark a Stripe-billed subscription past due while Stripe retries its renewal; it keeps its access.
+     *
+     * @param id the ID of the subscription
+     * @param failedAt when the charge failed
+     */
+    public void markPastDue(UUID id, Instant failedAt) {
+        subscriptionRepository.lockById(id)
+                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
+                        && subscription.isBilledByStripe() && subscription.getPastDueAt() == null)
+                .ifPresent(subscription -> {
+                    subscription.setPastDueAt(failedAt);
+                    log.info("Subscription past due [id={}]", id);
+                });
+    }
+
+    /**
+     * End a Stripe-billed subscription that Stripe ended, at the end of a canceled period or after its last retry.
+     *
+     * @param id the ID of the subscription
+     * @param endedAt when Stripe ended it
+     * @param reason Stripe's reason, for the log
+     */
+    public void endPaid(UUID id, Instant endedAt, String reason) {
+        subscriptionRepository.lockById(id)
+                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
+                        && subscription.isBilledByStripe())
+                .ifPresent(subscription -> {
+                    subscription.setStatus(SubscriptionStatus.EXPIRED);
+                    subscription.setEndedAt(endedAt);
+                    subscription.setAutoRenew(false);
+                    Subscription saved = subscriptionRepository.save(subscription);
+                    eventPublisher.ended(saved);
+                    log.info("Subscription expired by Stripe [id={}, reason={}]", id, reason);
+                });
+    }
+
+    /**
+     * Follow a renewal change made on the Stripe side, as a cancel or a resume with nobody as the actor.
+     *
+     * @param id the ID of the subscription
+     * @param isAutoRenew whether it renews at the end of its period
+     */
+    public void syncRenewal(UUID id, boolean isAutoRenew) {
+        Optional<Subscription> found = subscriptionRepository.lockById(id)
+                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
+                        && subscription.isBilledByStripe());
+        if (found.isEmpty() || found.get().isAutoRenew() == isAutoRenew) {
+            return;
+        }
+        if (isAutoRenew) {
+            resume(id, null);
+        } else {
+            cancel(id, null);
+        }
+    }
+
+    // Starts a pending subscription's first period, ending the subscriber's active one as switched.
+    private Subscription start(Subscription subscription, Instant periodStart, Instant periodEnd, UUID actorId) {
         Instant now = Instant.now();
         Optional<Subscription> replaced = endActive(subscriberOf(subscription), now);
         replaced.ifPresent(old -> old.setSwitchedToSubscriptionId(subscription.getId()));
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscription.setActivatedAt(now);
         subscription.setActivatedByUserId(actorId);
-        subscription.setCurrentPeriodStart(now);
-        subscription.setCurrentPeriodEnd(subscription.getBillingInterval().addTo(now, 1));
+        subscription.setCurrentPeriodStart(periodStart);
+        subscription.setCurrentPeriodEnd(periodEnd);
+        subscription.setPastDueAt(null);
 
         Subscription saved = subscriptionRepository.save(subscription);
         replaced.ifPresent(eventPublisher::ended);
         eventPublisher.activated(saved);
-        log.info("Subscription activated [id={}, actorId={}]", saved.getId(), actorId);
-        return subscriptionMapper.toResponse(saved);
+        return saved;
     }
 
     /**
@@ -204,6 +359,11 @@ public class SubscriptionService {
     public SubscriptionResponse extend(UUID id, int days, UUID actorId) {
         Subscription subscription = lock(id);
         requireStatus(subscription, SubscriptionStatus.ACTIVE);
+        if (subscription.isBilledByStripe()) {
+            // Stripe would bill the next period on its own date anyway; refund instead.
+            throw new IllegalStateException("Subscription with id=%s is billed by Stripe and can't be extended"
+                    .formatted(id));
+        }
         subscription.setCurrentPeriodEnd(subscription.getCurrentPeriodEnd().plus(Duration.ofDays(days)));
 
         Subscription saved = subscriptionRepository.save(subscription);
@@ -264,6 +424,7 @@ public class SubscriptionService {
         subscription.setCanceledAt(null);
 
         Subscription saved = subscriptionRepository.save(subscription);
+        eventPublisher.resumed(saved, actorId);
         log.info("Subscription resumed [id={}, actorId={}]", saved.getId(), actorId);
         return subscriptionMapper.toResponse(saved);
     }
@@ -463,18 +624,7 @@ public class SubscriptionService {
         // Catches up period by period, so the promoted periods are counted down the same way.
         while (!subscription.getCurrentPeriodEnd().isAfter(now) && renewals < MAX_RENEWALS_AT_ONCE) {
             Instant start = subscription.getCurrentPeriodEnd();
-            subscription.setCurrentPeriodStart(start);
-            subscription.setCurrentPeriodEnd(subscription.getBillingInterval().addTo(start, 1));
-            subscription.setRenewalCount(subscription.getRenewalCount() + 1);
-
-            Integer remaining = subscription.getPromotionPeriodsRemaining();
-            if (subscription.getPromotion() != null && remaining != null) {
-                int left = Math.max(remaining - 1, 0);
-                subscription.setPromotionPeriodsRemaining(left);
-                if (left == 0) {
-                    subscription.setPriceMinor(subscription.getListPriceMinor());
-                }
-            }
+            moveToNextPeriod(subscription, start, subscription.getBillingInterval().addTo(start, 1));
             renewals++;
         }
         log.info("Subscription renewed [id={}, periods={}, periodEnd={}]", subscription.getId(), renewals,

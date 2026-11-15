@@ -5,6 +5,8 @@ import com.triphuddle.amqp.RabbitMQMessageProducer;
 import com.triphuddle.amqp.notification.NotificationEmailContract;
 import com.triphuddle.amqp.notification.NotificationEmailType;
 import com.triphuddle.amqp.notification.SendEmailRequest;
+import com.triphuddle.amqp.user.UserContactUpdatedContract;
+import com.triphuddle.amqp.user.UserContactUpdatedEvent;
 import com.triphuddle.amqp.user.UserDeletedContract;
 import com.triphuddle.amqp.user.UserDeletedEvent;
 import com.triphuddle.amqp.user.UserDisabledContract;
@@ -35,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -97,7 +100,19 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
 
         publishVerificationEmail(saved);
         publishUserRegistered(saved);
+        publishContactUpdated(saved);
         return userMapper.toResponse(saved);
+    }
+
+    // For api-payment's copy of billing contacts; carries the whole contact, so it can drop stale ones.
+    private void publishContactUpdated(User user) {
+        messageProducer.publish(
+                new UserContactUpdatedEvent(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(),
+                        user.isEmailVerified(), Instant.now()),
+                "",
+                UserContactUpdatedContract.USER_CONTACT_UPDATED_QUEUE_NAME
+        );
+        log.info("Event published for user contact update [userId={}]", user.getId());
     }
 
     private void publishUserRegistered(User user) {
@@ -153,6 +168,7 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
                 UserEmailVerifiedContract.USER_EMAIL_VERIFIED_QUEUE_NAME
         );
         log.info("Event published for user email verification [userId={}]", user.getId());
+        publishContactUpdated(user);
 
         messageProducer.publish(
                 new SendEmailRequest(
@@ -234,6 +250,8 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         User user = this.getEntityById(updateUserRequest.getId());
 
         boolean isEmailChanged = !user.getEmail().equals(updateUserRequest.getEmail());
+        String previousFirstName = user.getFirstName();
+        String previousLastName = user.getLastName();
 
         userMapper.updateEntityFromRequest(user, updateUserRequest);
 
@@ -244,6 +262,10 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
 
         User saved = userRepository.save(user);
         log.info("User updated [id={}]", saved.getId());
+        if (isEmailChanged || !Objects.equals(previousFirstName, saved.getFirstName())
+                || !Objects.equals(previousLastName, saved.getLastName())) {
+            publishContactUpdated(saved);
+        }
         return userMapper.toResponse(saved);
     }
 
@@ -256,7 +278,10 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         User saved = userRepository.save(user);
         log.info("User disabled [id={}]", saved.getId());
 
-        messageProducer.publish(new UserDisabledEvent(saved.getId()), "", UserDisabledContract.USER_DISABLED_QUEUE_NAME);
+        UserDisabledEvent event = new UserDisabledEvent(saved.getId());
+        // Once per consuming service, as a queue has only one consumer.
+        messageProducer.publish(event, "", UserDisabledContract.USER_DISABLED_QUEUE_NAME);
+        messageProducer.publish(event, "", UserDisabledContract.USER_DISABLED_PAYMENT_QUEUE_NAME);
         log.info("Event published for user disabling [userId={}]", saved.getId());
         return userMapper.toResponse(saved);
     }
@@ -270,7 +295,10 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         User saved = userRepository.save(user);
         log.info("User deleted [id={}]", saved.getId());
 
-        messageProducer.publish(new UserDeletedEvent(saved.getId()), "", UserDeletedContract.USER_DELETED_QUEUE_NAME);
+        UserDeletedEvent event = new UserDeletedEvent(saved.getId());
+        // Once per consuming service, as a queue has only one consumer.
+        messageProducer.publish(event, "", UserDeletedContract.USER_DELETED_QUEUE_NAME);
+        messageProducer.publish(event, "", UserDeletedContract.USER_DELETED_PAYMENT_QUEUE_NAME);
         log.info("Event published for user deletion [userId={}]", saved.getId());
         return userMapper.toResponse(saved);
     }

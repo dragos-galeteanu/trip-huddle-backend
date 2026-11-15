@@ -16,7 +16,7 @@ import java.util.UUID;
 public record LicenseSubscriptionRenewedEvent(
         UUID subscriptionId,
         UUID licenseId,
-        String subscriberType,
+        LicenseTarget subscriberType,
         UUID subscriberId,
         Instant currentPeriodEnd,
         long priceMinor

@@ -26,7 +26,7 @@ public record LicenseSubscriptionActivatedEvent(
         UUID licenseId,
         String licenseCode,
         String licenseName,
-        String subscriberType,
+        LicenseTarget subscriberType,
         UUID subscriberId,
         UUID notifyUserId,
         Instant currentPeriodEnd,
