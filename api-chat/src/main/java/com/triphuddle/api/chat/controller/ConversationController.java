@@ -1,12 +1,12 @@
 package com.triphuddle.api.chat.controller;
 
+import com.triphuddle.api.chat.dto.ConversationListFilter;
 import com.triphuddle.api.chat.dto.ConversationResponse;
 import com.triphuddle.api.chat.dto.CreatePrivateConversationRequest;
 import com.triphuddle.api.chat.dto.MarkConversationReadRequest;
 import com.triphuddle.api.chat.dto.MuteConversationRequest;
 import com.triphuddle.api.chat.service.ConversationService;
 import com.triphuddle.common.dto.CursorPaginated;
-import com.triphuddle.common.filter.CursorPaginationFilter;
 import com.triphuddle.common.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +33,7 @@ public class ConversationController {
     /**
      * Get the caller's conversations, most recently active first.
      *
-     * @param filter the cursor and page size
+     * @param filter the cursor, page size and optional type
      * @param authentication the caller
      * @return a page of conversations
      */
@@ -41,7 +41,7 @@ public class ConversationController {
     @Operation(summary = "Get my conversations")
     @PreAuthorize("@ConversationPolicy.canGetAll(authentication)")
     public ResponseEntity<CursorPaginated<ConversationResponse>> getMine(
-            @Valid @ModelAttribute CursorPaginationFilter filter, Authentication authentication) {
+            @Valid @ModelAttribute ConversationListFilter filter, Authentication authentication) {
         return ResponseEntity.ok(conversationService.getMine(SecurityUtils.extractUserId(authentication), filter));
     }
 

@@ -41,13 +41,30 @@ public class ChatEventPublisher {
         AfterCommit.run(() -> recipients.forEach(userId -> send(userId, event)));
     }
 
+    /**
+     * Send an event to a shared topic, such as the support queue topic staff subscribe to.
+     *
+     * @param destination the destination of the topic
+     * @param type the kind of event
+     * @param conversationId the ID of the conversation it concerns
+     * @param payload the payload of the event, or null
+     */
+    public void publishToTopic(String destination, ChatEventType type, UUID conversationId, Object payload) {
+        ChatEvent event = new ChatEvent(type, conversationId, payload, Instant.now());
+        AfterCommit.run(() -> send(destination, event));
+    }
+
     private void send(UUID userId, ChatEvent event) {
+        send(StompDestinations.userTopic(userId), event);
+    }
+
+    private void send(String destination, ChatEvent event) {
         try {
-            messagingTemplate.convertAndSend(StompDestinations.userTopic(userId), event);
+            messagingTemplate.convertAndSend(destination, event);
         } catch (MessagingException e) {
             // A broker hiccup must not fail the request: the change is saved and clients catch up on refetch.
-            log.warn("Could not deliver chat event [type={}, conversationId={}, userId={}]",
-                    event.type(), event.conversationId(), userId, e);
+            log.warn("Could not deliver chat event [type={}, conversationId={}, destination={}]",
+                    event.type(), event.conversationId(), destination, e);
         }
     }
 }

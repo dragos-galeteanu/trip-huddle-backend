@@ -35,7 +35,13 @@ public class ChatMessage extends BaseMongoDocument {
 
     private String clientMessageId;
 
+    // Missing on messages stored before kinds existed, which are all USER messages.
+    private MessageKind kind = MessageKind.USER;
+
     private String body;
+
+    // Set on SYSTEM messages only.
+    private SystemMessageEvent systemEvent;
 
     private ObjectId replyToMessageId;
 
@@ -46,4 +52,22 @@ public class ChatMessage extends BaseMongoDocument {
     private Instant editedAt;
 
     private UUID deletedByUserId;
+
+    /**
+     * The kind of the message, reading a missing kind as {@code USER}.
+     *
+     * @return the kind of the message
+     */
+    public MessageKind getKind() {
+        return kind == null ? MessageKind.USER : kind;
+    }
+
+    /**
+     * Whether only the staff of a support chat may see the message.
+     *
+     * @return true if the message is an internal note
+     */
+    public boolean isInternalNote() {
+        return getKind() == MessageKind.INTERNAL_NOTE;
+    }
 }

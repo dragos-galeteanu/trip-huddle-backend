@@ -1,5 +1,8 @@
 package com.triphuddle.api.chat.dto;
 
+import com.triphuddle.api.chat.entity.MessageKind;
+import com.triphuddle.api.chat.entity.SystemMessageEvent;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -11,7 +14,9 @@ import java.util.UUID;
  * @param conversationId the ID of the conversation
  * @param senderId the ID of the user who sent it
  * @param clientMessageId the ID the sender's client generated for it
+ * @param kind USER, SYSTEM or INTERNAL_NOTE
  * @param body the text of the message, or null if it has none or was deleted
+ * @param systemEvent what a SYSTEM message records, or null for other kinds
  * @param replyToMessageId the ID of the message it replies to, or null
  * @param attachments the files attached to it
  * @param reactions the reactions to it, grouped by emoji
@@ -26,7 +31,9 @@ public record MessageResponse(
         UUID conversationId,
         UUID senderId,
         String clientMessageId,
+        MessageKind kind,
         String body,
+        SystemMessageEvent systemEvent,
         String replyToMessageId,
         List<AttachmentResponse> attachments,
         List<ReactionResponse> reactions,

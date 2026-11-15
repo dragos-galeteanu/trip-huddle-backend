@@ -85,7 +85,7 @@ flowchart LR
 | `api-user` | service | 8081 | users, profiles, preferences, Firebase accounts | [docs](../api-user/docs/README.md) |
 | `api-platform` | service | 8082 | countries, currencies, languages, feature flags | [docs](../api-platform/docs/README.md) |
 | `api-group` | service | 8083 | groups, memberships, invitations | [docs](../api-group/docs/README.md) |
-| `api-chat` | service | 8084 | private and group chats, messages, real time over STOMP | [docs](../api-chat/docs/README.md) |
+| `api-chat` | service | 8084 | private, group and support chats, support tickets, messages, real time over STOMP | [docs](../api-chat/docs/README.md) |
 | `notification` | service | 8090 | sends emails and push notifications requested by other services | [docs](../notification/docs/README.md) |
 | `openai` | service | 8088 | text generation behind one interface | [docs](../openai/docs/README.md) |
 | `common` | library | | base classes, security, pagination, error handling | [docs](../common/docs/README.md) |
@@ -153,6 +153,7 @@ flowchart LR
     U -- "UserRegistered, Disabled, Deleted" --> CH[api-chat]
     G -- "Group*, GroupMembership*" --> CH
     CH -- "SendPushRequest" --> N
+    CH -- "SupportTicket*" --> U
     U -- "UserDevice*" --> N
 ```
 
@@ -183,7 +184,7 @@ sequenceDiagram
 | `api-user` | `jobbie_giggle_user`: users, user profiles | user preferences |
 | `api-platform` | `jobbie_giggle_platform`: countries, currencies, languages | feature flags |
 | `api-group` | `jobbie_giggle_group`: groups, memberships, invitations | none |
-| `api-chat` | `jobbie_giggle_chat`: conversations, participants, blocks, reports, chat users | chat messages |
+| `api-chat` | `jobbie_giggle_chat`: conversations, participants, support tickets and their events, blocks, reports, chat users | chat messages |
 | `notification` | none | device tokens |
 
 Relational schemas are checked at startup (`ddl-auto: validate`), so the tables must exist before a service starts.

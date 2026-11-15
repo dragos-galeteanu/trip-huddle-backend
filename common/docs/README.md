@@ -11,7 +11,7 @@ Shared building blocks for the API services. It is a library, not a running serv
 | `service` | `BaseService`, `BaseJpaService`, `BaseMongoService`: the CRUD contract; `FirebaseUserService` |
 | `controller` | `BaseController`, `BaseJpaController`, `BaseMongoController`: the CRUD endpoints |
 | `mapper` | `BaseMapper`: entity to and from DTOs (implemented with MapStruct) |
-| `security` | `BaseSecurityConfig`, `BaseAuthorizationPolicy`, `StompAuthChannelInterceptor`, `SecurityUtils`, `UserRole`, the Firebase role converter |
+| `security` | `BaseSecurityConfig`, `BaseAuthorizationPolicy`, `BaseStompAuthChannelInterceptor`, `SecurityUtils`, `UserRole`, the Firebase role converter |
 | `dto`, `filter` | `Paginated`, `PaginationMetaData`, `PaginationFilter`, `CursorPaginated`, `CursorPaginationFilter`, `ErrorResponse` |
 | `exception` | `GlobalExceptionHandler` and the shared exceptions |
 | `config` | `FirebaseConfig`, `BaseOpenApiConfig`, `BaseWebSocketConfig`, `BaseStorageConfig`, `StompDestinations`, `StompBrokerProperties`, `StorageBucketProperties` |

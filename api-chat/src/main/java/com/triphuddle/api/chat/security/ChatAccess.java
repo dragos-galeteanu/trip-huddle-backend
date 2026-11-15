@@ -6,15 +6,20 @@ import com.triphuddle.api.chat.entity.ConversationType;
 import com.triphuddle.api.chat.entity.ParticipantRole;
 import com.triphuddle.api.chat.repository.ChatMessageRepository;
 import com.triphuddle.api.chat.repository.ConversationParticipantRepository;
+import com.triphuddle.api.chat.repository.ConversationRepository;
 import com.triphuddle.common.security.SecurityUtils;
+import com.triphuddle.common.security.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -25,8 +30,41 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ChatAccess {
 
+    private static final Set<String> SUPPORT_STAFF_AUTHORITIES = Set.of(
+            "ROLE_" + UserRole.Admin.name().toUpperCase(Locale.ROOT),
+            "ROLE_" + UserRole.Support.name().toUpperCase(Locale.ROOT));
+
     private final ConversationParticipantRepository participantRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ConversationRepository conversationRepository;
+
+    /**
+     * Check if the caller is Support or Admin, who handle support tickets.
+     *
+     * @param authentication the authentication object
+     * @return true if the caller has the Support or Admin role
+     */
+    public boolean isSupportStaff(Authentication authentication) {
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .map(ChatAccess::normalizeRoleAuthority)
+                .anyMatch(SUPPORT_STAFF_AUTHORITIES::contains);
+    }
+
+    /**
+     * Check if the caller can read a conversation's history: they took part, or they are staff and it is a support chat.
+     *
+     * @param authentication the authentication object
+     * @param conversationId the ID of the conversation
+     * @return true if the caller can read the history
+     */
+    public boolean canReadHistory(Authentication authentication, UUID conversationId) {
+        return isParticipant(authentication, conversationId)
+                || isStaffOfSupportConversation(authentication, conversationId);
+    }
 
     /**
      * Check if the caller is or was a participant, which is enough to read the history they were part of.
@@ -48,8 +86,10 @@ public class ChatAccess {
      */
     public boolean isActiveParticipant(Authentication authentication, UUID conversationId) {
         return findParticipant(authentication, conversationId)
-                .map(ConversationParticipant::isActive)
-                .orElse(false);
+                .filter(ConversationParticipant::isActive)
+                // Staff who lost their role keep their place in a support chat but can no longer write in it.
+                .filter(participant -> participant.getRole() != ParticipantRole.STAFF || isSupportStaff(authentication))
+                .isPresent();
     }
 
     /**
@@ -61,8 +101,10 @@ public class ChatAccess {
      */
     public boolean canReadMessage(Authentication authentication, String messageId) {
         return findMessage(messageId)
-                .flatMap(message -> findParticipant(authentication, message.getConversationId())
-                        .filter(participant -> isVisibleTo(message, participant)))
+                .filter(message -> isStaffOfSupportConversation(authentication, message.getConversationId())
+                        || findParticipant(authentication, message.getConversationId())
+                                .filter(participant -> isVisibleTo(message, participant))
+                                .isPresent())
                 .isPresent();
     }
 
@@ -113,8 +155,19 @@ public class ChatAccess {
      * @return true if the participant is active or the message predates their leaving
      */
     public static boolean isVisibleTo(ChatMessage message, ConversationParticipant participant) {
+        if (message.isInternalNote() && participant.getRole() != ParticipantRole.STAFF) {
+            return false;
+        }
         return participant.getLeftAt() == null
                 || (message.getCreatedAt() != null && !message.getCreatedAt().isAfter(participant.getLeftAt()));
+    }
+
+    private boolean isStaffOfSupportConversation(Authentication authentication, UUID conversationId) {
+        return conversationId != null
+                && isSupportStaff(authentication)
+                && conversationRepository.findByIdAndDeletedAtIsNull(conversationId)
+                        .filter(conversation -> conversation.getType() == ConversationType.SUPPORT)
+                        .isPresent();
     }
 
     private Optional<ConversationParticipant> findParticipant(Authentication authentication, UUID conversationId) {
@@ -130,6 +183,11 @@ public class ChatAccess {
             return Optional.empty();
         }
         return chatMessageRepository.findById(new ObjectId(messageId));
+    }
+
+    private static String normalizeRoleAuthority(String authority) {
+        String normalized = authority == null ? "" : authority.toUpperCase(Locale.ROOT);
+        return normalized.startsWith("ROLE_") ? normalized : "ROLE_" + normalized;
     }
 
     private Optional<UUID> currentUserId(Authentication authentication) {

@@ -57,10 +57,10 @@ public class ChatMessageAuthorizationPolicy
      *
      * @param authentication the authentication object
      * @param conversationId the ID of the conversation
-     * @return true if the user is or was a participant
+     * @return true if the user is or was a participant, or is staff and it is a support chat
      */
     public boolean canGetAllByConversation(Authentication authentication, UUID conversationId) {
-        return chatAccess.isParticipant(authentication, conversationId);
+        return chatAccess.canReadHistory(authentication, conversationId);
     }
 
     @Override

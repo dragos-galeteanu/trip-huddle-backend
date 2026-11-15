@@ -4,6 +4,7 @@ import com.triphuddle.api.chat.dto.EditMessageRequest;
 import com.triphuddle.api.chat.dto.MessageHistoryFilter;
 import com.triphuddle.api.chat.dto.MessageResponse;
 import com.triphuddle.api.chat.dto.SendMessageRequest;
+import com.triphuddle.api.chat.security.ChatAccess;
 import com.triphuddle.api.chat.service.ChatMessageService;
 import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.common.security.SecurityUtils;
@@ -29,6 +30,7 @@ import java.util.UUID;
 public class ChatMessageController {
 
     private final ChatMessageService chatMessageService;
+    private final ChatAccess chatAccess;
 
     /**
      * Get a page of a conversation's history.
@@ -44,8 +46,8 @@ public class ChatMessageController {
     public ResponseEntity<CursorPaginated<MessageResponse>> getHistory(
             @PathVariable UUID conversationId, @Valid @ModelAttribute MessageHistoryFilter filter,
             Authentication authentication) {
-        return ResponseEntity.ok(
-                chatMessageService.getHistory(conversationId, SecurityUtils.extractUserId(authentication), filter));
+        return ResponseEntity.ok(chatMessageService.getHistory(conversationId,
+                SecurityUtils.extractUserId(authentication), filter, chatAccess.isSupportStaff(authentication)));
     }
 
     /**

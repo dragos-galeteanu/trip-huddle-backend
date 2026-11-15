@@ -66,7 +66,8 @@ public class PushNotificationService {
             return;
         }
 
-        String title = conversation.getType() == ConversationType.GROUP && conversation.getName() != null
+        // Group chats show the group's name and support chats the ticket's subject.
+        String title = conversation.getType() != ConversationType.PRIVATE && conversation.getName() != null
                 ? conversation.getName()
                 : "New message";
         Map<String, String> data = Map.of(

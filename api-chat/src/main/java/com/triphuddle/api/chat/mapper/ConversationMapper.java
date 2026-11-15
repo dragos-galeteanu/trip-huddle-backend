@@ -1,6 +1,7 @@
 package com.triphuddle.api.chat.mapper;
 
 import com.triphuddle.api.chat.dto.ConversationResponse;
+import com.triphuddle.api.chat.dto.SupportTicketSummary;
 import com.triphuddle.api.chat.entity.Conversation;
 import com.triphuddle.api.chat.entity.ConversationParticipant;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,11 @@ public class ConversationMapper {
      *
      * @param viewer the participant record of the caller
      * @param participants every participant of the conversation
+     * @param ticket the ticket of a support chat, or null
      * @return the response DTO
      */
-    public ConversationResponse toResponse(ConversationParticipant viewer, List<ConversationParticipant> participants) {
+    public ConversationResponse toResponse(ConversationParticipant viewer, List<ConversationParticipant> participants,
+                                           SupportTicketSummary ticket) {
         Conversation conversation = viewer.getConversation();
 
         // An ex-member must not learn what was said after they left, not even from the list preview.
@@ -49,6 +52,7 @@ public class ConversationMapper {
                 viewer.getLastReadMessageId(),
                 viewer.getLeftAt(),
                 participantMapper.toResponseList(participants),
+                ticket,
                 conversation.getCreatedAt()
         );
     }

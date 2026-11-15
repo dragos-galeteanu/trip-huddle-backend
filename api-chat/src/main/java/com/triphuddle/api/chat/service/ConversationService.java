@@ -1,6 +1,7 @@
 package com.triphuddle.api.chat.service;
 
 import com.triphuddle.api.chat.dto.ChatEventType;
+import com.triphuddle.api.chat.dto.ConversationListFilter;
 import com.triphuddle.api.chat.dto.ConversationResponse;
 import com.triphuddle.api.chat.dto.CreatePrivateConversationRequest;
 import com.triphuddle.api.chat.dto.MarkConversationReadRequest;
@@ -11,17 +12,20 @@ import com.triphuddle.api.chat.entity.Conversation;
 import com.triphuddle.api.chat.entity.ConversationParticipant;
 import com.triphuddle.api.chat.entity.ConversationType;
 import com.triphuddle.api.chat.entity.MessageAttachment;
+import com.triphuddle.api.chat.entity.MessageKind;
 import com.triphuddle.api.chat.entity.ParticipantRole;
+import com.triphuddle.api.chat.entity.SupportTicket;
 import com.triphuddle.api.chat.mapper.ConversationMapper;
+import com.triphuddle.api.chat.mapper.SupportTicketMapper;
 import com.triphuddle.api.chat.repository.ChatMessageRepository;
 import com.triphuddle.api.chat.repository.ConversationParticipantRepository;
 import com.triphuddle.api.chat.repository.ConversationRepository;
+import com.triphuddle.api.chat.repository.SupportTicketRepository;
 import com.triphuddle.api.chat.repository.UserBlockRepository;
 import com.triphuddle.api.chat.security.ChatAccess;
 import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.common.exception.InvalidFilterException;
 import com.triphuddle.common.exception.ResourceNotFoundException;
-import com.triphuddle.common.filter.CursorPaginationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
@@ -41,7 +45,9 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -56,6 +62,8 @@ public class ConversationService {
     private static final int PREVIEW_LENGTH = 100;
 
     private final ConversationRepository conversationRepository;
+    private final SupportTicketRepository supportTicketRepository;
+    private final SupportTicketMapper supportTicketMapper;
     private final ConversationParticipantRepository participantRepository;
     private final UserBlockRepository userBlockRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -68,20 +76,21 @@ public class ConversationService {
      * Get the caller's conversations, most recently active first, including those they left.
      *
      * @param userId the ID of the caller
-     * @param filter the cursor and page size
+     * @param filter the cursor, page size and optional type
      * @return a page of conversations
      */
     @Transactional(readOnly = true)
-    public CursorPaginated<ConversationResponse> getMine(UUID userId, CursorPaginationFilter filter) {
+    public CursorPaginated<ConversationResponse> getMine(UUID userId, ConversationListFilter filter) {
         int limit = filter.getLimit();
         PageRequest page = PageRequest.of(0, limit + 1);
 
         List<ConversationParticipant> found;
         if (filter.getCursor() == null || filter.getCursor().isBlank()) {
-            found = participantRepository.findFirstPageForUser(userId, page);
+            found = participantRepository.findFirstPageForUser(userId, filter.getType(), page);
         } else {
             ConversationCursor cursor = ConversationCursor.decode(filter.getCursor());
-            found = participantRepository.findPageForUserAfter(userId, cursor.activityAt(), cursor.participantId(), page);
+            found = participantRepository.findPageForUserAfter(
+                    userId, cursor.activityAt(), cursor.participantId(), filter.getType(), page);
         }
 
         boolean hasMore = found.size() > limit;
@@ -92,10 +101,18 @@ public class ConversationService {
                 ? Map.of()
                 : participantRepository.findByConversationIdIn(conversationIds).stream()
                         .collect(Collectors.groupingBy(participant -> participant.getConversation().getId()));
+        Map<UUID, SupportTicket> ticketsByConversation = conversationIds.isEmpty()
+                ? Map.of()
+                : supportTicketRepository.findByConversationIdInAndDeletedAtIsNull(conversationIds).stream()
+                        .collect(Collectors.toMap(ticket -> ticket.getConversation().getId(), Function.identity()));
 
         List<ConversationResponse> data = viewers.stream()
-                .map(viewer -> conversationMapper.toResponse(viewer,
-                        participantsByConversation.getOrDefault(viewer.getConversation().getId(), List.of())))
+                .map(viewer -> {
+                    UUID conversationId = viewer.getConversation().getId();
+                    return conversationMapper.toResponse(viewer,
+                            participantsByConversation.getOrDefault(conversationId, List.of()),
+                            supportTicketMapper.toSummary(ticketsByConversation.get(conversationId)));
+                })
                 .toList();
 
         String nextCursor = null;
@@ -156,6 +173,11 @@ public class ConversationService {
      */
     public ConversationResponse mute(UUID conversationId, UUID userId, MuteConversationRequest request) {
         ConversationParticipant participant = requireParticipant(conversationId, userId);
+        // A customer must not miss staff's replies to their ticket.
+        if (participant.getConversation().getType() == ConversationType.SUPPORT
+                && participant.getRole() != ParticipantRole.STAFF) {
+            throw new IllegalStateException("Support chats cannot be muted");
+        }
         boolean isMuted = Boolean.TRUE.equals(request.getIsMuted());
         participant.setMuted(isMuted);
         participant.setMutedUntil(isMuted ? request.getMutedUntil() : null);
@@ -192,11 +214,12 @@ public class ConversationService {
         Instant now = now();
         participant.setLastReadMessageId(message.getId().toHexString());
         participant.setLastReadAt(now);
-        participant.setUnreadCount((int) countUnreadAfter(conversationId, userId, messageId, participant.getLeftAt()));
+        participant.setUnreadCount((int) countUnreadAfter(conversationId, userId, messageId, participant.getLeftAt(),
+                participant.getRole() == ParticipantRole.STAFF));
         participantRepository.save(participant);
 
         // The reader's own other devices get it too, so their unread badge clears.
-        chatEventPublisher.publish(activeParticipantIds(conversationId), ChatEventType.READ_RECEIPT, conversationId,
+        chatEventPublisher.publish(audienceOf(message), ChatEventType.READ_RECEIPT, conversationId,
                 new ReadReceiptPayload(userId, message.getId().toHexString(), now));
         return toResponse(participant);
     }
@@ -211,8 +234,34 @@ public class ConversationService {
      */
     @Transactional(readOnly = true)
     public ConversationParticipant requireParticipant(UUID conversationId, UUID userId) {
+        return findParticipant(conversationId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conversation with id=%s not found".formatted(conversationId)));
+    }
+
+    /**
+     * Find a user's participant record, whether active or not.
+     *
+     * @param conversationId the ID of the conversation
+     * @param userId the ID of the user
+     * @return the participant, or empty if the user never took part or the conversation is deleted
+     */
+    @Transactional(readOnly = true)
+    public Optional<ConversationParticipant> findParticipant(UUID conversationId, UUID userId) {
         return participantRepository.findByConversationIdAndUserId(conversationId, userId)
-                .filter(participant -> participant.getConversation().getDeletedAt() == null)
+                .filter(participant -> participant.getConversation().getDeletedAt() == null);
+    }
+
+    /**
+     * Find a conversation that is not deleted.
+     *
+     * @param conversationId the ID of the conversation
+     * @return the conversation
+     * @throws ResourceNotFoundException if there is no such conversation
+     */
+    @Transactional(readOnly = true)
+    public Conversation requireConversation(UUID conversationId) {
+        return conversationRepository.findByIdAndDeletedAtIsNull(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Conversation with id=%s not found".formatted(conversationId)));
     }
@@ -290,6 +339,31 @@ public class ConversationService {
     }
 
     /**
+     * Find who should receive events about a message: the active staff for an internal note, otherwise everyone active.
+     *
+     * @param message the message
+     * @return the IDs of the users to notify
+     */
+    @Transactional(readOnly = true)
+    public List<UUID> audienceOf(ChatMessage message) {
+        return activeParticipants(message.getConversationId()).stream()
+                .filter(participant -> !message.isInternalNote() || participant.getRole() == ParticipantRole.STAFF)
+                .map(ConversationParticipant::getUserId)
+                .toList();
+    }
+
+    /**
+     * Record an internal note: it moves the staff's lists and unread counts, never the conversation's summary.
+     *
+     * @param conversationId the ID of the conversation
+     * @param message the new note
+     */
+    public void recordInternalNote(UUID conversationId, ChatMessage message) {
+        // Clears the persistence context: callers must reload anything they read after this.
+        participantRepository.recordInternalNote(conversationId, message.getSenderId(), now());
+    }
+
+    /**
      * Make a new message the conversation's last one and count it as unread for everyone but its sender.
      *
      * @param conversation the conversation
@@ -349,11 +423,15 @@ public class ConversationService {
         return Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 
-    private long countUnreadAfter(UUID conversationId, UUID userId, ObjectId afterMessageId, Instant leftAt) {
+    private long countUnreadAfter(UUID conversationId, UUID userId, ObjectId afterMessageId, Instant leftAt,
+                                  boolean seesInternalNotes) {
         Criteria criteria = Criteria.where("conversationId").is(conversationId)
                 .and("id").gt(afterMessageId)
                 .and("senderId").ne(userId)
                 .and("deletedAt").is(null);
+        if (!seesInternalNotes) {
+            criteria = criteria.and("kind").ne(MessageKind.INTERNAL_NOTE);
+        }
         if (leftAt != null) {
             criteria = criteria.and("createdAt").lte(leftAt);
         }
@@ -387,7 +465,11 @@ public class ConversationService {
 
     private ConversationResponse toResponse(ConversationParticipant viewer) {
         UUID conversationId = viewer.getConversation().getId();
-        return conversationMapper.toResponse(viewer, participantRepository.findByConversationIdIn(List.of(conversationId)));
+        SupportTicket ticket = viewer.getConversation().getType() == ConversationType.SUPPORT
+                ? supportTicketRepository.findByConversationIdAndDeletedAtIsNull(conversationId).orElse(null)
+                : null;
+        return conversationMapper.toResponse(viewer, participantRepository.findByConversationIdIn(List.of(conversationId)),
+                supportTicketMapper.toSummary(ticket));
     }
 
     private static void applyLastMessage(Conversation conversation, ChatMessage message) {

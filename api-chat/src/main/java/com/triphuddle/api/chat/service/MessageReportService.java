@@ -8,6 +8,8 @@ import com.triphuddle.api.chat.dto.MessageReportResponse;
 import com.triphuddle.api.chat.dto.MessageResponse;
 import com.triphuddle.api.chat.dto.ResolveMessageReportRequest;
 import com.triphuddle.api.chat.entity.ChatMessage;
+import com.triphuddle.api.chat.entity.ConversationType;
+import com.triphuddle.api.chat.entity.MessageKind;
 import com.triphuddle.api.chat.entity.MessageReport;
 import com.triphuddle.api.chat.entity.ReportStatus;
 import com.triphuddle.api.chat.mapper.ChatMessageMapper;
@@ -43,6 +45,7 @@ public class MessageReportService {
     private final MessageReportRepository messageReportRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatMessageService chatMessageService;
+    private final ConversationService conversationService;
     private final ChatMessageMapper chatMessageMapper;
     private final RabbitMQMessageProducer messageProducer;
 
@@ -56,7 +59,14 @@ public class MessageReportService {
      */
     public MessageReportResponse create(String messageId, UUID reporterId, CreateMessageReportRequest request) {
         ChatMessage message = chatMessageService.getEntityById(messageId);
-        if (message.getSenderId().equals(reporterId)) {
+        // Staff already take part in a support chat, so there is nobody to report to.
+        if (conversationService.requireConversation(message.getConversationId()).getType() == ConversationType.SUPPORT) {
+            throw new IllegalStateException("Messages in support chats cannot be reported");
+        }
+        if (message.getKind() == MessageKind.SYSTEM) {
+            throw new IllegalStateException("System messages cannot be reported");
+        }
+        if (reporterId.equals(message.getSenderId())) {
             throw new IllegalStateException("You cannot report your own message");
         }
         if (messageReportRepository.existsByMessageIdAndReporterIdAndStatus(messageId, reporterId, ReportStatus.OPEN)) {

@@ -16,15 +16,21 @@ import com.triphuddle.api.chat.entity.ChatMessage;
 import com.triphuddle.api.chat.entity.Conversation;
 import com.triphuddle.api.chat.entity.ConversationParticipant;
 import com.triphuddle.api.chat.entity.MessageAttachment;
+import com.triphuddle.api.chat.entity.ConversationType;
+import com.triphuddle.api.chat.entity.MessageKind;
 import com.triphuddle.api.chat.entity.MessageReaction;
+import com.triphuddle.api.chat.entity.ParticipantRole;
+import com.triphuddle.api.chat.entity.SystemMessageEvent;
 import com.triphuddle.api.chat.mapper.ChatMessageMapper;
 import com.triphuddle.api.chat.repository.ChatMessageRepository;
+import com.triphuddle.api.chat.security.ChatAccess;
 import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.common.exception.InvalidFilterException;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
@@ -40,6 +46,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -61,6 +68,7 @@ public class ChatMessageService {
     private final ChatEventPublisher chatEventPublisher;
     private final ChatMessageMapper chatMessageMapper;
     private final RabbitMQMessageProducer messageProducer;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     /**
      * Get a page of a conversation's history; an ex-member only sees what was sent before they left.
@@ -68,14 +76,24 @@ public class ChatMessageService {
      * @param conversationId the ID of the conversation
      * @param userId the ID of the caller
      * @param filter the cursor and page size
+     * @param isSupportStaff whether the caller is Support or Admin, who read any support chat in full
      * @return a page of messages, newest first, or oldest first when reading {@code after} a message
      */
     @Transactional(readOnly = true)
-    public CursorPaginated<MessageResponse> getHistory(UUID conversationId, UUID userId, MessageHistoryFilter filter) {
-        ConversationParticipant participant = conversationService.requireParticipant(conversationId, userId);
+    public CursorPaginated<MessageResponse> getHistory(UUID conversationId, UUID userId, MessageHistoryFilter filter,
+                                                       boolean isSupportStaff) {
         if (filter.getBefore() != null && filter.getAfter() != null) {
             throw new InvalidFilterException("Use either before or after, not both");
         }
+
+        Optional<ConversationParticipant> participant = conversationService.findParticipant(conversationId, userId);
+        boolean isStaffReader = isSupportStaff
+                && conversationService.requireConversation(conversationId).getType() == ConversationType.SUPPORT;
+        if (participant.isEmpty() && !isStaffReader) {
+            throw new ResourceNotFoundException("Conversation with id=%s not found".formatted(conversationId));
+        }
+        Instant leftAt = isStaffReader ? null : participant.get().getLeftAt();
+        boolean seesInternalNotes = isStaffReader;
 
         Criteria criteria = Criteria.where("conversationId").is(conversationId);
         if (filter.getBefore() != null) {
@@ -84,8 +102,11 @@ public class ChatMessageService {
         if (filter.getAfter() != null) {
             criteria = criteria.and("id").gt(parseCursor(filter.getAfter()));
         }
-        if (participant.getLeftAt() != null) {
-            criteria = criteria.and("createdAt").lte(participant.getLeftAt());
+        if (leftAt != null) {
+            criteria = criteria.and("createdAt").lte(leftAt);
+        }
+        if (!seesInternalNotes) {
+            criteria = criteria.and("kind").ne(MessageKind.INTERNAL_NOTE);
         }
 
         Sort.Direction direction = filter.getAfter() != null ? Sort.Direction.ASC : Sort.Direction.DESC;
@@ -139,6 +160,10 @@ public class ChatMessageService {
         ConversationParticipant sender = conversationService.requireActiveParticipant(conversationId, senderId);
         Conversation conversation = sender.getConversation();
         conversationService.requireWritable(conversation, senderId);
+        boolean isInternalNote = Boolean.TRUE.equals(request.getIsInternalNote());
+        if (isInternalNote && sender.getRole() != ParticipantRole.STAFF) {
+            throw new IllegalStateException("Only the staff of a support chat can write internal notes");
+        }
 
         var existing = chatMessageRepository.findBySenderIdAndClientMessageId(senderId, request.getClientMessageId());
         if (existing.isPresent()) {
@@ -159,8 +184,9 @@ public class ChatMessageService {
         message.setConversationId(conversationId);
         message.setSenderId(senderId);
         message.setClientMessageId(request.getClientMessageId());
+        message.setKind(isInternalNote ? MessageKind.INTERNAL_NOTE : MessageKind.USER);
         message.setBody(body);
-        message.setReplyToMessageId(resolveReplyTo(conversationId, request.getReplyToMessageId()));
+        message.setReplyToMessageId(resolveReplyTo(sender, request.getReplyToMessageId(), isInternalNote));
         message.setAttachments(new ArrayList<>(attachments));
 
         ChatMessage saved;
@@ -176,17 +202,58 @@ public class ChatMessageService {
         }
         log.info("Chat message sent [id={}, conversationId={}, senderId={}]", saved.getId(), conversationId, senderId);
 
-        conversationService.recordNewMessage(conversation, saved);
-        List<ConversationParticipant> active = conversationService.activeParticipants(conversationId);
+        ParticipantRole senderRole = sender.getRole();
+        ConversationType conversationType = conversation.getType();
+        if (isInternalNote) {
+            conversationService.recordInternalNote(conversationId, saved);
+        } else {
+            conversationService.recordNewMessage(conversation, saved);
+        }
+        List<ConversationParticipant> audience = conversationService.activeParticipants(conversationId).stream()
+                .filter(participant -> !isInternalNote || participant.getRole() == ParticipantRole.STAFF)
+                .toList();
 
         MessageResponse response = chatMessageMapper.toResponse(saved);
-        chatEventPublisher.publish(userIds(active), ChatEventType.MESSAGE_CREATED, conversationId, response);
-        pushNotificationService.notifyNewMessage(conversation, saved, active, ConversationService.preview(saved));
+        chatEventPublisher.publish(userIds(audience), ChatEventType.MESSAGE_CREATED, conversationId, response);
+        pushNotificationService.notifyNewMessage(conversation, saved, audience, ConversationService.preview(saved));
         AfterCommit.run(() -> messageProducer.publish(
                 new ChatMessageSentEvent(saved.getId().toHexString(), conversationId, senderId),
                 "",
                 ChatMessageSentContract.CHAT_MESSAGE_SENT_QUEUE_NAME
         ));
+        // Last, so that whatever a listener changes in reply reaches clients after the message itself.
+        applicationEventPublisher.publishEvent(new ChatMessageSentInternally(saved, conversationType, senderRole));
+        return response;
+    }
+
+    /**
+     * Post a system message recording a change to the conversation; it is nobody's to edit or delete.
+     *
+     * @param conversationId the ID of the conversation
+     * @param actorId who made the change, or null if the system did
+     * @param event what changed
+     * @param body the English text shown by clients that do not render the event themselves
+     * @return the posted message
+     */
+    public MessageResponse postSystemMessage(UUID conversationId, UUID actorId, SystemMessageEvent event, String body) {
+        Conversation conversation = conversationService.requireConversation(conversationId);
+
+        ChatMessage message = new ChatMessage();
+        message.setConversationId(conversationId);
+        message.setSenderId(actorId);
+        // The unique index on sender and clientMessageId needs a value no client will send.
+        message.setClientMessageId("system:" + UUID.randomUUID());
+        message.setKind(MessageKind.SYSTEM);
+        message.setBody(body);
+        message.setSystemEvent(event);
+        ChatMessage saved = chatMessageRepository.save(message);
+        log.info("System message posted [id={}, conversationId={}, type={}]",
+                saved.getId(), conversationId, event.type());
+
+        conversationService.recordNewMessage(conversation, saved);
+        MessageResponse response = chatMessageMapper.toResponse(saved);
+        chatEventPublisher.publish(conversationService.audienceOf(saved), ChatEventType.MESSAGE_CREATED,
+                conversationId, response);
         return response;
     }
 
@@ -203,6 +270,9 @@ public class ChatMessageService {
         if (message.getDeletedAt() != null) {
             throw new IllegalStateException("A deleted message cannot be edited");
         }
+        if (message.getKind() == MessageKind.SYSTEM) {
+            throw new IllegalStateException("A system message cannot be edited");
+        }
         if (!message.getSenderId().equals(userId)) {
             throw new AccessDeniedException("Only the sender can edit a message");
         }
@@ -218,7 +288,7 @@ public class ChatMessageService {
 
         conversationService.refreshLastMessage(saved.getConversationId(), saved);
         MessageResponse response = chatMessageMapper.toResponse(saved);
-        chatEventPublisher.publish(conversationService.activeParticipantIds(saved.getConversationId()),
+        chatEventPublisher.publish(conversationService.audienceOf(saved),
                 ChatEventType.MESSAGE_UPDATED, saved.getConversationId(), response);
         AfterCommit.run(() -> messageProducer.publish(
                 new ChatMessageEditedEvent(saved.getId().toHexString(), saved.getConversationId(), userId),
@@ -236,7 +306,11 @@ public class ChatMessageService {
      * @return the deleted message, without its content
      */
     public MessageResponse delete(String messageId, UUID userId) {
-        return softDelete(getEntityById(messageId), userId);
+        ChatMessage message = getEntityById(messageId);
+        if (message.getKind() == MessageKind.SYSTEM) {
+            throw new IllegalStateException("A system message cannot be deleted");
+        }
+        return softDelete(message, userId);
     }
 
     /**
@@ -281,6 +355,23 @@ public class ChatMessageService {
     }
 
     /**
+     * Find the participant-written message the customer could see right before a message, ignoring notes and system ones.
+     *
+     * @param message the message
+     * @return the previous visible USER message, or empty if there is none
+     */
+    @Transactional(readOnly = true)
+    public Optional<ChatMessage> findPreviousUserMessage(ChatMessage message) {
+        // A message stored before kinds existed has none, and is a USER message.
+        Criteria criteria = Criteria.where("conversationId").is(message.getConversationId())
+                .and("id").lt(message.getId())
+                .and("deletedAt").is(null)
+                .and("kind").nin(MessageKind.SYSTEM, MessageKind.INTERNAL_NOTE);
+        Query query = Query.query(criteria).with(Sort.by(Sort.Direction.DESC, "id")).limit(1);
+        return Optional.ofNullable(mongoTemplate.findOne(query, ChatMessage.class));
+    }
+
+    /**
      * Get the messages around a message, oldest first, with deleted content shown, for staff reviewing it.
      *
      * @param message the message at the centre
@@ -320,7 +411,7 @@ public class ChatMessageService {
 
         conversationService.refreshLastMessage(saved.getConversationId(), saved);
         MessageResponse response = chatMessageMapper.toResponse(saved);
-        chatEventPublisher.publish(conversationService.activeParticipantIds(saved.getConversationId()),
+        chatEventPublisher.publish(conversationService.audienceOf(saved),
                 ChatEventType.MESSAGE_DELETED, saved.getConversationId(), response);
         AfterCommit.run(() -> messageProducer.publish(
                 new ChatMessageDeletedEvent(saved.getId().toHexString(), saved.getConversationId(), deletedByUserId),
@@ -334,6 +425,9 @@ public class ChatMessageService {
         ChatMessage message = getEntityById(messageId);
         if (message.getDeletedAt() != null) {
             throw new IllegalStateException("You cannot react to a deleted message");
+        }
+        if (message.getKind() == MessageKind.SYSTEM) {
+            throw new IllegalStateException("You cannot react to a system message");
         }
         ConversationParticipant participant =
                 conversationService.requireActiveParticipant(message.getConversationId(), userId);
@@ -351,7 +445,7 @@ public class ChatMessageService {
         }
 
         MessageResponse response = chatMessageMapper.toResponse(updated);
-        chatEventPublisher.publish(conversationService.activeParticipantIds(updated.getConversationId()),
+        chatEventPublisher.publish(conversationService.audienceOf(updated),
                 ChatEventType.REACTIONS_UPDATED, updated.getConversationId(), response);
         return response;
     }
@@ -364,13 +458,18 @@ public class ChatMessageService {
         return chatMessageMapper.toResponse(existing);
     }
 
-    private ObjectId resolveReplyTo(UUID conversationId, String replyToMessageId) {
+    private ObjectId resolveReplyTo(ConversationParticipant sender, String replyToMessageId, boolean isInternalNote) {
         if (replyToMessageId == null || replyToMessageId.isBlank()) {
             return null;
         }
         ChatMessage replyTo = getEntityById(replyToMessageId);
-        if (!replyTo.getConversationId().equals(conversationId)) {
+        if (!replyTo.getConversationId().equals(sender.getConversation().getId())
+                || !ChatAccess.isVisibleTo(replyTo, sender)) {
             throw new ResourceNotFoundException("Message with id=%s not found".formatted(replyToMessageId));
+        }
+        // A reply the customer sees must not point them at a note they cannot open.
+        if (replyTo.isInternalNote() && !isInternalNote) {
+            throw new IllegalStateException("Only an internal note can reply to an internal note");
         }
         return replyTo.getId();
     }

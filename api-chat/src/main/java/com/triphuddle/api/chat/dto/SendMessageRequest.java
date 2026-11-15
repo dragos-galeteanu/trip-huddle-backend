@@ -28,6 +28,9 @@ public class SendMessageRequest {
 
     private String replyToMessageId;
 
+    // Staff of a support chat may write a note the customer never sees.
+    private Boolean isInternalNote = false;
+
     @Valid
     @Size(max = 10, message = "A message cannot have more than 10 attachments")
     private List<AttachmentRequest> attachments = new ArrayList<>();

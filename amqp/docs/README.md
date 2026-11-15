@@ -45,6 +45,7 @@ Listeners that use `simpleRabbitListenerContainerFactory` get this retry policy.
 | `group` | GroupInvitation × Created, Updated, Disabled, Deleted, Rejected, Canceled (6) | `api-group` | nobody yet |
 | `group` | `GroupInvitationAcceptedEvent` | `api-group` | `api-user` |
 | `chat` | ChatMessage × Sent, Edited, Deleted, Disabled, Reported (5) | `api-chat` | nobody yet |
+| `chat` | SupportTicket × Created, StatusChanged, Replied (3) | `api-chat` | `api-user` |
 
 Messages on a queue with no consumer stay there until one is added.
 
@@ -58,6 +59,7 @@ flowchart LR
     U -- "UserRegistered, Disabled, Deleted" --> CH[api-chat]
     G -- "Group*, GroupMembership*" --> CH
     CH -- SendPushRequest --> N
+    CH -- "SupportTicket*" --> U
     U -- "UserDevice*" --> N
     PL[api-platform] -- reference data events --> X([no consumer yet])
 ```

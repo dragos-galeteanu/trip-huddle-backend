@@ -106,7 +106,7 @@ Registering twice with the same Firebase account returns the existing user. If F
 
 | Direction | Message | When |
 |---|---|---|
-| publishes | `SendEmailRequest` | verification, welcome, password reset, pictures updated |
+| publishes | `SendEmailRequest` | verification, welcome, password reset, pictures updated, support tickets |
 | publishes | `UserRegisteredEvent` | a user registers |
 | publishes | `UserEmailVerifiedEvent` | a user verifies their email address |
 | publishes | `UserProfilePictureUpdatedEvent` | a profile or cover picture URL changes |
@@ -114,12 +114,16 @@ Registering twice with the same Firebase account returns the existing user. If F
 | publishes | `UserDeviceRegisteredEvent`, `UserDeviceUnregisteredEvent` | a device is registered or unregistered for push |
 | consumes | `GroupInvitationAcceptedEvent` | an invitation is accepted in `api-group` |
 | publishes | `UserMatchedToGroupInvitationEvent` | in reply, if a verified user has the invited email |
+| consumes | `SupportTicketCreatedEvent` | emails the customer that their ticket is open, or that support contacted them |
+| consumes | `SupportTicketRepliedEvent` | emails the customer that support replied |
+| consumes | `SupportTicketStatusChangedEvent` | emails the customer when the ticket is resolved, or closed by someone else |
 
 ## Settings
 
 | Property | Default | Meaning |
 |---|---|---|
 | `app.base-url` | `http://localhost:8080` | base of the links placed in emails |
+| `app.frontend-url` | `http://localhost:3000` | base of the ticket links in support emails: `<frontend-url>/support/tickets/<ticketId>` |
 | `app.firebase-role-sync.interval-ms` | `60000` | pause between role sync runs |
 | `firebase.project-id` | `jobbiegiggle` | Firebase project |
 | `firebase.enabled` | `true` | set to `false` to start without Firebase |
