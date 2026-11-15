@@ -1,10 +1,11 @@
 package com.triphuddle.amqp.user;
 
 /**
- * Queue and dead-letter queue names for {@link UserDisabledEvent}. The event goes to two queues, one per consuming
- * service, as a queue has only one consumer: the first is api-chat's, the {@code PAYMENT_} one api-payment's.
+ * Names for {@link UserDisabledEvent}. It is published once to a fanout exchange, and each consuming service reads its
+ * own queue bound to it: the plain queue is api-chat's, {@code PAYMENT_} api-payment's.
  */
 public class UserDisabledContract {
+    public static final String USER_DISABLED_EXCHANGE_NAME = "user.disabled.exchange";
     public static final String USER_DISABLED_QUEUE_NAME = "user.disabled.queue";
     public static final String USER_DISABLED_DLQ_NAME = "user.disabled.dlq";
     public static final String USER_DISABLED_PAYMENT_QUEUE_NAME = "user.disabled.payment.queue";

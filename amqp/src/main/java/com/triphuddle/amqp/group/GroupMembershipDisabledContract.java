@@ -1,15 +1,20 @@
 package com.triphuddle.amqp.group;
 
 /**
- * Queue and dead-letter queue names for {@link GroupMembershipDisabledEvent}. The event goes to three queues, one per
- * consuming service, as a queue has only one consumer: the first is api-chat's, the {@code LICENSE_} one
- * api-license's and the {@code PAYMENT_} one api-payment's.
+ * Names for {@link GroupMembershipDisabledEvent}. It is published once to a fanout exchange, and each consuming
+ * service reads its own queue bound to it: the plain queue is api-chat's, {@code LICENSE_} api-license's, {@code
+ * PAYMENT_} api-payment's and {@code DESTINATION_} api-destination's.
  */
 public class GroupMembershipDisabledContract {
+    public static final String GROUP_MEMBERSHIP_DISABLED_EXCHANGE_NAME = "group.membership.disabled.exchange";
     public static final String GROUP_MEMBERSHIP_DISABLED_QUEUE_NAME = "group.membership.disabled.queue";
     public static final String GROUP_MEMBERSHIP_DISABLED_DLQ_NAME = "group.membership.disabled.dlq";
     public static final String GROUP_MEMBERSHIP_DISABLED_LICENSE_QUEUE_NAME = "group.membership.disabled.license.queue";
     public static final String GROUP_MEMBERSHIP_DISABLED_LICENSE_DLQ_NAME = "group.membership.disabled.license.dlq";
     public static final String GROUP_MEMBERSHIP_DISABLED_PAYMENT_QUEUE_NAME = "group.membership.disabled.payment.queue";
     public static final String GROUP_MEMBERSHIP_DISABLED_PAYMENT_DLQ_NAME = "group.membership.disabled.payment.dlq";
+    public static final String GROUP_MEMBERSHIP_DISABLED_DESTINATION_QUEUE_NAME =
+            "group.membership.disabled.destination.queue";
+    public static final String GROUP_MEMBERSHIP_DISABLED_DESTINATION_DLQ_NAME =
+            "group.membership.disabled.destination.dlq";
 }

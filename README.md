@@ -36,6 +36,9 @@ flowchart TB
     subgraph PAYMENT[api-payment :8086]
         PAPG[(PostgreSQL)]
     end
+    subgraph DESTINATION[api-destination :8087]
+        DPG[(PostgreSQL + PostGIS)]
+    end
     ST[Stripe]
 
     GW -->|/api/v1/users| USER
@@ -44,6 +47,9 @@ flowchart TB
     GW -->|/api/v1/chats, /ws/chats| CHAT
     GW -->|/api/v1/licenses| LICENSE
     GW -->|/api/v1/payments| PAYMENT
+    GW -->|/api/v1/destinations| DESTINATION
+    DESTINATION <--> MQ
+    DESTINATION -->|SPARQL, images| WM[Wikidata, Wikimedia Commons]
     PAYMENT -->|API calls| ST
     PAYMENT <--> MQ
     ST -.->|webhook events| GW
@@ -87,7 +93,7 @@ flowchart LR
 - **Eureka**: every service registers with it, and the gateway looks services up there to route requests.
 - **Zipkin**: every service sends its traces there.
 - **Firebase**: besides signing users in, it is called directly by `api-user`, to set token claims and create password reset links.
-- **`openai`** registers and traces like the others but is not connected to any other service yet.
+- **`openai`** is the AI worker: it takes text and embedding jobs from amqp, calls OpenAI, and answers on the requester's own queue. `api-destination` sends it place content, itineraries, visa guidance and questions to write, and places and search queries to embed.
 
 ## Modules
 
@@ -100,9 +106,10 @@ flowchart LR
 | `api-group` | service | 8083 | groups, memberships, invitations | [docs](../api-group/docs/README.md) |
 | `api-chat` | service | 8084 | private, group and support chats, support tickets, messages, real time over STOMP | [docs](../api-chat/docs/README.md) |
 | `api-license` | service | 8085 | licenses, entitlements, promotions and subscriptions | [docs](../api-license/docs/README.md) |
+| `api-destination` | service | 8087 | places in a tree under each country, imported from Wikidata with Wikimedia Commons photos; AI overviews, opinions with sources and practical info per language; the category tree and tags; search by words, distance, map area and subtree; trip plans with AI itineraries under a monthly quota; visa rules and AI visa guidance per traveller; favourites, visited places, reviews, questions about places, and semantic search with pgvector; licensed access | [docs](../api-destination/docs/README.md) |
 | `api-payment` | service | 8086 | Stripe payments for subscriptions: checkout, renewals, failed payments, cancel and switching, invoices and refunds, daily reconciliation, the webhook and its event inbox, the Stripe catalog, and payment emails | [docs](../api-payment/docs/README.md) |
 | `notification` | service | 8090 | sends emails and push notifications requested by other services | [docs](../notification/docs/README.md) |
-| `openai` | service | 8088 | text generation behind one interface | [docs](../openai/docs/README.md) |
+| `openai` | service | 8088 | the AI worker: text (structured, with web search) and embedding jobs over amqp | [docs](../openai/docs/README.md) |
 | `common` | library | | base classes, security, pagination, error handling | [docs](../common/docs/README.md) |
 | `amqp` | library | | RabbitMQ setup and every message definition | [docs](../amqp/docs/README.md) |
 | `stripe` | library | | the Stripe client and webhook signature checks | [docs](../stripe/docs/README.md) |
@@ -119,6 +126,8 @@ flowchart LR
     PA[api-payment] --> CM
     PA --> A
     PA --> S[stripe]
+    D[api-destination] --> CM
+    D --> A
     U --> A[amqp]
     P --> A
     G --> A
@@ -162,7 +171,7 @@ sequenceDiagram
 
 ## Messaging
 
-Every message is a record (the event) plus a contract class naming its queue and dead-letter queue, all defined in `amqp`. A message is published to the default exchange with the queue name as routing key, so it lands in exactly that queue, and each queue has one consumer.
+Every message is a record (the event) plus a contract class naming its queue and dead-letter queue, all defined in `amqp`. A message with one consumer is published to the default exchange with the queue name as routing key, so it lands in exactly that queue. Each queue has one consumer.
 
 ```mermaid
 flowchart LR
@@ -182,10 +191,19 @@ flowchart LR
     G -- "GroupMembership*, GroupDisabled, GroupDeleted" --> PA
     PA -- "PaymentSubscription*" --> L
     PA -- "SendEmailRequest" --> N
+    PF[api-platform] -- "Country*" --> D[api-destination]
+    L -- "LicenseSubscription*, LicenseEntitlementsChanged" --> D
+    G -- "GroupMembership*, GroupDisabled, GroupDeleted" --> D
+    D -- "AiTextRequested, AiEmbeddingRequested" --> O[openai]
+    O -- "AiTextCompleted, AiEmbeddingCompleted" --> D
+    U -- "UserTravelDocumentsUpdated, UserDeleted" --> D
+    D -- "ItineraryFinished" --> CH
+    D -- "ItineraryFinished" --> U
+    D -- "SendPushRequest" --> N
     U -- "UserDevice*" --> N
 ```
 
-When two services need the same message, the publisher sends it to one queue per consumer: `api-group` sends its membership events to `api-chat`'s queues, `api-license`'s `.license` queues and `api-payment`'s `.payment` queues.
+When several services need the same message, it is published once to a fanout exchange named after it, and each service reads its own queue bound to that exchange. For example, `group.membership.created.exchange` feeds `api-chat`'s `group.membership.created.queue`, `api-license`'s `.license` queue and `api-payment`'s `.payment` queue. Adding a consumer means a new queue and binding in `amqp`, not a change to the publisher.
 
 A listener that throws is retried three times with a growing pause; after that the message goes to a dead-letter queue. Most created, updated, disabled and deleted events have no consumer yet; they exist so that future services can react without the publisher changing. The full catalogue is in the [amqp docs](../amqp/docs/README.md).
 
@@ -211,11 +229,12 @@ sequenceDiagram
 
 | Service | PostgreSQL | MongoDB |
 |---|---|---|
-| `api-user` | `jobbie_giggle_user`: users, user profiles | user preferences |
+| `api-user` | `jobbie_giggle_user`: users, user profiles, travel documents | user preferences |
 | `api-platform` | `jobbie_giggle_platform`: countries, currencies, languages | feature flags |
 | `api-group` | `jobbie_giggle_group`: groups, memberships, invitations | none |
 | `api-chat` | `jobbie_giggle_chat`: conversations, participants, support tickets and their events, blocks, reports, chat users | chat messages |
 | `api-license` | `jobbie_giggle_license`: licenses, entitlements, promotions, subscriptions, promotion redemptions, group admins | none |
+| `api-destination` | `jobbie_giggle_destination` (PostGIS, pgvector, pg_trgm, unaccent): places, names, categories, tags, photos, imports, countries, license access, group members, trip plans, itineraries, quota usage, visa rules, travellers' documents, visa guidance, favourites and visited places, reviews, questions, place and query embeddings | none |
 | `api-payment` | `jobbie_giggle_payment`: received Stripe events, license products and prices, Stripe customers, billing subscriptions, invoices, refunds, user contacts, group admins | none |
 | `notification` | none | device tokens |
 

@@ -10,8 +10,17 @@ Services never call each other over HTTP. Everything between them goes through t
 - **Contract**: a class with two constants, the queue name and its dead-letter queue name.
 - **Queue names**: `<domain>.<thing>.<action>.queue` and `.dlq`, for example `group.invitation.accepted.queue`.
 - **Registration**: each domain has a `*Queues` class listing its queue names. `RabbitMQConfig` declares all of them as durable queues at startup, in whichever service starts first.
-- **Publishing**: `RabbitMQMessageProducer.publish(event, "", queueName)`. The empty exchange is RabbitMQ's default exchange, so the message goes straight to the named queue.
-- **One consumer per queue.** A queue is a work queue, not a topic: if two services listened on the same queue, each message would reach only one of them. When a second service needs a message, the publisher sends it to a second queue as well, named after that service: `group.membership.created.queue` for `api-chat`, `group.membership.created.license.queue` for `api-license` and `group.membership.created.payment.queue` for `api-payment`, all in `GroupMembershipCreatedContract`.
+- **Publishing**:
+  - **One consumer:** `RabbitMQMessageProducer.publish(event, "", queueName)`. The empty exchange is RabbitMQ's default exchange, so the message goes straight to the named queue.
+  - **Several consumers:** `publish(event, XxxContract.XXX_EXCHANGE_NAME, "")`.
+- **One consumer per queue.** A queue is a work queue, not a topic: if two services listened on the same queue, each message would reach only one of them.
+- **Fanout exchanges for several consumers.** An event that several services consume has a durable fanout exchange, `<domain>.<thing>.<action>.exchange`, and one queue per consuming service bound to it.
+  - Example: `group.membership.created.exchange` feeds `group.membership.created.queue` (`api-chat`), `.license.queue` (`api-license`) and `.payment.queue` (`api-payment`), all named in `GroupMembershipCreatedContract`.
+  - The publisher sends once. `RabbitMQConfig` declares the exchanges and bindings listed in each domain's `*Exchanges` class: `GroupExchanges`, `UserExchanges` and `LicenseExchanges`.
+  - It refuses to start if a binding names a queue no `*Queues` class lists.
+  - **Exchanges today:** the four group-membership events, group disabled and deleted, user disabled and deleted, and license subscription activated, canceled and ended. Group events and license activated and ended also feed `api-destination`'s `.destination` queues. `destination.itinerary.finished.exchange` (`DestinationExchanges`) feeds `api-chat` and `api-user`, and user deleted feeds `api-destination` too.
+- **Adding a consumer** to such an event: add a `XXX_<SERVICE>_QUEUE_NAME` and its DLQ to the contract, list them in the `*Queues` class, bind the queue in the `*Exchanges` class, and listen on it. The publisher doesn't change.
+- **Making a single-consumer event fan out:** add the exchange name to the contract, add it to the `*Exchanges` class with the existing queue, and change its publisher to the exchange. The existing consumer keeps its queue.
 - **Format**: JSON, through `Jackson2JsonMessageConverter`.
 - **Shared types**: a value both ends of a message must agree on lives next to the messages, so services don't each keep a copy. Both travel as their names, so the JSON is unchanged:
   - `license.BillingInterval` (`MONTH`, `YEAR`, with `months()` and `addTo` for UTC calendar periods), typed in `LicenseCatalogChangedEvent` and `LicenseSubscriptionPendingEvent`;
@@ -38,20 +47,22 @@ Listeners that use `simpleRabbitListenerContainerFactory` get this retry policy.
 |---|---|---|---|
 | `notification` | `SendEmailRequest` | `api-user`, `api-group` | `notification` |
 | `notification` | `SendPushRequest` | `api-chat` | `notification` |
-| `user` | `UserRegisteredEvent`, `UserDisabledEvent`, `UserDeletedEvent` | `api-user` | `api-chat`; Disabled and Deleted also on `.payment` queues for `api-payment` |
+| `user` | `UserRegisteredEvent`, `UserDisabledEvent`, `UserDeletedEvent` | `api-user` | `api-chat`; Disabled and Deleted go through fanout exchanges, to `api-payment` too, and Deleted to `api-destination` |
 | `user` | `UserContactUpdatedEvent`: email, name and whether the email is verified, on registering, verifying and changing them | `api-user` | `api-payment` |
 | `user` | `UserDeviceRegisteredEvent`, `UserDeviceUnregisteredEvent` | `api-user` | `notification` |
+| `user` | `UserTravelDocumentsUpdatedEvent`: a user's nationalities and residence permits (`ResidencePermitKind`), the whole set with `changedAt` | `api-user` | `api-destination` |
 | `user` | `UserProfilePictureUpdatedEvent` | `api-user` | nobody yet |
 | `user` | `UserEmailVerifiedEvent` | `api-user` | `api-group` |
 | `user` | `UserMatchedToGroupInvitationEvent` | `api-user` | `api-group` |
-| `platform` | Country, Currency, Language × Created, Disabled, Deleted (9) | `api-platform` | nobody yet |
-| `group` | Group × Created, Updated, Disabled, Deleted (4) | `api-group` | `api-chat`; Disabled and Deleted also on `.license` queues for `api-license` and `.payment` queues for `api-payment` |
-| `group` | GroupMembership × Created, Updated, Disabled, Deleted (4) | `api-group` | `api-chat`, and on `.license` queues `api-license` and `.payment` queues `api-payment` |
+| `platform` | Country × Created, Disabled, Deleted (3) | `api-platform` | `api-destination` |
+| `platform` | Currency, Language × Created, Disabled, Deleted (6) | `api-platform` | nobody yet |
+| `group` | Group × Created, Updated, Disabled, Deleted (4) | `api-group` | `api-chat`; Disabled and Deleted through fanout exchanges to `api-license`, `api-payment` and `api-destination` too |
+| `group` | GroupMembership × Created, Updated, Disabled, Deleted (4) | `api-group` | `api-chat`, `api-license`, `api-payment` and `api-destination`, through fanout exchanges |
 | `group` | GroupInvitation × Created, Updated, Disabled, Deleted, Rejected, Canceled (6) | `api-group` | nobody yet |
 | `group` | `GroupInvitationAcceptedEvent` | `api-group` | `api-user` |
 | `chat` | ChatMessage × Sent, Edited, Deleted, Disabled, Reported (5) | `api-chat` | nobody yet |
 | `chat` | SupportTicket × Created, StatusChanged, Replied (3) | `api-chat` | `api-user` |
-| `license` | LicenseSubscription × Activated, Canceled, Ended, RenewalDue (4) | `api-license` | `api-user`; Activated and Ended also on `.payment` queues for `api-payment` |
+| `license` | LicenseSubscription × Activated, Canceled, Ended, RenewalDue (4) | `api-license` | `api-user`; Activated, Canceled and Ended go through fanout exchanges, to `api-payment` too, and Activated and Ended to `api-destination` |
 | `license` | `LicenseSubscriptionPendingEvent`: what a subscription waiting for payment must be charged | `api-license` | `api-payment` |
 | `license` | `LicenseCatalogChangedEvent`: a published or archived license's whole state | `api-license` | `api-payment` |
 | `license` | `LicenseSubscriptionActivationRefusedEvent`: a payment for a subscription that no longer waits for one | `api-license` | `api-payment` |
@@ -59,7 +70,11 @@ Listeners that use `simpleRabbitListenerContainerFactory` get this retry policy.
 | `payment` | PaymentSubscription × Renewed, PastDue, Ended, RenewalChanged (4): what Stripe did to a subscription it bills | `api-payment` | `api-license` |
 | `license` | `LicenseSubscriptionResumedEvent`, and `LicenseSubscriptionCanceledEvent` on a `.payment` queue | `api-license` | `api-payment` |
 | `notification` | `SendEmailRequest` for payment emails | `api-payment` | `notification` |
-| `license` | `LicenseSubscriptionRenewedEvent`, `LicenseEntitlementsChangedEvent` | `api-license` | nobody yet |
+| `ai` | `AiTextRequestedEvent`, `AiEmbeddingRequestedEvent`: AI jobs, each naming its reply queue | any service | `openai` |
+| `ai` | `AiTextCompletedEvent`, `AiEmbeddingCompletedEvent`: the answers, on the requester's queue in `AiQueues.REPLY_QUEUE_NAMES` | `openai` | the requester: `api-destination` on `ai.text.completed.destination.queue` and `ai.embedding.completed.destination.queue` |
+| `license` | `LicenseSubscriptionRenewedEvent`, `LicenseEntitlementsChangedEvent` | `api-license` | `api-destination` |
+| `destination` | `ItineraryFinishedEvent`: an itinerary READY or FAILED, with its travellers and plan link, through a fanout exchange | `api-destination` | `api-chat` (sockets), `api-user` (email) |
+| `notification` | `SendPushRequest` for finished itineraries, `SendEmailRequest` `ITINERARY_READY` | `api-destination`, `api-user` | `notification` |
 
 Messages on a queue with no consumer stay there until one is added.
 

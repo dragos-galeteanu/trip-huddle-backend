@@ -35,7 +35,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -57,13 +56,12 @@ public class LicenseEventPublisher {
      */
     public void activated(Subscription subscription) {
         License license = subscription.getLicense();
-        publish(new LicenseSubscriptionActivatedEvent(subscription.getId(), license.getId(), license.getCode(),
-                license.getName(), subscription.getSubscriberType(), subscription.getSubscriberId(),
-                notifyUserIdOf(subscription), subscription.getCurrentPeriodEnd(), subscription.isAutoRenew(),
-                subscription.isGranted(), subscription.getPriceMinor(), licenseProperties.currency(),
-                entitlementsOf(license)),
-                List.of(LicenseSubscriptionActivatedContract.LICENSE_SUBSCRIPTION_ACTIVATED_QUEUE_NAME,
-                        LicenseSubscriptionActivatedContract.LICENSE_SUBSCRIPTION_ACTIVATED_PAYMENT_QUEUE_NAME),
+        publishToExchange(new LicenseSubscriptionActivatedEvent(subscription.getId(), license.getId(),
+                license.getCode(), license.getName(), subscription.getSubscriberType(),
+                subscription.getSubscriberId(), notifyUserIdOf(subscription), subscription.getCurrentPeriodEnd(),
+                subscription.isAutoRenew(), subscription.isGranted(), subscription.getPriceMinor(),
+                licenseProperties.currency(), entitlementsOf(license)),
+                LicenseSubscriptionActivatedContract.LICENSE_SUBSCRIPTION_ACTIVATED_EXCHANGE_NAME,
                 subscription.getId());
     }
 
@@ -93,7 +91,7 @@ public class LicenseEventPublisher {
                 subscription.getPurchasedByUserId(), subscription.getBillingInterval(),
                 subscription.getListPriceMinor(), subscription.getPriceMinor(), licenseProperties.currency(),
                 subscription.getPromotionPeriodsRemaining(), createdAt, expiresAt),
-                List.of(LicenseSubscriptionPendingContract.LICENSE_SUBSCRIPTION_PENDING_QUEUE_NAME),
+                LicenseSubscriptionPendingContract.LICENSE_SUBSCRIPTION_PENDING_QUEUE_NAME,
                 subscription.getId());
     }
 
@@ -116,12 +114,11 @@ public class LicenseEventPublisher {
      * @param actorId who canceled it, or null if its group went away
      */
     public void canceled(Subscription subscription, UUID actorId) {
-        publish(new LicenseSubscriptionCanceledEvent(subscription.getId(), subscription.getLicense().getId(),
+        publishToExchange(new LicenseSubscriptionCanceledEvent(subscription.getId(), subscription.getLicense().getId(),
                 subscription.getLicense().getName(), subscription.getSubscriberType(),
                 subscription.getSubscriberId(), notifyUserIdOf(subscription), actorId,
                 subscription.getCurrentPeriodEnd()),
-                List.of(LicenseSubscriptionCanceledContract.LICENSE_SUBSCRIPTION_CANCELED_QUEUE_NAME,
-                        LicenseSubscriptionCanceledContract.LICENSE_SUBSCRIPTION_CANCELED_PAYMENT_QUEUE_NAME),
+                LicenseSubscriptionCanceledContract.LICENSE_SUBSCRIPTION_CANCELED_EXCHANGE_NAME,
                 subscription.getId());
     }
 
@@ -142,13 +139,12 @@ public class LicenseEventPublisher {
      * @param subscription the subscription that is over
      */
     public void ended(Subscription subscription) {
-        publish(new LicenseSubscriptionEndedEvent(subscription.getId(), subscription.getLicense().getId(),
+        publishToExchange(new LicenseSubscriptionEndedEvent(subscription.getId(), subscription.getLicense().getId(),
                 subscription.getLicense().getName(), subscription.getSubscriberType(),
                 subscription.getSubscriberId(), notifyUserIdOf(subscription), subscription.getStatus().name(),
                 subscription.getEndReason() == null ? null : subscription.getEndReason().name(),
                 subscription.getEndedAt()),
-                List.of(LicenseSubscriptionEndedContract.LICENSE_SUBSCRIPTION_ENDED_QUEUE_NAME,
-                        LicenseSubscriptionEndedContract.LICENSE_SUBSCRIPTION_ENDED_PAYMENT_QUEUE_NAME),
+                LicenseSubscriptionEndedContract.LICENSE_SUBSCRIPTION_ENDED_EXCHANGE_NAME,
                 subscription.getId());
     }
 
@@ -208,16 +204,20 @@ public class LicenseEventPublisher {
     }
 
     private void publish(Object event, String queueName, UUID id) {
-        publish(event, List.of(queueName), id);
+        send(event, "", queueName, id);
+    }
+
+    // For events several services consume: once, to the fanout exchange their queues are bound to.
+    private void publishToExchange(Object event, String exchangeName, UUID id) {
+        send(event, exchangeName, "", id);
     }
 
     // Built now, while the entities are loaded, and sent once the transaction commits; a rollback drops it.
-    // Sent to one queue per consuming service, as a queue has only one consumer.
-    private void publish(Object event, List<String> queueNames, UUID id) {
-        Runnable send = () -> queueNames.forEach(queueName -> {
-            messageProducer.publish(event, "", queueName);
-            log.info("Event published [queue={}, id={}]", queueName, id);
-        });
+    private void send(Object event, String exchangeName, String queueName, UUID id) {
+        Runnable send = () -> {
+            messageProducer.publish(event, exchangeName, queueName);
+            log.info("Event published [exchange={}, queue={}, id={}]", exchangeName, queueName, id);
+        };
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override

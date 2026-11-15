@@ -136,10 +136,8 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         log.info("Group disabled [id={}]", saved.getId());
 
         GroupDisabledEvent event = new GroupDisabledEvent(saved.getId(), saved.getName());
-        // Once per consuming service, as a queue has only one consumer.
-        messageProducer.publish(event, "", GroupDisabledContract.GROUP_DISABLED_QUEUE_NAME);
-        messageProducer.publish(event, "", GroupDisabledContract.GROUP_DISABLED_LICENSE_QUEUE_NAME);
-        messageProducer.publish(event, "", GroupDisabledContract.GROUP_DISABLED_PAYMENT_QUEUE_NAME);
+        // Once, to the fanout exchange; each consuming service has its own queue bound to it.
+        messageProducer.publish(event, GroupDisabledContract.GROUP_DISABLED_EXCHANGE_NAME, "");
         log.info("Event published for group disabling [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }
@@ -153,10 +151,8 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         log.info("Group deleted [id={}]", saved.getId());
 
         GroupDeletedEvent event = new GroupDeletedEvent(saved.getId(), saved.getName());
-        // Once per consuming service, as a queue has only one consumer.
-        messageProducer.publish(event, "", GroupDeletedContract.GROUP_DELETED_QUEUE_NAME);
-        messageProducer.publish(event, "", GroupDeletedContract.GROUP_DELETED_LICENSE_QUEUE_NAME);
-        messageProducer.publish(event, "", GroupDeletedContract.GROUP_DELETED_PAYMENT_QUEUE_NAME);
+        // Once, to the fanout exchange; each consuming service has its own queue bound to it.
+        messageProducer.publish(event, GroupDeletedContract.GROUP_DELETED_EXCHANGE_NAME, "");
         log.info("Event published for group deletion [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }

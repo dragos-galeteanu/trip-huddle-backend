@@ -54,6 +54,7 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
     private final UserMapper userMapper;
     private final FirebaseUserService firebaseUserService;
     private final RabbitMQMessageProducer messageProducer;
+    private final UserTravelDocumentService travelDocumentService;
 
     @Value("${app.base-url}")
     private String baseUrl;
@@ -279,9 +280,8 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         log.info("User disabled [id={}]", saved.getId());
 
         UserDisabledEvent event = new UserDisabledEvent(saved.getId());
-        // Once per consuming service, as a queue has only one consumer.
-        messageProducer.publish(event, "", UserDisabledContract.USER_DISABLED_QUEUE_NAME);
-        messageProducer.publish(event, "", UserDisabledContract.USER_DISABLED_PAYMENT_QUEUE_NAME);
+        // Once, to the fanout exchange; each consuming service has its own queue bound to it.
+        messageProducer.publish(event, UserDisabledContract.USER_DISABLED_EXCHANGE_NAME, "");
         log.info("Event published for user disabling [userId={}]", saved.getId());
         return userMapper.toResponse(saved);
     }
@@ -294,11 +294,11 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
 
         User saved = userRepository.save(user);
         log.info("User deleted [id={}]", saved.getId());
+        travelDocumentService.deleteForUser(saved.getId());
 
         UserDeletedEvent event = new UserDeletedEvent(saved.getId());
-        // Once per consuming service, as a queue has only one consumer.
-        messageProducer.publish(event, "", UserDeletedContract.USER_DELETED_QUEUE_NAME);
-        messageProducer.publish(event, "", UserDeletedContract.USER_DELETED_PAYMENT_QUEUE_NAME);
+        // Once, to the fanout exchange; each consuming service has its own queue bound to it.
+        messageProducer.publish(event, UserDeletedContract.USER_DELETED_EXCHANGE_NAME, "");
         log.info("Event published for user deletion [userId={}]", saved.getId());
         return userMapper.toResponse(saved);
     }

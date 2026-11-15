@@ -1,16 +1,24 @@
 package com.triphuddle.amqp;
 
+import com.triphuddle.amqp.ai.AiQueues;
 import com.triphuddle.amqp.chat.ChatQueues;
+import com.triphuddle.amqp.destination.DestinationExchanges;
+import com.triphuddle.amqp.destination.DestinationQueues;
+import com.triphuddle.amqp.group.GroupExchanges;
 import com.triphuddle.amqp.group.GroupQueues;
+import com.triphuddle.amqp.license.LicenseExchanges;
 import com.triphuddle.amqp.license.LicenseQueues;
 import com.triphuddle.amqp.notification.NotificationQueues;
 import com.triphuddle.amqp.payment.PaymentQueues;
 import com.triphuddle.amqp.platform.PlatformQueues;
+import com.triphuddle.amqp.user.UserExchanges;
 import com.triphuddle.amqp.user.UserQueues;
 import lombok.AllArgsConstructor;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Declarable;
 import org.springframework.amqp.core.Declarables;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
@@ -28,10 +36,13 @@ import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Shared RabbitMQ setup: JSON messages, retrying listeners and every queue the contracts define.
+ * Shared RabbitMQ setup: JSON messages, retrying listeners, every queue the contracts define, and the fanout
+ * exchanges of events with several consumers.
  */
 @Configuration
 @Import(RabbitAutoConfiguration.class)
@@ -48,10 +59,22 @@ public class RabbitMQConfig {
                     GroupQueues.QUEUE_NAMES,
                     ChatQueues.QUEUE_NAMES,
                     LicenseQueues.QUEUE_NAMES,
-                    PaymentQueues.QUEUE_NAMES
+                    PaymentQueues.QUEUE_NAMES,
+                    AiQueues.QUEUE_NAMES,
+                    DestinationQueues.QUEUE_NAMES
             )
             .flatMap(List::stream)
             .toList();
+
+    // Fanout exchanges of the events several services consume, each with one bound queue per service.
+    private static final Map<String, List<String>> EXCHANGE_BINDINGS = Stream.of(
+                    GroupExchanges.BINDINGS,
+                    UserExchanges.BINDINGS,
+                    LicenseExchanges.BINDINGS,
+                    DestinationExchanges.BINDINGS
+            )
+            .flatMap(bindings -> bindings.entrySet().stream())
+            .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
 
     private final ConnectionFactory connectionFactory;
 
@@ -121,6 +144,34 @@ public class RabbitMQConfig {
         );
         declarableList.add(new Queue(DEFAULT_DLQ_NAME, true));
         return new Declarables(declarableList);
+    }
+
+    /**
+     * Declares the fanout exchanges as durable, and binds each to its consuming services' queues.
+     *
+     * @return the exchanges and bindings to declare
+     */
+    @Bean
+    public Declarables allExchanges() {
+        return new Declarables(exchangeDeclarables());
+    }
+
+    static List<Declarable> exchangeDeclarables() {
+        List<Declarable> declarables = new ArrayList<>();
+        EXCHANGE_BINDINGS.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> {
+                    FanoutExchange exchange = new FanoutExchange(entry.getKey(), true, false);
+                    declarables.add(exchange);
+                    for (String queueName : entry.getValue()) {
+                        if (!QUEUE_NAMES.contains(queueName)) {
+                            throw new IllegalStateException("Exchange %s binds queue %s, which no *Queues class lists"
+                                    .formatted(entry.getKey(), queueName));
+                        }
+                        declarables.add(BindingBuilder.bind(new Queue(queueName, true)).to(exchange));
+                    }
+                });
+        return declarables;
     }
 
 }

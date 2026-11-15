@@ -20,12 +20,28 @@ eureka:
 
 integration:
   openai:
-    enabled: true
-    api-key:
-    model: gpt-4o-mini
+    enabled: ${OPENAI_ENABLED:true}
+    api-key: ${OPENAI_API_KEY:}
+    # The default model, for tasks without one of their own below.
+    model: ${OPENAI_MODEL:gpt-4o-mini}
     base-url: https://api.openai.com/v1
     temperature: 0.4
     max-tokens: 800
+    worker:
+      # Jobs run at once per instance; each waits on OpenAI, so this bounds calls in flight.
+      concurrency: ${OPENAI_WORKER_CONCURRENCY:4}
+      # A stronger model for the tasks that plan or explain; cheap bulk tasks use the default model.
+      task-models:
+        itinerary: ${OPENAI_MODEL_ITINERARY:gpt-4.1}
+        visa-guidance: ${OPENAI_MODEL_VISA:gpt-4.1}
+        place-question: ${OPENAI_MODEL_QUESTION:gpt-4.1}
+      embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+      max-output-tokens: 4000
+      max-attempts: 3
+      retry-base-ms: 2000
+      max-retry-ms: 30000
+      read-timeout-seconds: 180
+      web-search-tool: web_search
 
 management:
   tracing:

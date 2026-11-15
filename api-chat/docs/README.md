@@ -210,6 +210,7 @@ sequenceDiagram
 | `TYPING` | `{userId, isTyping}` |
 | `CONVERSATION_UPDATED` | none: refetch the conversation |
 | `TICKET_UPDATED` | `SupportTicketResponse` as staff see it; only on `/topic/support.queue` |
+| `ITINERARY_FINISHED` | `ItineraryFinishedEvent` from api-destination, with no conversation; on each traveller's user topic |
 
 - **Typing**: `SEND /app/conversations/{id}/typing` with `{"isTyping": true}`. It is relayed to the other active participants and not stored.
 - With `app.chat.broker.relay-enabled=false` an in-memory broker is used instead of RabbitMQ. Events then only reach clients connected to the same instance, so turn it off only for a single instance.
@@ -249,6 +250,7 @@ For each new message, the service publishes a `SendPushRequest` to the notificat
 | consumes | `GroupMembershipCreatedEvent` | adds the member, or brings them back |
 | consumes | `GroupMembershipUpdatedEvent` | follows their role |
 | consumes | `GroupMembershipDisabledEvent`, `GroupMembershipDeletedEvent` | the member leaves the chat |
+| consumes | `ItineraryFinishedEvent` | on `destination.itinerary.finished.chat.queue`; sends `ITINERARY_FINISHED` to the travellers' sockets |
 | publishes | `ChatMessageSentEvent`, `ChatMessageEditedEvent`, `ChatMessageDeletedEvent` | a message is sent, edited or deleted |
 | publishes | `ChatMessageReportedEvent` | a message is reported |
 | publishes | `SendPushRequest` | a new message should reach phones |

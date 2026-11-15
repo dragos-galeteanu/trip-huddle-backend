@@ -91,6 +91,7 @@ public class EmailService {
             case LICENSE_SUBSCRIPTION_EXPIRED -> "license-subscription-expired";
             case LICENSE_PAYMENT_SUCCEEDED -> "license-payment-succeeded";
             case LICENSE_PAYMENT_FAILED -> "license-payment-failed";
+            case ITINERARY_READY -> "itinerary-ready";
         };
     }
 
@@ -111,6 +112,7 @@ public class EmailService {
             case LICENSE_SUBSCRIPTION_EXPIRED -> "Your TripHuddle subscription has ended";
             case LICENSE_PAYMENT_SUCCEEDED -> "Your TripHuddle payment was received";
             case LICENSE_PAYMENT_FAILED -> "We could not renew your TripHuddle subscription";
+            case ITINERARY_READY -> "Your TripHuddle itinerary is ready";
         };
     }
 }

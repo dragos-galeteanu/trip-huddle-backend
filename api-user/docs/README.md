@@ -1,6 +1,6 @@
 # api-user
 
-Owns users, their public profiles and their preferences, on port **8081**. It is also the only service that talks to Firebase about accounts: it registers users, sets their token claims and keeps their roles in sync.
+Owns users, their public profiles, their preferences and their travel documents (nationalities and residence permits, for visa guidance), on port **8081**. It is also the only service that talks to Firebase about accounts: it registers users, sets their token claims and keeps their roles in sync.
 
 ## Data
 
@@ -45,6 +45,24 @@ erDiagram
 
 Every record also has `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`.
 
+**Travel documents:** each user's nationalities and residence permits, in `user_travel_documents`. Only countries, permit kinds and expiry dates are kept, never document numbers. They are removed when the user is deleted. There are no migrations (`ddl-auto: validate`), so create the table by hand:
+
+```sql
+CREATE TABLE user_travel_documents (
+    id           UUID PRIMARY KEY,
+    created_at   TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    updated_at   TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    disabled_at  TIMESTAMP(6) WITH TIME ZONE,
+    deleted_at   TIMESTAMP(6) WITH TIME ZONE,
+    user_id      UUID        NOT NULL REFERENCES users (id),
+    type         VARCHAR(24) NOT NULL,
+    country_code VARCHAR(2)  NOT NULL,
+    permit_kind  VARCHAR(16),
+    valid_until  DATE
+);
+CREATE UNIQUE INDEX user_travel_documents_uq ON user_travel_documents (user_id, type, country_code);
+```
+
 ## Endpoints
 
 All need a Firebase token except `verify-email`.
@@ -61,6 +79,8 @@ All need a Firebase token except `verify-email`.
 | `POST /api/v1/users` | nobody: returns 405, use `/register` |
 | `POST /api/v1/users/me/devices` `{token, platform}` | the signed-in user, for themselves |
 | `POST /api/v1/users/me/devices/unregister` `{token}` | the signed-in user, for themselves |
+| `GET /api/v1/users/me/travel-documents` | the signed-in user, for themselves |
+| `PUT /api/v1/users/me/travel-documents` `{nationalities, residencePermits: [{countryCode, kind, validUntil}]}` | the signed-in user; replaces every document. At most 4 nationalities and 10 permits; no permit for a country they're a citizen of, one per country, none expired |
 
 Profiles live under `/api/v1/users/user-profiles` and preferences under `/api/v1/users/user-preferences`, each with the standard create, get, list, update, disable and delete.
 
@@ -106,11 +126,12 @@ Registering twice with the same Firebase account returns the existing user. If F
 
 | Direction | Message | When |
 |---|---|---|
-| publishes | `SendEmailRequest` | verification, welcome, password reset, pictures updated, support tickets, license subscriptions |
+| publishes | `SendEmailRequest` | verification, welcome, password reset, pictures updated, support tickets, license subscriptions, itineraries |
 | publishes | `UserRegisteredEvent` | a user registers |
+| publishes | `UserTravelDocumentsUpdatedEvent` | travel documents are replaced; the whole set and `changedAt`, for `api-destination`, once saved |
 | publishes | `UserEmailVerifiedEvent` | a user verifies their email address |
 | publishes | `UserProfilePictureUpdatedEvent` | a profile or cover picture URL changes |
-| publishes | `UserDisabledEvent`, `UserDeletedEvent` | a user is disabled or deleted; to `api-chat`'s queue and to `api-payment`'s `.payment` queue |
+| publishes | `UserDisabledEvent`, `UserDeletedEvent` | a user is disabled or deleted; once, to its fanout exchange, which feeds `api-chat` and `api-payment`, and for deletes `api-destination` |
 | publishes | `UserContactUpdatedEvent` | a user registers, verifies their email address, or changes their email address or name; the whole contact and `changedAt`, for `api-payment` |
 | publishes | `UserDeviceRegisteredEvent`, `UserDeviceUnregisteredEvent` | a device is registered or unregistered for push |
 | consumes | `GroupInvitationAcceptedEvent` | an invitation is accepted in `api-group` |
@@ -122,6 +143,7 @@ Registering twice with the same Firebase account returns the existing user. If F
 | consumes | `LicenseSubscriptionRenewalDueEvent` | emails the customer that their subscription renews soon, with the price |
 | consumes | `LicenseSubscriptionCanceledEvent` | emails the customer that their subscription will not renew, and until when it runs |
 | consumes | `LicenseSubscriptionEndedEvent` | emails the customer when their subscription expired; one ended early gets no email |
+| consumes | `ItineraryFinishedEvent` | on `destination.itinerary.finished.user.queue`; emails whoever asked when it is READY (verified, active users only) |
 
 ## Settings
 

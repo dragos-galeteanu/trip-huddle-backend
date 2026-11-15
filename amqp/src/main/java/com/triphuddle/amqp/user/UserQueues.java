@@ -21,11 +21,15 @@ public class UserQueues {
             UserDeletedContract.USER_DELETED_DLQ_NAME,
             UserDeletedContract.USER_DELETED_PAYMENT_QUEUE_NAME,
             UserDeletedContract.USER_DELETED_PAYMENT_DLQ_NAME,
+            UserDeletedContract.USER_DELETED_DESTINATION_QUEUE_NAME,
+            UserDeletedContract.USER_DELETED_DESTINATION_DLQ_NAME,
             UserDeviceRegisteredContract.USER_DEVICE_REGISTERED_QUEUE_NAME,
             UserDeviceRegisteredContract.USER_DEVICE_REGISTERED_DLQ_NAME,
             UserDeviceUnregisteredContract.USER_DEVICE_UNREGISTERED_QUEUE_NAME,
             UserDeviceUnregisteredContract.USER_DEVICE_UNREGISTERED_DLQ_NAME,
             UserContactUpdatedContract.USER_CONTACT_UPDATED_QUEUE_NAME,
-            UserContactUpdatedContract.USER_CONTACT_UPDATED_DLQ_NAME
+            UserContactUpdatedContract.USER_CONTACT_UPDATED_DLQ_NAME,
+            UserTravelDocumentsUpdatedContract.USER_TRAVEL_DOCUMENTS_UPDATED_QUEUE_NAME,
+            UserTravelDocumentsUpdatedContract.USER_TRAVEL_DOCUMENTS_UPDATED_DLQ_NAME
     );
 }

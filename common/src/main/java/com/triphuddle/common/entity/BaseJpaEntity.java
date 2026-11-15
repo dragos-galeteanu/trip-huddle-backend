@@ -25,8 +25,9 @@ public class BaseJpaEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     protected UUID id;
 
+    // Never rewritten: an update made before the entity is reloaded would otherwise write back a stale value.
     @CreationTimestamp
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     protected Instant createdAt;
 
     @UpdateTimestamp

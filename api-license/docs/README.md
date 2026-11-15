@@ -357,10 +357,10 @@ Published once their transaction commits, so a rollback sends nothing.
 | | Message | When |
 |---|---|---|
 | publishes | `LicenseSubscriptionPendingEvent` | a subscription is created and waits for payment; carries the list price, the first period's price and how many periods the promotion covers, for checkout |
-| publishes | `LicenseSubscriptionActivatedEvent` | a subscription starts, by activation or grant; carries the entitlements; also on a `.payment` queue |
+| publishes | `LicenseSubscriptionActivatedEvent` | a subscription starts, by activation or grant; carries the entitlements; to its fanout exchange, which feeds `api-user`, `api-payment` and `api-destination` |
 | publishes | `LicenseSubscriptionRenewedEvent` | a subscription moves on to its next period |
-| publishes | `LicenseSubscriptionCanceledEvent` | an active subscription stops renewing; `actorId` is null when its group went away or Stripe stopped it; also on a `.payment` queue |
-| publishes | `LicenseSubscriptionEndedEvent` | a subscription expires, or ends early (switched, pending canceled or timed out); also on a `.payment` queue |
+| publishes | `LicenseSubscriptionCanceledEvent` | an active subscription stops renewing; `actorId` is null when its group went away or Stripe stopped it; to its fanout exchange, which feeds `api-user` and `api-payment` |
+| publishes | `LicenseSubscriptionEndedEvent` | a subscription expires, or ends early (switched, pending canceled or timed out); to its fanout exchange, which feeds `api-user`, `api-payment` and `api-destination` |
 | publishes | `LicenseSubscriptionRenewalDueEvent` | an auto-renewal is within `renewal-reminder-days` |
 | publishes | `LicenseEntitlementsChangedEvent` | a license's entitlements are replaced |
 | publishes | `LicenseCatalogChangedEvent` | a license is published or archived, or a published or archived one is updated; carries its whole state and `changedAt`, for api-payment's Stripe catalog. Drafts are never sent |

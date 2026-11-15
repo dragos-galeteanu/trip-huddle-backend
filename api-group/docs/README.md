@@ -115,8 +115,8 @@ So the membership does not exist the moment `accept` returns; it appears shortly
 
 | Direction | Message | When |
 |---|---|---|
-| publishes | Group × Created, Updated, Disabled, Deleted | a group changes; Disabled and Deleted go to `api-chat`'s queue, `api-license`'s `.license` queue and `api-payment`'s `.payment` queue |
-| publishes | GroupMembership × Created, Updated, Disabled, Deleted | a membership changes; each goes to `api-chat`'s queue, `api-license`'s `.license` queue and `api-payment`'s `.payment` queue |
+| publishes | Group × Created, Updated, Disabled, Deleted | a group changes; Disabled and Deleted are published once to their fanout exchanges, which feed `api-chat`, `api-license` and `api-payment` |
+| publishes | GroupMembership × Created, Updated, Disabled, Deleted | a membership changes; each is published once to its fanout exchange, which feeds `api-chat`, `api-license`, `api-payment` and `api-destination` |
 | publishes | GroupInvitation × Created, Updated, Disabled, Deleted | an invitation changes |
 | publishes | `GroupInvitationAcceptedEvent`, `...RejectedEvent`, `...CanceledEvent` | an invitation is answered or canceled |
 | publishes | `SendEmailRequest(GROUP_INVITATION)` | an invitation is created |

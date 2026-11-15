@@ -1,0 +1,130 @@
+spring:
+  application:
+    name: api-destination
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: 5672
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://securetoken.google.com/jobbiegiggle
+          jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
+  datasource:
+    url: jdbc:postgresql://postgres:5432/jobbie_giggle_destination
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+app:
+  destination:
+    # The license entitlement that opens api-destination; staff add it to the licenses that should.
+    access-entitlement: ${DESTINATION_ACCESS_ENTITLEMENT:DESTINATIONS}
+    # Access lasts this long past a subscription's period end, covering a renewal still on its way.
+    access-grace-hours: ${DESTINATION_ACCESS_GRACE_HOURS:48}
+    # The largest "near me" radius a search may ask for.
+    max-radius-km: 500
+    photos:
+      # Leave the bucket empty to show photos straight from Wikimedia Commons, which allows that.
+      project-id: jobbiegiggle
+      bucket: ${DESTINATION_PHOTOS_BUCKET:}
+      download-url-ttl-minutes: 360
+    content:
+      # How long each section is served before it is refreshed.
+      overview-fresh-days: 180
+      opinions-fresh-days: 30
+      practical-fresh-days: 90
+      # Aged content is refreshed ahead only if read this recently; the rest on its next read.
+      refresh-viewed-within-days: 30
+      # Tokens per UTC day: refreshes and staff requests stop at the budget, generation for readers at the limit.
+      daily-token-budget: ${DESTINATION_AI_DAILY_TOKEN_BUDGET:2000000}
+      daily-token-hard-limit: ${DESTINATION_AI_DAILY_TOKEN_HARD_LIMIT:5000000}
+      max-generations-per-user-per-day: ${DESTINATION_AI_MAX_GENERATIONS_PER_USER:30}
+      retry-failed-after-minutes: 60
+      pending-timeout-minutes: 30
+      refresh-interval-ms: 600000
+      refresh-batch-size: 50
+    trips:
+      max-trip-days: 30
+      max-places: 10
+      # The places within each destination the AI is offered to link itinerary items to.
+      candidates-per-place: 25
+      # The license entitlement holding a subscriber's itineraries per month, e.g. 10, or "unlimited".
+      itinerary-quota-entitlement: ${DESTINATION_ITINERARY_QUOTA_ENTITLEMENT:AI_ITINERARIES_PER_MONTH}
+      pending-timeout-minutes: 30
+      # The plan's page in the frontend, linked from push and email.
+      plan-url: ${DESTINATION_PLAN_URL:http://localhost:3000/trips/{planId}}
+    visas:
+      # The passport-index dataset (MIT), with ISO 3166-1 alpha-2 codes. Its original repository was archived in
+      # January 2025; point this at a maintained fork in the same format for newer rules.
+      dataset-url: ${DESTINATION_VISA_DATASET_URL:https://raw.githubusercontent.com/ilyankou/passport-index-dataset/master/passport-index-tidy-iso2.csv}
+      # A smaller download removes no rules, as it may have been cut short.
+      min-rules-for-full-import: 30000
+      guidance-fresh-days: 30
+      retry-failed-after-minutes: 60
+      pending-timeout-minutes: 30
+      running-timeout-minutes: 60
+    social:
+      # Open reports that hide a review until staff look at it.
+      review-auto-hide-reports: 3
+      max-question-length: 1000
+      question-pending-timeout-minutes: 30
+    search:
+      # Empty for the worker's own model; the column below is declared for its vectors' length.
+      embedding-model: ${DESTINATION_EMBEDDING_MODEL:}
+      embedding-dimensions: 1536
+      # Places embedded per job; one job a maintenance run (every 10 minutes).
+      embedding-batch-size: 200
+      embedding-pending-timeout-minutes: 30
+      query-pending-timeout-seconds: 120
+      max-results: 50
+    import:
+      # Wikimedia asks automated clients for a name and a way to reach whoever runs them.
+      user-agent: ${DESTINATION_IMPORT_USER_AGENT:TripHuddleBot/0.1 (set DESTINATION_IMPORT_USER_AGENT)}
+      # Names in these languages are imported, besides each country's own.
+      languages: en,de,fr,es,it,pt,ro,nl,pl
+      min-city-population: 20000
+      min-poi-sitelinks: 5
+      max-pois-per-class: 300
+      poi-city-radius-km: 25
+      photo-width: 1600
+      read-timeout-seconds: 90
+      interval-ms: 30000
+      query-interval-ms: 2000
+      max-attempts: 4
+      max-retry-wait-seconds: 120
+
+server:
+  port: 8087
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans

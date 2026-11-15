@@ -6,7 +6,10 @@
 
 services:
   postgres:
-    image: postgres:16
+    # postgres:16 with PostGIS and pgvector, which api-destination needs; same data format, so an existing volume
+    # carries over.
+    build: ./docker/postgres
+    image: triphuddle/postgres:16-postgis-pgvector
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
