@@ -135,11 +135,10 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         Group saved = groupRepository.save(group);
         log.info("Group disabled [id={}]", saved.getId());
 
-        messageProducer.publish(
-                new GroupDisabledEvent(saved.getId(), saved.getName()),
-                "",
-                GroupDisabledContract.GROUP_DISABLED_QUEUE_NAME
-        );
+        GroupDisabledEvent event = new GroupDisabledEvent(saved.getId(), saved.getName());
+        // Once per consuming service, as a queue has only one consumer.
+        messageProducer.publish(event, "", GroupDisabledContract.GROUP_DISABLED_QUEUE_NAME);
+        messageProducer.publish(event, "", GroupDisabledContract.GROUP_DISABLED_LICENSE_QUEUE_NAME);
         log.info("Event published for group disabling [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }
@@ -152,11 +151,10 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         Group saved = groupRepository.save(group);
         log.info("Group deleted [id={}]", saved.getId());
 
-        messageProducer.publish(
-                new GroupDeletedEvent(saved.getId(), saved.getName()),
-                "",
-                GroupDeletedContract.GROUP_DELETED_QUEUE_NAME
-        );
+        GroupDeletedEvent event = new GroupDeletedEvent(saved.getId(), saved.getName());
+        // Once per consuming service, as a queue has only one consumer.
+        messageProducer.publish(event, "", GroupDeletedContract.GROUP_DELETED_QUEUE_NAME);
+        messageProducer.publish(event, "", GroupDeletedContract.GROUP_DELETED_LICENSE_QUEUE_NAME);
         log.info("Event published for group deletion [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }

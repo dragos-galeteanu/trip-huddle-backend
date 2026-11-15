@@ -69,11 +69,12 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         log.info("GroupMembership created [id={}, groupId={}, userId={}, role={}]",
                 saved.getId(), group.getId(), userId, role);
 
-        messageProducer.publish(
-                new GroupMembershipCreatedEvent(saved.getId(), group.getId(), userId, role.name()),
-                "",
-                GroupMembershipCreatedContract.GROUP_MEMBERSHIP_CREATED_QUEUE_NAME
-        );
+        GroupMembershipCreatedEvent event = new GroupMembershipCreatedEvent(
+                saved.getId(), group.getId(), userId, role.name());
+        // Once per consuming service, as a queue has only one consumer.
+        messageProducer.publish(event, "", GroupMembershipCreatedContract.GROUP_MEMBERSHIP_CREATED_QUEUE_NAME);
+        messageProducer.publish(event, "",
+                GroupMembershipCreatedContract.GROUP_MEMBERSHIP_CREATED_LICENSE_QUEUE_NAME);
         log.info("Event published for group membership creation [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
@@ -125,12 +126,12 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         GroupMembership saved = groupMembershipRepository.save(groupMembership);
         log.info("GroupMembership updated [id={}, role={}]", saved.getId(), saved.getRole());
 
-        messageProducer.publish(
-                new GroupMembershipUpdatedEvent(
-                        saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name()),
-                "",
-                GroupMembershipUpdatedContract.GROUP_MEMBERSHIP_UPDATED_QUEUE_NAME
-        );
+        GroupMembershipUpdatedEvent event = new GroupMembershipUpdatedEvent(
+                saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name());
+        // Once per consuming service, as a queue has only one consumer.
+        messageProducer.publish(event, "", GroupMembershipUpdatedContract.GROUP_MEMBERSHIP_UPDATED_QUEUE_NAME);
+        messageProducer.publish(event, "",
+                GroupMembershipUpdatedContract.GROUP_MEMBERSHIP_UPDATED_LICENSE_QUEUE_NAME);
         log.info("Event published for group membership update [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
@@ -144,12 +145,12 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         GroupMembership saved = groupMembershipRepository.save(groupMembership);
         log.info("GroupMembership disabled [id={}]", saved.getId());
 
-        messageProducer.publish(
-                new GroupMembershipDisabledEvent(
-                        saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name()),
-                "",
-                GroupMembershipDisabledContract.GROUP_MEMBERSHIP_DISABLED_QUEUE_NAME
-        );
+        GroupMembershipDisabledEvent event = new GroupMembershipDisabledEvent(
+                saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name());
+        // Once per consuming service, as a queue has only one consumer.
+        messageProducer.publish(event, "", GroupMembershipDisabledContract.GROUP_MEMBERSHIP_DISABLED_QUEUE_NAME);
+        messageProducer.publish(event, "",
+                GroupMembershipDisabledContract.GROUP_MEMBERSHIP_DISABLED_LICENSE_QUEUE_NAME);
         log.info("Event published for group membership disabling [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
@@ -168,12 +169,12 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         GroupMembership saved = groupMembershipRepository.save(groupMembership);
         log.info("GroupMembership deleted [id={}]", saved.getId());
 
-        messageProducer.publish(
-                new GroupMembershipDeletedEvent(
-                        saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name()),
-                "",
-                GroupMembershipDeletedContract.GROUP_MEMBERSHIP_DELETED_QUEUE_NAME
-        );
+        GroupMembershipDeletedEvent event = new GroupMembershipDeletedEvent(
+                saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name());
+        // Once per consuming service, as a queue has only one consumer.
+        messageProducer.publish(event, "", GroupMembershipDeletedContract.GROUP_MEMBERSHIP_DELETED_QUEUE_NAME);
+        messageProducer.publish(event, "",
+                GroupMembershipDeletedContract.GROUP_MEMBERSHIP_DELETED_LICENSE_QUEUE_NAME);
         log.info("Event published for group membership deletion [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }

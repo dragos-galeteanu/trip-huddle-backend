@@ -30,17 +30,22 @@ flowchart TB
         CPG[(PostgreSQL)]
         CMG[(MongoDB)]
     end
+    subgraph LICENSE[api-license :8085]
+        LPG[(PostgreSQL)]
+    end
 
     GW -->|/api/v1/users| USER
     GW -->|/api/v1/platform| PLATFORM
     GW -->|/api/v1/groups| GROUP
     GW -->|/api/v1/chats, /ws/chats| CHAT
+    GW -->|/api/v1/licenses| LICENSE
 
     MQ{{RabbitMQ}}
     USER <--> MQ
     PLATFORM --> MQ
     GROUP <--> MQ
     CHAT <--> MQ
+    LICENSE <--> MQ
 
     MQ -->|email and push requests| N[notification :8090]
     N -->|SMTP| M[Mail server]
@@ -86,6 +91,7 @@ flowchart LR
 | `api-platform` | service | 8082 | countries, currencies, languages, feature flags | [docs](../api-platform/docs/README.md) |
 | `api-group` | service | 8083 | groups, memberships, invitations | [docs](../api-group/docs/README.md) |
 | `api-chat` | service | 8084 | private, group and support chats, support tickets, messages, real time over STOMP | [docs](../api-chat/docs/README.md) |
+| `api-license` | service | 8085 | licenses, entitlements, promotions and subscriptions | [docs](../api-license/docs/README.md) |
 | `notification` | service | 8090 | sends emails and push notifications requested by other services | [docs](../notification/docs/README.md) |
 | `openai` | service | 8088 | text generation behind one interface | [docs](../openai/docs/README.md) |
 | `common` | library | | base classes, security, pagination, error handling | [docs](../common/docs/README.md) |
@@ -98,6 +104,8 @@ flowchart LR
     G[api-group] --> CM
     CH[api-chat] --> CM
     CH --> A
+    L[api-license] --> CM
+    L --> A
     U --> A[amqp]
     P --> A
     G --> A
@@ -154,8 +162,12 @@ flowchart LR
     G -- "Group*, GroupMembership*" --> CH
     CH -- "SendPushRequest" --> N
     CH -- "SupportTicket*" --> U
+    G -- "GroupMembership*, GroupDisabled, GroupDeleted" --> L[api-license]
+    L -- "LicenseSubscription*" --> U
     U -- "UserDevice*" --> N
 ```
+
+When two services need the same message, the publisher sends it to one queue per consumer: `api-group` sends its membership events to `api-chat`'s queues and to `api-license`'s `.license` queues.
 
 A listener that throws is retried three times with a growing pause; after that the message goes to a dead-letter queue. Most created, updated, disabled and deleted events have no consumer yet; they exist so that future services can react without the publisher changing. The full catalogue is in the [amqp docs](../amqp/docs/README.md).
 
@@ -185,6 +197,7 @@ sequenceDiagram
 | `api-platform` | `jobbie_giggle_platform`: countries, currencies, languages | feature flags |
 | `api-group` | `jobbie_giggle_group`: groups, memberships, invitations | none |
 | `api-chat` | `jobbie_giggle_chat`: conversations, participants, support tickets and their events, blocks, reports, chat users | chat messages |
+| `api-license` | `jobbie_giggle_license`: licenses, entitlements, promotions, subscriptions, promotion redemptions, group admins | none |
 | `notification` | none | device tokens |
 
 Relational schemas are checked at startup (`ddl-auto: validate`), so the tables must exist before a service starts.

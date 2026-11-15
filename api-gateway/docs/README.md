@@ -10,11 +10,13 @@ The single public entry point, on port **8080**. It validates the Firebase token
 | `/api/v1/platform/**` | `api-platform` | circuit breaker, 60s time limit |
 | `/api/v1/groups/**` | `api-group` | circuit breaker, 60s time limit |
 | `/api/v1/chats/**` | `api-chat` | circuit breaker, 60s time limit |
+| `/api/v1/licenses/**` | `api-license` | circuit breaker, 60s time limit |
 | `/ws/chats/**` | `api-chat`, as WebSocket (`lb:ws://`) | no circuit breaker or time limit: they would cut every socket |
 | `/api-user/v3/api-docs` | `api-user` `/api-docs` | OpenAPI document |
 | `/api-platform/v3/api-docs` | `api-platform` `/api-docs` | OpenAPI document |
 | `/api-group/v3/api-docs` | `api-group` `/api-docs` | OpenAPI document |
 | `/api-chat/v3/api-docs` | `api-chat` `/api-docs` | OpenAPI document |
+| `/api-license/v3/api-docs` | `api-license` `/api-docs` | OpenAPI document |
 
 When a service does not answer, the circuit breaker forwards to `/fallback`.
 
@@ -25,6 +27,7 @@ flowchart LR
     GW -->|/api/v1/platform/**| P[api-platform :8082]
     GW -->|/api/v1/groups/**| G[api-group :8083]
     GW -->|/api/v1/chats/**, /ws/chats| CH[api-chat :8084]
+    GW -->|/api/v1/licenses/**| L[api-license :8085]
     GW -.->|look up instances| E[eureka-server :8761]
 ```
 
@@ -35,6 +38,7 @@ Every route needs a valid Firebase JWT except:
 | Route | Why it is public |
 |---|---|
 | `GET /api/v1/platform/countries/**`, `currencies/**`, `languages/**` | reference data |
+| `GET /api/v1/licenses`, `GET /api/v1/licenses/*`, `GET /api/v1/licenses/*/price` | the license catalog and price quotes, e.g. for a pricing page |
 | `POST /api/v1/groups/invitations/accept`, `/reject` | the invitee may have no account; the token is the proof |
 | `/api/v1/users/verify-email` | opened from the verification email |
 | `/api/v1/users/forgot-password` | permitted here; no service route behind it yet |
