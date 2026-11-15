@@ -40,6 +40,7 @@
         <module>api-chat</module>
         <module>api-gateway</module>
         <module>api-group</module>
+        <module>api-license</module>
         <module>api-platform</module>
         <module>api-user</module>
         <module>common</module>
