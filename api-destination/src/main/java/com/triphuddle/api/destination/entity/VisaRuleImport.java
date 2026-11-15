@@ -17,6 +17,7 @@ import java.util.UUID;
  * One load of the visa rules from the passport-index dataset.
  */
 @Entity
+// At most one import QUEUED or RUNNING: a partial index, which JPA can't declare.
 @Table(name = "destination_visa_rule_imports")
 @Getter
 @Setter

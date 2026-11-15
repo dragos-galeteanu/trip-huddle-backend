@@ -3,7 +3,6 @@ package com.triphuddle.api.destination.repository;
 import com.triphuddle.api.destination.entity.PlaceReview;
 import com.triphuddle.common.repository.BaseJpaRepository;
 import jakarta.persistence.LockModeType;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -40,14 +39,61 @@ public interface PlaceReviewRepository extends BaseJpaRepository<PlaceReview, UU
     Optional<PlaceReview> lockById(@Param("id") UUID id);
 
     /**
-     * Find the reviews of a place everyone sees, in the page's order.
+     * Find a page of the reviews of a place everyone sees, the newest first, after a cursor.
      *
      * @param placeId the ID of the place
-     * @param pageable the page and sort
-     * @return a page of reviews
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param at the creation time of the previous page's last review
+     * @param id the ID of the previous page's last review
+     * @param limit how many to take
+     * @return the reviews
      */
-    @Query("select r from PlaceReview r where r.placeId = :placeId and r.deletedAt is null and r.isHidden = false")
-    Page<PlaceReview> findVisible(@Param("placeId") UUID placeId, Pageable pageable);
+    @Query("""
+            select r from PlaceReview r where r.placeId = :placeId and r.deletedAt is null and r.isHidden = false
+              and (:isFirst = true or r.createdAt < :at or (r.createdAt = :at and r.id < :id))
+            order by r.createdAt desc, r.id desc""")
+    List<PlaceReview> findNewest(@Param("placeId") UUID placeId, @Param("isFirst") boolean isFirst,
+                                 @Param("at") Instant at, @Param("id") UUID id, Pageable limit);
+
+    /**
+     * Find a page of the reviews of a place everyone sees, the highest rated first, after a cursor.
+     *
+     * @param placeId the ID of the place
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param rating the rating of the previous page's last review
+     * @param at its creation time
+     * @param id its ID
+     * @param limit how many to take
+     * @return the reviews
+     */
+    @Query("""
+            select r from PlaceReview r where r.placeId = :placeId and r.deletedAt is null and r.isHidden = false
+              and (:isFirst = true or r.rating < :rating or (r.rating = :rating
+                   and (r.createdAt < :at or (r.createdAt = :at and r.id < :id))))
+            order by r.rating desc, r.createdAt desc, r.id desc""")
+    List<PlaceReview> findHighest(@Param("placeId") UUID placeId, @Param("isFirst") boolean isFirst,
+                                  @Param("rating") int rating, @Param("at") Instant at, @Param("id") UUID id,
+                                  Pageable limit);
+
+    /**
+     * Find a page of the reviews of a place everyone sees, the lowest rated first, after a cursor.
+     *
+     * @param placeId the ID of the place
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param rating the rating of the previous page's last review
+     * @param at its creation time
+     * @param id its ID
+     * @param limit how many to take
+     * @return the reviews
+     */
+    @Query("""
+            select r from PlaceReview r where r.placeId = :placeId and r.deletedAt is null and r.isHidden = false
+              and (:isFirst = true or r.rating > :rating or (r.rating = :rating
+                   and (r.createdAt < :at or (r.createdAt = :at and r.id < :id))))
+            order by r.rating asc, r.createdAt desc, r.id desc""")
+    List<PlaceReview> findLowest(@Param("placeId") UUID placeId, @Param("isFirst") boolean isFirst,
+                                 @Param("rating") int rating, @Param("at") Instant at, @Param("id") UUID id,
+                                 Pageable limit);
 
     /**
      * Count a place's visible reviews by rating.

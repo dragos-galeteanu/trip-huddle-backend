@@ -1,9 +1,9 @@
 package com.triphuddle.api.destination.repository;
 
+import java.util.List;
 import com.triphuddle.api.destination.entity.PlaceQuestion;
 import com.triphuddle.common.repository.BaseJpaRepository;
 import jakarta.persistence.LockModeType;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -20,15 +20,23 @@ import java.util.UUID;
 public interface PlaceQuestionRepository extends BaseJpaRepository<PlaceQuestion, UUID> {
 
     /**
-     * Find a user's questions about a place, the newest first.
+     * Find a page of a user's questions about a place, the newest first, after a cursor.
      *
      * @param placeId the ID of the place
      * @param userId the ID of the user
-     * @param pageable the page
-     * @return a page of questions
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param at the time the previous page's last question was asked
+     * @param id its ID
+     * @param limit how many to take
+     * @return the questions
      */
-    Page<PlaceQuestion> findByPlaceIdAndUserIdAndDeletedAtIsNullOrderByRequestedAtDesc(UUID placeId, UUID userId,
-                                                                                       Pageable pageable);
+    @Query("""
+            select q from PlaceQuestion q where q.placeId = :placeId and q.userId = :userId and q.deletedAt is null
+              and (:isFirst = true or q.requestedAt < :at or (q.requestedAt = :at and q.id < :id))
+            order by q.requestedAt desc, q.id desc""")
+    List<PlaceQuestion> findMine(@Param("placeId") UUID placeId, @Param("userId") UUID userId,
+                                 @Param("isFirst") boolean isFirst, @Param("at") Instant at, @Param("id") UUID id,
+                                 Pageable limit);
 
     /**
      * Lock the question waiting for an answer.

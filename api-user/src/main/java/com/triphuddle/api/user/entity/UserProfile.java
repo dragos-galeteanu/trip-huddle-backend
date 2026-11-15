@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class UserProfile extends BaseJpaEntity {
 
     @OneToOne
-    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_user_profile_user"))
+    @JoinColumn(name = "user_id", unique = true, foreignKey = @ForeignKey(name = "fk_user_profile_user"))
     private User user;
 
     @Column(columnDefinition = "TEXT")

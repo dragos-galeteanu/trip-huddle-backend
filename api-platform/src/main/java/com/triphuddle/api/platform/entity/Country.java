@@ -13,7 +13,10 @@ import java.math.BigDecimal;
  * A country, identified by its ISO 3166-1 codes, with its VAT and membership facts.
  */
 @Entity
-@Table(name = "countries")
+@Table(name = "countries", uniqueConstraints = {
+        @UniqueConstraint(name = "countries_alpha2_uq", columnNames = {"alpha2"}),
+        @UniqueConstraint(name = "countries_alpha3_uq", columnNames = {"alpha3"}),
+        @UniqueConstraint(name = "countries_numeric_code_uq", columnNames = {"numeric_code"})})
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor

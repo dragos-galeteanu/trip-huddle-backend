@@ -1,5 +1,8 @@
 package com.triphuddle.api.payment.service;
 
+import com.triphuddle.common.filter.CursorPaginationFilter;
+import com.triphuddle.common.dto.PageCursor;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.payment.dto.InvoiceFilter;
 import com.triphuddle.api.payment.dto.InvoiceResponse;
@@ -14,7 +17,6 @@ import com.triphuddle.api.payment.repository.PaymentInvoiceRepository;
 import com.triphuddle.api.payment.repository.PaymentRefundRepository;
 import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.exception.ResourceNotFoundException;
-import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.stripe.invoice.StripeInvoiceClient;
 import com.triphuddle.stripe.refund.StripeRefund;
 import com.triphuddle.stripe.refund.StripeRefundClient;
@@ -138,26 +140,35 @@ public class InvoiceService {
      * Get the invoices of the caller's own subscriptions.
      *
      * @param userId the ID of the user
-     * @param filter the page
+     * @param filter the cursor and page size
      * @return a page of invoices
      */
     @Transactional(readOnly = true)
-    public Paginated<InvoiceResponse> getMine(UUID userId, PaginationFilter filter) {
-        return Paginated.of(paymentInvoiceRepository.findForSubscriber(LicenseTarget.USER, userId,
-                filter.toPageable()), this::toResponses);
+    public CursorPaginated<InvoiceResponse> getMine(UUID userId, CursorPaginationFilter filter) {
+        return forSubscriber(LicenseTarget.USER, userId, filter);
     }
 
     /**
      * Get the invoices of a group's subscriptions.
      *
      * @param groupId the ID of the group
-     * @param filter the page
+     * @param filter the cursor and page size
      * @return a page of invoices
      */
     @Transactional(readOnly = true)
-    public Paginated<InvoiceResponse> getForGroup(UUID groupId, PaginationFilter filter) {
-        return Paginated.of(paymentInvoiceRepository.findForSubscriber(LicenseTarget.GROUP, groupId,
-                filter.toPageable()), this::toResponses);
+    public CursorPaginated<InvoiceResponse> getForGroup(UUID groupId, CursorPaginationFilter filter) {
+        return forSubscriber(LicenseTarget.GROUP, groupId, filter);
+    }
+
+    private CursorPaginated<InvoiceResponse> forSubscriber(LicenseTarget subscriberType, UUID subscriberId,
+                                                           CursorPaginationFilter filter) {
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 2);
+        boolean isFirst = cursor == null;
+        List<PaymentInvoice> found = paymentInvoiceRepository.findForSubscriber(subscriberType, subscriberId,
+                isFirst, isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(0),
+                isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(1), filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(), invoice -> PageCursor.of(invoice.getStripeCreatedAt(),
+                invoice.getId()), this::toResponses);
     }
 
     /**

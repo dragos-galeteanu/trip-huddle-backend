@@ -1,11 +1,13 @@
 package com.triphuddle.api.payment.service;
 
+import java.util.List;
+import com.triphuddle.common.dto.PageCursor;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.api.payment.dto.StripeEventFilter;
 import com.triphuddle.api.payment.dto.StripeEventResponse;
 import com.triphuddle.api.payment.entity.StripeEvent;
 import com.triphuddle.api.payment.entity.StripeEventStatus;
 import com.triphuddle.api.payment.repository.StripeEventRepository;
-import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,14 +31,19 @@ public class StripeEventService {
     /**
      * Get the stored events, newest first, without their payloads.
      *
-     * @param filter the page and filters
+     * @param filter the cursor, page size and filters
      * @return a page of events
      */
-    public Paginated<StripeEventResponse> getAll(StripeEventFilter filter) {
+    public CursorPaginated<StripeEventResponse> getAll(StripeEventFilter filter) {
         String eventType = filter.getEventType() == null || filter.getEventType().isBlank()
                 ? null : filter.getEventType().trim();
-        return Paginated.of(stripeEventRepository.findForStaff(filter.getStatus(), eventType, filter.toPageable()),
-                events -> events.stream().map(event -> toResponse(event, false)).toList());
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 2);
+        boolean isFirst = cursor == null;
+        List<StripeEvent> found = stripeEventRepository.findForStaff(filter.getStatus(), eventType, isFirst,
+                isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(0),
+                isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(1), filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(), event -> PageCursor.of(event.getStripeCreatedAt(),
+                event.getId()), events -> events.stream().map(event -> toResponse(event, false)).toList());
     }
 
     /**

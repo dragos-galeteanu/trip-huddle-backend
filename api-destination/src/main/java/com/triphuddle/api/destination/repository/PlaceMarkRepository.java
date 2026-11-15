@@ -1,9 +1,9 @@
 package com.triphuddle.api.destination.repository;
 
+import java.time.Instant;
 import com.triphuddle.api.destination.entity.PlaceMark;
 import com.triphuddle.api.destination.entity.PlaceMarkKind;
 import com.triphuddle.common.repository.BaseJpaRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -30,19 +30,25 @@ public interface PlaceMarkRepository extends BaseJpaRepository<PlaceMark, UUID> 
     Optional<PlaceMark> findByUserIdAndPlaceIdAndKind(UUID userId, UUID placeId, PlaceMarkKind kind);
 
     /**
-     * Find a user's marks of one kind on listed places, the newest first.
+     * Find a page of a user's marks of one kind on listed places, the newest first, after a cursor.
      *
      * @param userId the ID of the user
      * @param kind the kind
-     * @param pageable the page
-     * @return a page of marks
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param at the time the previous page's last mark was made
+     * @param id its ID
+     * @param limit how many to take
+     * @return the marks
      */
     @Query("""
             select m from PlaceMark m where m.userId = :userId and m.kind = :kind and exists (
                 select 1 from Place p where p.id = m.placeId and p.deletedAt is null
                     and p.status = com.triphuddle.api.destination.entity.PlaceStatus.ACTIVE)
-            order by m.createdAt desc""")
-    Page<PlaceMark> findListed(@Param("userId") UUID userId, @Param("kind") PlaceMarkKind kind, Pageable pageable);
+              and (:isFirst = true or m.createdAt < :at or (m.createdAt = :at and m.id < :id))
+            order by m.createdAt desc, m.id desc""")
+    List<PlaceMark> findListed(@Param("userId") UUID userId, @Param("kind") PlaceMarkKind kind,
+                               @Param("isFirst") boolean isFirst, @Param("at") Instant at, @Param("id") UUID id,
+                               Pageable limit);
 
     /**
      * Find a user's marks on some places.

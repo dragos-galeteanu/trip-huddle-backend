@@ -3,7 +3,7 @@ package com.triphuddle.api.payment.controller;
 import com.triphuddle.api.payment.dto.StripeEventFilter;
 import com.triphuddle.api.payment.dto.StripeEventResponse;
 import com.triphuddle.api.payment.service.StripeEventService;
-import com.triphuddle.common.dto.Paginated;
+import com.triphuddle.common.dto.CursorPaginated;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,13 +33,14 @@ public class StripeEventController {
     /**
      * Get the received events, newest first.
      *
-     * @param filter the page and the filters
+     * @param filter the cursor, page size and filters
      * @return a page of events, without payloads
      */
     @GetMapping
     @Operation(summary = "Get received Stripe events")
     @PreAuthorize("@StripeEventPolicy.canGetAll(authentication)")
-    public ResponseEntity<Paginated<StripeEventResponse>> getAll(@Valid @ModelAttribute StripeEventFilter filter) {
+    public ResponseEntity<CursorPaginated<StripeEventResponse>> getAll(
+            @Valid @ModelAttribute StripeEventFilter filter) {
         return ResponseEntity.ok(stripeEventService.getAll(filter));
     }
 

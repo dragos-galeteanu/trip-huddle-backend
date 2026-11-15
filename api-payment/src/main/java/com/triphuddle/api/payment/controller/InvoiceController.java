@@ -5,8 +5,9 @@ import com.triphuddle.api.payment.dto.InvoiceResponse;
 import com.triphuddle.api.payment.dto.RefundRequest;
 import com.triphuddle.api.payment.dto.RefundResponse;
 import com.triphuddle.api.payment.service.InvoiceService;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.filter.PaginationFilter;
+import com.triphuddle.common.filter.CursorPaginationFilter;
 import com.triphuddle.common.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,15 +41,15 @@ public class InvoiceController {
     /**
      * Get the invoices of the caller's own subscriptions, newest first.
      *
-     * @param filter the page
+     * @param filter the cursor and page size
      * @param authentication the caller
      * @return a page of invoices
      */
     @GetMapping("/mine")
     @Operation(summary = "Get my invoices")
     @PreAuthorize("@InvoicePolicy.canGetMine(authentication)")
-    public ResponseEntity<Paginated<InvoiceResponse>> getMine(@Valid @ModelAttribute PaginationFilter filter,
-                                                              Authentication authentication) {
+    public ResponseEntity<CursorPaginated<InvoiceResponse>> getMine(
+            @Valid @ModelAttribute CursorPaginationFilter filter, Authentication authentication) {
         return ResponseEntity.ok(invoiceService.getMine(SecurityUtils.extractUserId(authentication), filter));
     }
 
@@ -56,14 +57,14 @@ public class InvoiceController {
      * Get the invoices of a group's subscriptions, newest first.
      *
      * @param groupId the ID of the group
-     * @param filter the page
+     * @param filter the cursor and page size
      * @return a page of invoices
      */
     @GetMapping("/groups/{groupId}")
     @Operation(summary = "Get a group's invoices")
     @PreAuthorize("@InvoicePolicy.canGetForGroup(authentication, #groupId)")
-    public ResponseEntity<Paginated<InvoiceResponse>> getForGroup(@PathVariable UUID groupId,
-                                                                  @Valid @ModelAttribute PaginationFilter filter) {
+    public ResponseEntity<CursorPaginated<InvoiceResponse>> getForGroup(
+            @PathVariable UUID groupId, @Valid @ModelAttribute CursorPaginationFilter filter) {
         return ResponseEntity.ok(invoiceService.getForGroup(groupId, filter));
     }
 

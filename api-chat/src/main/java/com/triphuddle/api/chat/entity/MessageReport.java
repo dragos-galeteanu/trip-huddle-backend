@@ -13,6 +13,7 @@ import java.util.UUID;
  * A user's report of a message, reviewed by staff.
  */
 @Entity
+// One OPEN report per message and reporter: a partial index, which JPA can't declare.
 @Table(name = "message_reports", indexes = @Index(name = "ix_message_report_status", columnList = "status"))
 @Data
 @EqualsAndHashCode(callSuper = true)

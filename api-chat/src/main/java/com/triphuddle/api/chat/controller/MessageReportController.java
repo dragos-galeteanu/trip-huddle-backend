@@ -6,8 +6,8 @@ import com.triphuddle.api.chat.dto.MessageResponse;
 import com.triphuddle.api.chat.dto.ResolveMessageReportRequest;
 import com.triphuddle.api.chat.entity.ReportStatus;
 import com.triphuddle.api.chat.service.MessageReportService;
-import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.filter.PaginationFilter;
+import com.triphuddle.common.dto.CursorPaginated;
+import com.triphuddle.common.filter.CursorPaginationFilter;
 import com.triphuddle.common.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -56,14 +56,15 @@ public class MessageReportController {
      * Get the reports with a status, oldest first.
      *
      * @param status the status of the reports, OPEN unless given
-     * @param filter pagination parameters
+     * @param filter the cursor and page size
      * @return a page of reports
      */
     @GetMapping("/reports")
     @Operation(summary = "Get message reports")
     @PreAuthorize("@MessageReportPolicy.canGetAll(authentication)")
-    public ResponseEntity<Paginated<MessageReportResponse>> getAll(
-            @RequestParam(defaultValue = "OPEN") ReportStatus status, @Valid @ModelAttribute PaginationFilter filter) {
+    public ResponseEntity<CursorPaginated<MessageReportResponse>> getAll(
+            @RequestParam(defaultValue = "OPEN") ReportStatus status,
+            @Valid @ModelAttribute CursorPaginationFilter filter) {
         return ResponseEntity.ok(messageReportService.getAll(status, filter));
     }
 

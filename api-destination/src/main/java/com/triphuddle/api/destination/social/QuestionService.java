@@ -1,5 +1,8 @@
 package com.triphuddle.api.destination.social;
 
+import com.triphuddle.common.filter.CursorPaginationFilter;
+import com.triphuddle.common.dto.PageCursor;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,9 +24,7 @@ import com.triphuddle.api.destination.repository.AiUsageRepository;
 import com.triphuddle.api.destination.repository.PlaceQuestionRepository;
 import com.triphuddle.api.destination.service.AfterCommit;
 import com.triphuddle.api.destination.service.PlaceQueryService;
-import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.exception.ResourceNotFoundException;
-import com.triphuddle.common.filter.PaginationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -129,13 +130,19 @@ public class QuestionService {
      *
      * @param placeId the ID of the place
      * @param userId the caller
-     * @param filter the page
+     * @param filter the cursor and page size
      * @return a page of questions
      */
     @Transactional(readOnly = true)
-    public Paginated<QuestionResponse> getMine(UUID placeId, UUID userId, PaginationFilter filter) {
-        return Paginated.of(repository.findByPlaceIdAndUserIdAndDeletedAtIsNullOrderByRequestedAtDesc(placeId,
-                userId, filter.toPageable()), questions -> questions.stream().map(this::toResponse).toList());
+    public CursorPaginated<QuestionResponse> getMine(UUID placeId, UUID userId, CursorPaginationFilter filter) {
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 2);
+        boolean isFirst = cursor == null;
+        List<PlaceQuestion> found = repository.findMine(placeId, userId, isFirst,
+                isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(0),
+                isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(1), filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(),
+                question -> PageCursor.of(question.getRequestedAt(), question.getId()),
+                questions -> questions.stream().map(this::toResponse).toList());
     }
 
     /**

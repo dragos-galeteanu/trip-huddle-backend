@@ -48,6 +48,25 @@ erDiagram
 
 Every record also has `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`. Codes are unique: a currency or language by `code`, a country by each of `alpha2`, `alpha3` and `numericCode`.
 
+## Constraints
+
+The codes the services check before saving are unique in the database too, so two requests at once can't both create a code. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+
+```sql
+-- Check: each should return no rows.
+SELECT alpha2 FROM countries GROUP BY alpha2 HAVING count(*) > 1;
+SELECT alpha3 FROM countries GROUP BY alpha3 HAVING count(*) > 1;
+SELECT numeric_code FROM countries GROUP BY numeric_code HAVING count(*) > 1;
+SELECT code FROM currencies GROUP BY code HAVING count(*) > 1;
+SELECT code FROM languages GROUP BY code HAVING count(*) > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS countries_alpha2_uq ON countries (alpha2);
+CREATE UNIQUE INDEX IF NOT EXISTS countries_alpha3_uq ON countries (alpha3);
+CREATE UNIQUE INDEX IF NOT EXISTS countries_numeric_code_uq ON countries (numeric_code);
+CREATE UNIQUE INDEX IF NOT EXISTS currencies_code_uq ON currencies (code);
+CREATE UNIQUE INDEX IF NOT EXISTS languages_code_uq ON languages (code);
+```
+
 ## Endpoints
 
 The three resources have the same endpoints, under `/api/v1/platform/countries`, `/currencies` and `/languages`.

@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,7 +18,9 @@ import java.util.UUID;
  * A place a user saved as a favourite or marked as visited; private to them.
  */
 @Entity
-@Table(name = "destination_place_marks")
+@Table(name = "destination_place_marks", uniqueConstraints = @UniqueConstraint(
+        name = "destination_place_marks_user_id_place_id_kind_key",
+        columnNames = {"user_id", "place_id", "kind"}))
 @Getter
 @Setter
 @NoArgsConstructor

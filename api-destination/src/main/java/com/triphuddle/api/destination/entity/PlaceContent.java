@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,7 +27,9 @@ import java.util.UUID;
  * generated, the last ready one is still served.
  */
 @Entity
-@Table(name = "destination_place_contents")
+@Table(name = "destination_place_contents", uniqueConstraints = @UniqueConstraint(
+        name = "destination_place_contents_place_section_language_uq",
+        columnNames = {"place_id", "section", "language_code"}))
 @Getter
 @Setter
 @NoArgsConstructor

@@ -15,8 +15,8 @@ import com.triphuddle.api.destination.security.DestinationAuthorizationPolicy;
 import com.triphuddle.api.destination.social.PlaceMarkService;
 import com.triphuddle.api.destination.social.QuestionService;
 import com.triphuddle.api.destination.social.ReviewService;
-import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.filter.PaginationFilter;
+import com.triphuddle.common.dto.CursorPaginated;
+import com.triphuddle.common.filter.CursorPaginationFilter;
 import com.triphuddle.common.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -129,7 +129,7 @@ public class SocialController {
      * Get the caller's favourites or visited places, the newest first.
      *
      * @param kind FAVOURITE or VISITED
-     * @param filter the page
+     * @param filter the cursor and page size
      * @param groupId the group the caller acts for, or null
      * @param authentication the caller
      * @return a page of places
@@ -137,8 +137,8 @@ public class SocialController {
     @GetMapping("/me/places")
     @Operation(summary = "Get my favourites or visited places")
     @PreAuthorize("@DestinationPolicy.canBrowse(authentication, #groupId)")
-    public ResponseEntity<Paginated<MarkedPlaceResponse>> myPlaces(@RequestParam PlaceMarkKind kind,
-                                                                   @Valid @ModelAttribute PaginationFilter filter,
+    public ResponseEntity<CursorPaginated<MarkedPlaceResponse>> myPlaces(@RequestParam PlaceMarkKind kind,
+                                                                   @Valid @ModelAttribute CursorPaginationFilter filter,
                                                                    @RequestParam(required = false) UUID groupId,
                                                                    Authentication authentication) {
         return ResponseEntity.ok(markService.getMine(SecurityUtils.extractUserId(authentication), kind, filter));
@@ -164,17 +164,17 @@ public class SocialController {
      *
      * @param placeId the ID of the place
      * @param sort NEWEST, HIGHEST or LOWEST
-     * @param filter the page
+     * @param filter the cursor and page size
      * @param groupId the group the caller acts for, or null
      * @return a page of reviews
      */
     @GetMapping("/places/{placeId}/reviews")
     @Operation(summary = "Get a place's reviews")
     @PreAuthorize("@DestinationPolicy.canBrowse(authentication, #groupId)")
-    public ResponseEntity<Paginated<ReviewResponse>> reviews(@PathVariable UUID placeId,
+    public ResponseEntity<CursorPaginated<ReviewResponse>> reviews(@PathVariable UUID placeId,
                                                              @RequestParam(required = false)
                                                              ReviewService.ReviewSort sort,
-                                                             @Valid @ModelAttribute PaginationFilter filter,
+                                                             @Valid @ModelAttribute CursorPaginationFilter filter,
                                                              @RequestParam(required = false) UUID groupId) {
         return ResponseEntity.ok(reviewService.getForPlace(placeId, sort, filter));
     }
@@ -285,14 +285,14 @@ public class SocialController {
      * Get the reports of reviews, open or settled.
      *
      * @param isOpen whether to get the open ones
-     * @param filter the page
+     * @param filter the cursor and page size
      * @return a page of reports
      */
     @GetMapping("/review-reports")
     @Operation(summary = "Get review reports")
     @PreAuthorize("@DestinationPolicy.isStaff(authentication)")
-    public ResponseEntity<Paginated<ReviewReportResponse>> reviewReports(
-            @RequestParam(defaultValue = "true") boolean isOpen, @Valid @ModelAttribute PaginationFilter filter) {
+    public ResponseEntity<CursorPaginated<ReviewReportResponse>> reviewReports(
+            @RequestParam(defaultValue = "true") boolean isOpen, @Valid @ModelAttribute CursorPaginationFilter filter) {
         return ResponseEntity.ok(reviewService.getReports(isOpen, filter));
     }
 
@@ -339,15 +339,15 @@ public class SocialController {
      * Get the caller's questions about a place, the newest first.
      *
      * @param placeId the ID of the place
-     * @param filter the page
+     * @param filter the cursor and page size
      * @param authentication the caller
      * @return a page of questions
      */
     @GetMapping("/places/{placeId}/questions/mine")
     @Operation(summary = "Get my questions about a place")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Paginated<QuestionResponse>> myQuestions(@PathVariable UUID placeId,
-                                                                   @Valid @ModelAttribute PaginationFilter filter,
+    public ResponseEntity<CursorPaginated<QuestionResponse>> myQuestions(@PathVariable UUID placeId,
+                                                                   @Valid @ModelAttribute CursorPaginationFilter filter,
                                                                    Authentication authentication) {
         return ResponseEntity.ok(questionService.getMine(placeId, SecurityUtils.extractUserId(authentication),
                 filter));

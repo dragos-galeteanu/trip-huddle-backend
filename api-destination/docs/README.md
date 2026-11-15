@@ -23,20 +23,20 @@ Copies kept from events: countries (api-platform), license subscriptions with en
 | `GET /api/v1/destinations/places/{id}/content?language=&sections=&groupId=` | licensed users, staff; `language` or else `Accept-Language`, else English |
 | `POST /places/{id}/content/{section}/report {language, reason}` | licensed users |
 | `POST /places/{id}/content/regenerate {language, sections}` | Admin, Support; answers `202` |
-| `GET /api/v1/destinations/content-reports?isOpen=`, `POST /content-reports/{id}/resolve?isRegenerating=` | staff read; Admin, Support resolve |
+| `GET /api/v1/destinations/content-reports?isOpen=&cursor=&limit=`, `POST /content-reports/{id}/resolve?isRegenerating=` | staff read; Admin, Support resolve |
 | `POST /api/v1/destinations/imports {countryCode, minCityPopulation?, minPoiSitelinks?, isIncludingPois?, isIncludingPhotos?}` | Admin, Support; answers `202` with the queued import |
 | `GET /api/v1/destinations/imports?countryCode=&status=`, `GET /imports/{id}` | Admin, Support, Inspector |
 | `GET /api/v1/destinations/places/semantic?q=&countryCode=&kind=&withinId=&limit=&groupId=` | licensed users, staff |
 | `GET /places/{id}/similar?isSameCountry=&limit=&groupId=` | licensed users, staff |
 | `PUT`, `DELETE /places/{id}/favourite`; `PUT /places/{id}/visited {visitedOn?}`, `DELETE /places/{id}/visited` | licensed users (removing: any signed-in user) |
-| `GET /me/places?kind=FAVOURITE\|VISITED`, `GET /me/place-marks?placeIds=` | the user |
-| `GET /places/{id}/reviews?sort=NEWEST\|HIGHEST\|LOWEST`, `GET /places/{id}/reviews/summary` | licensed users, staff |
+| `GET /me/places?kind=FAVOURITE\|VISITED&cursor=&limit=`, `GET /me/place-marks?placeIds=` | the user |
+| `GET /places/{id}/reviews?sort=NEWEST\|HIGHEST\|LOWEST&cursor=&limit=`, `GET /places/{id}/reviews/summary` | licensed users, staff |
 | `GET`, `PUT`, `DELETE /places/{id}/reviews/mine` | the author (writing needs the license) |
 | `POST /reviews/{id}/report {reason}` | licensed users, not the author |
 | `POST /reviews/{id}/moderate?isHiding=&reason=`, `POST /review-reports/{id}/resolve?isHiding=` | Admin, Support |
-| `GET /review-reports?isOpen=` | staff |
+| `GET /review-reports?isOpen=&cursor=&limit=` | staff |
 | `POST /places/{id}/questions {question, language}` | licensed users; answers `202` |
-| `GET /places/{id}/questions/mine`, `GET /questions/{id}` | the asker; staff read any |
+| `GET /places/{id}/questions/mine?cursor=&limit=`, `GET /questions/{id}` | the asker; staff read any |
 | `GET /api/v1/destinations/categories` | licensed users, staff |
 | `POST`, `PUT`, `DELETE /api/v1/destinations/categories` | Admin, Support |
 | `POST /api/v1/destinations/trip-plans` | licensed users; with `groupId`, members of a licensed group |
@@ -53,6 +53,8 @@ Copies kept from events: countries (api-platform), license subscriptions with en
 | `PUT /itineraries/{id}/days/{n}/order [itemIds]`, `POST /itineraries/{id}/days/{n}/items`, `DELETE /itineraries/{id}/items/{itemId}` | its travellers |
 
 Search matches every name a place has, in any language, ignoring accents and forgiving typos (trigram plus full text). Words rank by match, a point ranks by distance, otherwise featured and most populous come first.
+
+Favourites and visited places, a place's reviews, a user's questions, and the content and review reports use **cursor pagination** (`cursor`, `limit`; the answer has `nextCursor` and `hasMore`): feeds that grow at their head, and report queues that shrink as staff work through them, would make page numbers repeat or skip items. A review cursor belongs to its sort; one from another sort is refused. Other lists keep `page` and `pageSize`.
 
 ## Staff operations
 
@@ -253,3 +255,19 @@ An end that arrives before its activation is kept, so the activation can't reope
 ## Schema
 
 Run [schema.sql](schema.sql) on `jobbie_giggle_destination`; run only the parts after the phases you already ran ("Phase 4" to "Phase 8"). It needs PostGIS and, from phase 8, pgvector: docker-compose now builds `docker/postgres`, which adds pgvector to `postgis/postgis:16-3.4` (from the PostgreSQL apt archive, as that image is on Debian bullseye). Run `docker compose build postgres` and recreate the container; the data volume carries over; on an existing volume, also run `CREATE DATABASE jobbie_giggle_destination;`. The tests load the same file.
+
+### Constraints added later
+
+A category's slug is unique among categories not deleted, and a place has one row per content section and language. Run these on databases created before they were added; skip the second if your schema already has a unique constraint on those columns. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+
+```sql
+-- Check: each should return no rows.
+SELECT slug FROM destination_categories WHERE deleted_at IS NULL GROUP BY slug HAVING count(*) > 1;
+SELECT place_id, section, language_code FROM destination_place_contents
+GROUP BY place_id, section, language_code HAVING count(*) > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS destination_categories_slug_uq
+    ON destination_categories (slug) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS destination_place_contents_place_section_language_uq
+    ON destination_place_contents (place_id, section, language_code);
+```

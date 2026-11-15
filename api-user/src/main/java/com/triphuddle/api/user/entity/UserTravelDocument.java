@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,7 +19,9 @@ import java.util.UUID;
  * A nationality or residence permit of a user, used for visa guidance; no document numbers are kept.
  */
 @Entity
-@Table(name = "user_travel_documents")
+@Table(name = "user_travel_documents", uniqueConstraints = @UniqueConstraint(
+        name = "user_travel_documents_uq",
+        columnNames = {"user_id", "type", "country_code"}))
 @Getter
 @Setter
 @NoArgsConstructor

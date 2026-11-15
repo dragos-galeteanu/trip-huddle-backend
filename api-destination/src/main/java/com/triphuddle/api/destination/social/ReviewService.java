@@ -1,5 +1,10 @@
 package com.triphuddle.api.destination.social;
 
+import java.util.List;
+import com.triphuddle.common.filter.CursorPaginationFilter;
+import com.triphuddle.common.exception.InvalidFilterException;
+import com.triphuddle.common.dto.PageCursor;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.api.destination.config.SocialProperties;
 import com.triphuddle.api.destination.content.ContentService;
 import com.triphuddle.api.destination.dto.ReviewReportResponse;
@@ -12,13 +17,9 @@ import com.triphuddle.api.destination.entity.ReviewReportStatus;
 import com.triphuddle.api.destination.repository.PlaceReviewRepository;
 import com.triphuddle.api.destination.repository.ReviewReportRepository;
 import com.triphuddle.api.destination.service.PlaceQueryService;
-import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.exception.ResourceNotFoundException;
-import com.triphuddle.common.filter.PaginationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -107,15 +108,26 @@ public class ReviewService {
      * @return a page of reviews
      */
     @Transactional(readOnly = true)
-    public Paginated<ReviewResponse> getForPlace(UUID placeId, ReviewSort sort, PaginationFilter filter) {
+    public CursorPaginated<ReviewResponse> getForPlace(UUID placeId, ReviewSort sort,
+                                                       CursorPaginationFilter filter) {
         UUID target = placeQueryService.visiblePlace(placeId, false).getId();
-        Sort order = switch (sort == null ? ReviewSort.NEWEST : sort) {
-            case NEWEST -> Sort.by(Sort.Order.desc("createdAt"));
-            case HIGHEST -> Sort.by(Sort.Order.desc("rating"), Sort.Order.desc("createdAt"));
-            case LOWEST -> Sort.by(Sort.Order.asc("rating"), Sort.Order.desc("createdAt"));
+        ReviewSort order = sort == null ? ReviewSort.NEWEST : sort;
+        // The cursor names its sort, so one from another order is refused rather than read wrongly.
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 4);
+        if (cursor != null && !cursor.parts().get(0).equals(order.name())) {
+            throw new InvalidFilterException("The cursor is for another sort");
+        }
+        boolean isFirst = cursor == null;
+        int rating = isFirst ? 0 : cursor.intAt(1);
+        Instant at = isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(2);
+        UUID id = isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(3);
+        List<PlaceReview> found = switch (order) {
+            case NEWEST -> reviewRepository.findNewest(target, isFirst, at, id, filter.toLimit());
+            case HIGHEST -> reviewRepository.findHighest(target, isFirst, rating, at, id, filter.toLimit());
+            case LOWEST -> reviewRepository.findLowest(target, isFirst, rating, at, id, filter.toLimit());
         };
-        return Paginated.of(reviewRepository.findVisible(target,
-                        PageRequest.of(filter.toPageable().getPageNumber(), filter.toPageable().getPageSize(), order)),
+        return CursorPaginated.of(found, filter.getLimit(),
+                review -> PageCursor.of(order, review.getRating(), review.getCreatedAt(), review.getId()),
                 reviews -> reviews.stream().map(this::toPublicResponse).toList());
     }
 
@@ -180,8 +192,15 @@ public class ReviewService {
      * @return a page of reports
      */
     @Transactional(readOnly = true)
-    public Paginated<ReviewReportResponse> getReports(boolean isOpen, PaginationFilter filter) {
-        return Paginated.of(reportRepository.findForStaff(isOpen, filter.toPageable()),
+    public CursorPaginated<ReviewReportResponse> getReports(boolean isOpen, CursorPaginationFilter filter) {
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 2);
+        boolean isFirst = cursor == null;
+        Instant at = isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(0);
+        UUID id = isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(1);
+        List<ReviewReport> found = isOpen ? reportRepository.findOpen(isFirst, at, id, filter.toLimit())
+                : reportRepository.findSettled(isFirst, at, id, filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(),
+                report -> PageCursor.of(isOpen ? report.getCreatedAt() : report.getResolvedAt(), report.getId()),
                 reports -> reports.stream().map(this::toResponse).toList());
     }
 

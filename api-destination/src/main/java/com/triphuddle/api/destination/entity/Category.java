@@ -20,6 +20,7 @@ import java.util.Set;
  * A node of the staff-managed category tree, e.g. Heritage › Castle or Food › Restaurant › Seafood.
  */
 @Entity
+// The slug is unique among categories not deleted: a partial index, which JPA can't declare.
 @Table(name = "destination_categories")
 @Getter
 @Setter

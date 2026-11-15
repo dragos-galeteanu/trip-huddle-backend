@@ -249,7 +249,7 @@ Relational schemas are checked at startup (`ddl-auto: validate`), so the tables 
 | Errors | `GlobalExceptionHandler` returns one `ErrorResponse` shape: 400, 403, 404, 422, 500 |
 | API documentation | each API service serves OpenAPI at `/api-docs`; the gateway exposes it at `/<service>/v3/api-docs` |
 | Tracing | every service reports to Zipkin at `http://zipkin:9411` |
-| Pagination | `page` (from 1) and `pageSize` (up to 100) in; `Paginated<T>` with metadata out. Chat lists use cursors instead (`CursorPaginated<T>`) |
+| Pagination | `page` (from 1) and `pageSize` (up to 100) in; `Paginated<T>` with metadata out. Feeds that grow at their head and work queues that shrink while being read (chats, reviews, invoices, Stripe events, support and report queues) use cursors instead: `cursor` and `limit` in, `CursorPaginated<T>` out |
 | Real time | `api-chat` serves STOMP over WebSocket at `/ws/chats`, relayed through RabbitMQ's STOMP plugin so every instance reaches every client |
 
 ## What a deployment needs

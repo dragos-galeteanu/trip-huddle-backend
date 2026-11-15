@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,7 +25,9 @@ import java.util.UUID;
  * One day of an itinerary; it can be written again on its own.
  */
 @Entity
-@Table(name = "destination_itinerary_days")
+@Table(name = "destination_itinerary_days", uniqueConstraints = @UniqueConstraint(
+        name = "destination_itinerary_days_itinerary_id_day_number_key",
+        columnNames = {"itinerary_id", "day_number"}))
 @Getter
 @Setter
 @NoArgsConstructor

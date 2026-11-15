@@ -16,6 +16,7 @@ import java.util.UUID;
  * A user's review of a place: one each, which they may change or delete.
  */
 @Entity
+// One review per user and place among those not deleted: a partial index, which JPA can't declare.
 @Table(name = "destination_place_reviews")
 @Getter
 @Setter

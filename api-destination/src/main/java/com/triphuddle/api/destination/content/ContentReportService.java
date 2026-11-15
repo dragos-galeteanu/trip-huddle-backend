@@ -1,5 +1,9 @@
 package com.triphuddle.api.destination.content;
 
+import java.util.List;
+import com.triphuddle.common.filter.CursorPaginationFilter;
+import com.triphuddle.common.dto.PageCursor;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.api.destination.dto.ContentReportResponse;
 import com.triphuddle.api.destination.entity.ContentReport;
 import com.triphuddle.api.destination.entity.ContentSection;
@@ -9,9 +13,7 @@ import com.triphuddle.api.destination.entity.PlaceContent;
 import com.triphuddle.api.destination.repository.ContentReportRepository;
 import com.triphuddle.api.destination.repository.PlaceContentRepository;
 import com.triphuddle.api.destination.service.PlaceQueryService;
-import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.exception.ResourceNotFoundException;
-import com.triphuddle.common.filter.PaginationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -68,9 +70,14 @@ public class ContentReportService {
      * @return a page of reports
      */
     @Transactional(readOnly = true)
-    public Paginated<ContentReportResponse> getAll(boolean isOpen, PaginationFilter filter) {
-        return Paginated.of(reportRepository.findForStaff(isOpen, filter.toPageable()),
-                reports -> reports.stream().map(ContentReportService::toResponse).toList());
+    public CursorPaginated<ContentReportResponse> getAll(boolean isOpen, CursorPaginationFilter filter) {
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 2);
+        boolean isFirst = cursor == null;
+        List<ContentReport> found = reportRepository.findForStaff(isOpen, isFirst,
+                isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(0),
+                isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(1), filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(), report -> PageCursor.of(report.getCreatedAt(),
+                report.getId()), reports -> reports.stream().map(ContentReportService::toResponse).toList());
     }
 
     /**

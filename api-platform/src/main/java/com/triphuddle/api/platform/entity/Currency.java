@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
  * A currency, identified by its code, with how its amounts are displayed.
  */
 @Entity
-@Table(name = "currencies")
+@Table(name = "currencies", uniqueConstraints = @UniqueConstraint(name = "currencies_code_uq", columnNames = {"code"}))
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor

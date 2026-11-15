@@ -1,9 +1,9 @@
 package com.triphuddle.api.destination.repository;
 
+import java.time.Instant;
 import com.triphuddle.api.destination.entity.ReviewReport;
 import com.triphuddle.api.destination.entity.ReviewReportStatus;
 import com.triphuddle.common.repository.BaseJpaRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,20 +35,37 @@ public interface ReviewReportRepository extends BaseJpaRepository<ReviewReport, 
     List<ReviewReport> findByReviewIdAndStatus(UUID reviewId, ReviewReportStatus status);
 
     /**
-     * Find reports for staff, open or settled, the oldest open first or the newest settled first.
+     * Find a page of open reports, the oldest first, after a cursor; reports settled meanwhile drop out without
+     * shifting the pages.
      *
-     * @param isOpen whether to find the open ones
-     * @param pageable the page
-     * @return a page of reports, with their reviews
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param at the creation time of the previous page's last report
+     * @param id its ID
+     * @param limit how many to take
+     * @return the reports, with their reviews
      */
-    @Query(value = """
+    @Query("""
             select r from ReviewReport r join fetch r.review
-            where (:isOpen = true and r.status = com.triphuddle.api.destination.entity.ReviewReportStatus.OPEN)
-               or (:isOpen = false and r.status <> com.triphuddle.api.destination.entity.ReviewReportStatus.OPEN)
-            order by case when :isOpen = true then r.createdAt end asc, r.resolvedAt desc""",
-            countQuery = """
-            select count(r) from ReviewReport r
-            where (:isOpen = true and r.status = com.triphuddle.api.destination.entity.ReviewReportStatus.OPEN)
-               or (:isOpen = false and r.status <> com.triphuddle.api.destination.entity.ReviewReportStatus.OPEN)""")
-    Page<ReviewReport> findForStaff(@Param("isOpen") boolean isOpen, Pageable pageable);
+            where r.status = com.triphuddle.api.destination.entity.ReviewReportStatus.OPEN
+              and (:isFirst = true or r.createdAt > :at or (r.createdAt = :at and r.id > :id))
+            order by r.createdAt asc, r.id asc""")
+    List<ReviewReport> findOpen(@Param("isFirst") boolean isFirst, @Param("at") Instant at, @Param("id") UUID id,
+                                Pageable limit);
+
+    /**
+     * Find a page of settled reports, the most recently settled first, after a cursor.
+     *
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param at the settling time of the previous page's last report
+     * @param id its ID
+     * @param limit how many to take
+     * @return the reports, with their reviews
+     */
+    @Query("""
+            select r from ReviewReport r join fetch r.review
+            where r.status <> com.triphuddle.api.destination.entity.ReviewReportStatus.OPEN
+              and (:isFirst = true or r.resolvedAt < :at or (r.resolvedAt = :at and r.id < :id))
+            order by r.resolvedAt desc, r.id desc""")
+    List<ReviewReport> findSettled(@Param("isFirst") boolean isFirst, @Param("at") Instant at,
+                                   @Param("id") UUID id, Pageable limit);
 }

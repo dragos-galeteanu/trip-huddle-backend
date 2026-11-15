@@ -63,6 +63,17 @@ CREATE TABLE user_travel_documents (
 CREATE UNIQUE INDEX user_travel_documents_uq ON user_travel_documents (user_id, type, country_code);
 ```
 
+## Constraints
+
+A user has at most one profile; the service checks before saving, and this index stops two requests at once. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+
+```sql
+-- Check: should return no rows.
+SELECT user_id FROM user_profiles GROUP BY user_id HAVING count(*) > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS user_profiles_user_id_uq ON user_profiles (user_id);
+```
+
 ## Endpoints
 
 All need a Firebase token except `verify-email`.

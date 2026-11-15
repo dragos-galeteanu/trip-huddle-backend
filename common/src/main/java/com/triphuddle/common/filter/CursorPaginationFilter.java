@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Cursor pagination parameters: the opaque cursor from the previous page and the page size.
@@ -25,4 +27,13 @@ public class CursorPaginationFilter {
     @Min(value = 1, message = "Limit must be at least 1")
     @Max(value = 100, message = "Limit cannot exceed 100")
     private int limit = 20;
+
+    /**
+     * The page to fetch: one more row than the limit, which tells whether another page follows.
+     *
+     * @return the page request; queries order rows themselves
+     */
+    public Pageable toLimit() {
+        return PageRequest.of(0, limit + 1);
+    }
 }

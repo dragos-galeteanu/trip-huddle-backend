@@ -46,6 +46,23 @@ Every record also has `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`.
 - An invitation can be answered for `app.group-invitation.ttl-days` (7) days.
 - "Staff" below means the platform roles Admin and Support (plus Inspector for reading).
 
+## Constraints
+
+A user has one membership per group and an email one pending invitation per group, among rows not deleted; the services check before saving, and these partial indexes stop two requests at once. JPA can't declare a partial index, so the entities only say so in a comment. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+
+```sql
+-- Check: each should return no rows.
+SELECT group_id, user_id FROM group_memberships WHERE deleted_at IS NULL
+GROUP BY group_id, user_id HAVING count(*) > 1;
+SELECT group_id, email FROM group_invitations WHERE status = 'PENDING' AND deleted_at IS NULL
+GROUP BY group_id, email HAVING count(*) > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS group_memberships_group_user_uq
+    ON group_memberships (group_id, user_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS group_invitations_pending_email_uq
+    ON group_invitations (group_id, email) WHERE status = 'PENDING' AND deleted_at IS NULL;
+```
+
 ## Endpoints
 
 | Method and path | Who may call it |

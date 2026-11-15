@@ -4,6 +4,7 @@ import com.triphuddle.common.entity.BaseJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
  * A language, identified by its code, with its native name and writing direction.
  */
 @Entity
-@Table(name = "languages")
+@Table(name = "languages", uniqueConstraints = @UniqueConstraint(name = "languages_code_uq", columnNames = {"code"}))
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor

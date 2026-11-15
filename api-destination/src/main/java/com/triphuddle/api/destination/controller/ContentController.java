@@ -8,8 +8,8 @@ import com.triphuddle.api.destination.dto.ContentSectionResponse;
 import com.triphuddle.api.destination.dto.RegenerateContentRequest;
 import com.triphuddle.api.destination.entity.ContentSection;
 import com.triphuddle.api.destination.security.DestinationAuthorizationPolicy;
-import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.filter.PaginationFilter;
+import com.triphuddle.common.dto.CursorPaginated;
+import com.triphuddle.common.filter.CursorPaginationFilter;
 import com.triphuddle.common.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -112,14 +112,14 @@ public class ContentController {
      * Get content reports, oldest first.
      *
      * @param isOpen true for open reports, false for resolved ones
-     * @param filter the page
+     * @param filter the cursor and page size
      * @return a page of reports
      */
     @GetMapping("/content-reports")
     @Operation(summary = "Get content reports")
     @PreAuthorize("@DestinationPolicy.isStaff(authentication)")
-    public ResponseEntity<Paginated<ContentReportResponse>> reports(
-            @RequestParam(defaultValue = "true") boolean isOpen, @Valid @ModelAttribute PaginationFilter filter) {
+    public ResponseEntity<CursorPaginated<ContentReportResponse>> reports(
+            @RequestParam(defaultValue = "true") boolean isOpen, @Valid @ModelAttribute CursorPaginationFilter filter) {
         return ResponseEntity.ok(reportService.getAll(isOpen, filter));
     }
 

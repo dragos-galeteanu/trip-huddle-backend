@@ -13,6 +13,7 @@ import java.util.UUID;
  * A user's place in a group, with their role there. A user has at most one per group.
  */
 @Entity
+// One membership per user and group among those not deleted: a partial index, which JPA can't declare.
 @Table(name = "group_memberships")
 @Data
 @EqualsAndHashCode(callSuper = true)

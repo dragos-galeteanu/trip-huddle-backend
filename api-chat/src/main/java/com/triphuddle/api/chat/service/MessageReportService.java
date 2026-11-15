@@ -1,5 +1,8 @@
 package com.triphuddle.api.chat.service;
 
+import com.triphuddle.common.filter.CursorPaginationFilter;
+import com.triphuddle.common.dto.PageCursor;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.amqp.RabbitMQMessageProducer;
 import com.triphuddle.amqp.chat.ChatMessageReportedContract;
 import com.triphuddle.amqp.chat.ChatMessageReportedEvent;
@@ -15,15 +18,10 @@ import com.triphuddle.api.chat.entity.ReportStatus;
 import com.triphuddle.api.chat.mapper.ChatMessageMapper;
 import com.triphuddle.api.chat.repository.ChatMessageRepository;
 import com.triphuddle.api.chat.repository.MessageReportRepository;
-import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.exception.ResourceNotFoundException;
-import com.triphuddle.common.filter.PaginationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -97,15 +95,18 @@ public class MessageReportService {
      * Get the reports with a status, oldest first, for staff.
      *
      * @param status the status of the reports
-     * @param filter pagination parameters
+     * @param filter the cursor and page size
      * @return a page of reports, each with the reported message
      */
     @Transactional(readOnly = true)
-    public Paginated<MessageReportResponse> getAll(ReportStatus status, PaginationFilter filter) {
-        PageRequest pageRequest = PageRequest.of(filter.getPage() - 1, filter.getPageSize(),
-                Sort.by(Sort.Direction.ASC, "createdAt"));
-        Page<MessageReport> page = messageReportRepository.findByStatus(status, pageRequest);
-        return Paginated.of(page, reports -> reports.stream().map(this::toStaffResponse).toList());
+    public CursorPaginated<MessageReportResponse> getAll(ReportStatus status, CursorPaginationFilter filter) {
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 2);
+        boolean isFirst = cursor == null;
+        List<MessageReport> found = messageReportRepository.findByStatus(status, isFirst,
+                isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(0),
+                isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(1), filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(), report -> PageCursor.of(report.getCreatedAt(),
+                report.getId()), reports -> reports.stream().map(this::toStaffResponse).toList());
     }
 
     /**

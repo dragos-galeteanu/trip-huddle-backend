@@ -211,15 +211,17 @@ Metadata on both: `licenseId` and `licenseCode`. Promotions are not synced: each
 |---|---|
 | `POST /api/v1/payments/checkout` | the subscriber, or an admin of the subscribed group |
 | `POST /api/v1/payments/webhook` | Stripe only: public, with a signature check |
-| `GET /api/v1/payments/invoices/mine` | any signed-in user, for their own subscriptions; newest first |
-| `GET /api/v1/payments/invoices/groups/{groupId}` | the group's admins; Admin, Support or Inspector |
-| `GET /api/v1/payments/invoices?subscriberId=&licenseSubscriptionId=&status=` | Admin, Support or Inspector |
+| `GET /api/v1/payments/invoices/mine?cursor=&limit=` | any signed-in user, for their own subscriptions; newest first |
+| `GET /api/v1/payments/invoices/groups/{groupId}?cursor=&limit=` | the group's admins; Admin, Support or Inspector |
+| `GET /api/v1/payments/invoices?subscriberId=&licenseSubscriptionId=&status=&page=&pageSize=` | Admin, Support or Inspector |
 | `GET /api/v1/payments/invoices/{id}` | the subscriber or, for a group, its admins; Admin, Support or Inspector; with its refunds |
 | `POST /api/v1/payments/invoices/{id}/refund` | Admin or Support |
 | `GET /api/v1/payments/subscriptions?status=&subscriberId=&isRefundDue=` | Admin, Support or Inspector |
-| `GET /api/v1/payments/stripe-events?status=&eventType=` | Admin, Support or Inspector; newest first, without payloads |
+| `GET /api/v1/payments/stripe-events?status=&eventType=&cursor=&limit=` | Admin, Support or Inspector; newest first, without payloads |
 | `GET /api/v1/payments/stripe-events/{id}` | Admin, Support or Inspector; with the raw payload |
 | `POST /api/v1/payments/stripe-events/{id}/replay` | Admin or Support; only `FAILED` or `IGNORED` events, which go back to `PENDING` with their attempts reset |
+
+A user's or group's invoices and the Stripe events use **cursor pagination** (`cursor`, `limit`; the answer has `nextCursor` and `hasMore`), as both grow at their head while being read. The staff invoice list keeps `page` and `pageSize`, for its page numbers and total.
 
 Stripe can also resend an event from its dashboard. A resend keeps the event ID, so it is skipped as a duplicate; use replay for events stored here.
 

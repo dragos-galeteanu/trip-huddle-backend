@@ -5,7 +5,6 @@ import com.triphuddle.api.chat.entity.TicketCategory;
 import com.triphuddle.api.chat.entity.TicketPriority;
 import com.triphuddle.api.chat.entity.TicketStatus;
 import com.triphuddle.common.repository.BaseJpaRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
@@ -59,33 +58,45 @@ public interface SupportTicketRepository extends BaseJpaRepository<SupportTicket
                                           @Param("statuses") Collection<TicketStatus> statuses);
 
     /**
-     * Find a customer's tickets, newest first, optionally with one status.
+     * Find a page of a customer's tickets, newest first, optionally with one status, after a cursor.
      *
      * @param requesterId the ID of the customer
      * @param status the status to keep, or null for all
-     * @param pageable the page to return
-     * @return a page of the tickets
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param at the creation time of the previous page's last ticket
+     * @param id its ID
+     * @param limit how many to take
+     * @return the tickets
      */
     @Query("""
             select t from SupportTicket t
             where t.requesterId = :requesterId and t.deletedAt is null
               and (:status is null or t.status = :status)
-            order by t.createdAt desc
+              and (:isFirst = true or t.createdAt < :at or (t.createdAt = :at and t.id < :id))
+            order by t.createdAt desc, t.id desc
             """)
-    Page<SupportTicket> findForRequester(@Param("requesterId") UUID requesterId,
+    List<SupportTicket> findForRequester(@Param("requesterId") UUID requesterId,
                                          @Param("status") TicketStatus status,
-                                         Pageable pageable);
+                                         @Param("isFirst") boolean isFirst,
+                                         @Param("at") Instant at,
+                                         @Param("id") UUID id,
+                                         Pageable limit);
 
     /**
-     * Find the tickets of the staff queue, most urgent first and then oldest first.
+     * Find a page of the staff queue, most urgent first and then oldest first, after a cursor; tickets that
+     * leave the queue meanwhile drop out without shifting the pages.
      *
      * @param status the status to keep, or null for all
      * @param category the category to keep, or null for all
      * @param priority the priority to keep, or null for all
      * @param assigneeId the assignee to keep, or null for any
      * @param isUnassigned true to keep only tickets nobody has claimed
-     * @param pageable the page to return
-     * @return a page of the tickets
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param rank the urgency rank of the previous page's last ticket, 0 for URGENT to 3 for LOW
+     * @param at its creation time
+     * @param id its ID
+     * @param limit how many to take
+     * @return the tickets
      */
     @Query(value = """
             select t from SupportTicket t
@@ -95,28 +106,34 @@ public interface SupportTicketRepository extends BaseJpaRepository<SupportTicket
               and (:priority is null or t.priority = :priority)
               and (:assigneeId is null or t.assigneeId = :assigneeId)
               and (:isUnassigned = false or t.assigneeId is null)
+              and (:isFirst = true or case t.priority
+                                              when com.triphuddle.api.chat.entity.TicketPriority.URGENT then 0
+                                              when com.triphuddle.api.chat.entity.TicketPriority.HIGH then 1
+                                              when com.triphuddle.api.chat.entity.TicketPriority.NORMAL then 2
+                                              else 3 end > :rank
+                   or (case t.priority
+                            when com.triphuddle.api.chat.entity.TicketPriority.URGENT then 0
+                            when com.triphuddle.api.chat.entity.TicketPriority.HIGH then 1
+                            when com.triphuddle.api.chat.entity.TicketPriority.NORMAL then 2
+                            else 3 end = :rank
+                       and (t.createdAt > :at or (t.createdAt = :at and t.id > :id))))
             order by case t.priority
                          when com.triphuddle.api.chat.entity.TicketPriority.URGENT then 0
                          when com.triphuddle.api.chat.entity.TicketPriority.HIGH then 1
                          when com.triphuddle.api.chat.entity.TicketPriority.NORMAL then 2
                          else 3 end,
-                     t.createdAt asc
-            """,
-            countQuery = """
-            select count(t) from SupportTicket t
-            where t.deletedAt is null
-              and (:status is null or t.status = :status)
-              and (:category is null or t.category = :category)
-              and (:priority is null or t.priority = :priority)
-              and (:assigneeId is null or t.assigneeId = :assigneeId)
-              and (:isUnassigned = false or t.assigneeId is null)
+                     t.createdAt asc, t.id asc
             """)
-    Page<SupportTicket> findQueue(@Param("status") TicketStatus status,
+    List<SupportTicket> findQueue(@Param("status") TicketStatus status,
                                   @Param("category") TicketCategory category,
                                   @Param("priority") TicketPriority priority,
                                   @Param("assigneeId") UUID assigneeId,
                                   @Param("isUnassigned") boolean isUnassigned,
-                                  Pageable pageable);
+                                  @Param("isFirst") boolean isFirst,
+                                  @Param("rank") int rank,
+                                  @Param("at") Instant at,
+                                  @Param("id") UUID id,
+                                  Pageable limit);
 
     /**
      * Lock the oldest tickets resolved before a moment, skipping those another instance has locked.

@@ -19,6 +19,7 @@ import java.util.List;
 // Loads the licenses or promotions of a page of subscriptions in a few queries rather than one each.
 @BatchSize(size = 50)
 @Entity
+// The code is unique among licenses not deleted: a partial index, which JPA can't declare.
 @Table(name = "licenses")
 @Getter
 @Setter

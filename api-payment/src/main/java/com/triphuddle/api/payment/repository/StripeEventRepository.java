@@ -5,7 +5,6 @@ import com.triphuddle.api.payment.entity.StripeEventStatus;
 import com.triphuddle.common.repository.BaseJpaRepository;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -62,20 +61,26 @@ public interface StripeEventRepository extends BaseJpaRepository<StripeEvent, UU
     List<StripeEvent> lockDue(@Param("now") Instant now, Pageable pageable);
 
     /**
-     * Find events for staff, newest first.
+     * Find a page of events for staff, newest first, after a cursor; events arriving meanwhile don't shift the
+     * pages.
      *
      * @param status the status, or null for all
      * @param eventType the Stripe event type, or null for all
-     * @param pageable the page
-     * @return a page of events
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param at Stripe's creation time of the previous page's last event
+     * @param id its ID
+     * @param limit how many to take
+     * @return the events
      */
     @Query("""
             select e from StripeEvent e
             where (:status is null or e.status = :status)
               and (:eventType is null or e.eventType = :eventType)
               and e.deletedAt is null
-            order by e.stripeCreatedAt desc
+              and (:isFirst = true or e.stripeCreatedAt < :at or (e.stripeCreatedAt = :at and e.id < :id))
+            order by e.stripeCreatedAt desc, e.id desc
             """)
-    Page<StripeEvent> findForStaff(@Param("status") StripeEventStatus status, @Param("eventType") String eventType,
-                                   Pageable pageable);
+    List<StripeEvent> findForStaff(@Param("status") StripeEventStatus status, @Param("eventType") String eventType,
+                                   @Param("isFirst") boolean isFirst, @Param("at") Instant at,
+                                   @Param("id") UUID id, Pageable limit);
 }

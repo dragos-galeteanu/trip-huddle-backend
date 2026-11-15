@@ -14,6 +14,8 @@ import java.util.UUID;
  * An invitation for an email address to join a group, answered through its secret token.
  */
 @Entity
+// One PENDING invitation per group and email among those not deleted: a partial index, which JPA can't
+// declare.
 @Table(name = "group_invitations")
 @Data
 @EqualsAndHashCode(callSuper = true)

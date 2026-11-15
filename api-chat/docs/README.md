@@ -93,6 +93,19 @@ Every record also has `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`.
 
 There are no migrations: the tables must exist before the service starts (`ddl-auto: validate`). That includes `support_tickets`, `support_ticket_events` and the sequence `support_ticket_number_seq`, which ticket numbers are drawn from.
 
+## Constraints
+
+A user has at most one open report of a message; the service checks before saving, and this partial index stops two requests at once. JPA can't declare a partial index, so `MessageReport` only says so in a comment. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+
+```sql
+-- Check: should return no rows.
+SELECT message_id, reporter_id FROM message_reports WHERE status = 'OPEN'
+GROUP BY message_id, reporter_id HAVING count(*) > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS message_reports_open_uq
+    ON message_reports (message_id, reporter_id) WHERE status = 'OPEN';
+```
+
 ## Rules
 
 - **Private chats**: any platform user can open one with any other, unless either blocks the other. There is one per pair: opening it again returns the same conversation.
@@ -163,12 +176,12 @@ All need a Firebase token. "Participants" includes those who left, for reading t
 | `DELETE /api/v1/chats/messages/{id}` | the sender while active, Admins of the group |
 | `PUT`, `DELETE /api/v1/chats/messages/{id}/reactions/{emoji}` | active participants |
 | `POST /api/v1/chats/messages/{id}/reports` `{reason}` | participants who can see it |
-| `GET /api/v1/chats/reports?status=`, `/reports/{id}`, `/reports/{id}/context` | Admin, Support, Inspector |
+| `GET /api/v1/chats/reports?status=&cursor=&limit=`, `/reports/{id}`, `/reports/{id}/context` | Admin, Support, Inspector |
 | `PATCH /api/v1/chats/reports/{id}` `{status, resolutionNote, isMessageRemoved}` | Admin, Support, Inspector |
 | `POST /api/v1/chats/blocks` `{userId}`, `GET`, `DELETE /blocks/{userId}` | any signed-in user (their own) |
 | `POST /api/v1/chats/support-tickets` `{subject, category, clientMessageId, body, groupId, conversationId, messageId, messageReportId}` | any signed-in user; with `userId`, Support and Admin |
-| `GET /api/v1/chats/support-tickets/mine?status=&page=&pageSize=` | any signed-in user (their own) |
-| `GET /api/v1/chats/support-tickets?status=&category=&priority=&assigneeId=&isUnassigned=&page=&pageSize=` | Support, Admin |
+| `GET /api/v1/chats/support-tickets/mine?status=&cursor=&limit=` | any signed-in user (their own) |
+| `GET /api/v1/chats/support-tickets?status=&category=&priority=&assigneeId=&isUnassigned=&cursor=&limit=` | Support, Admin |
 | `GET /api/v1/chats/support-tickets/{id}` | its customer, Support, Admin |
 | `PATCH /api/v1/chats/support-tickets/{id}` `{priority, category}` | Support, Admin |
 | `PATCH /api/v1/chats/support-tickets/{id}/status` `{status}` | its customer (close, reopen), Support, Admin |
@@ -177,7 +190,7 @@ All need a Firebase token. "Participants" includes those who left, for reading t
 | `PUT /api/v1/chats/support-tickets/{id}/rating` `{rating, comment}` | its customer |
 | `GET /api/v1/chats/support-tickets/{id}/events` | Support, Admin |
 
-Conversations and messages use **cursor pagination** (`CursorPaginated` from `common`), because new messages arrive at the head of the list while it is read and would shift page numbers. Pass `nextCursor` back as `cursor` (conversations) or `before` (messages). `after=<messageId>` returns what is newer than a message, oldest first, for catching up after a reconnect. Blocks, reports and support tickets, which do not move like that, use the usual `page` and `pageSize`. The staff queue is ordered most urgent first, then oldest first.
+Conversations and messages use **cursor pagination** (`CursorPaginated` from `common`), because new messages arrive at the head of the list while it is read and would shift page numbers. Pass `nextCursor` back as `cursor` (conversations) or `before` (messages). `after=<messageId>` returns what is newer than a message, oldest first, for catching up after a reconnect. A customer's support tickets (newest first), the staff ticket queue (most urgent first, then oldest first) and message reports (oldest first) use cursors too: tickets and reports leave the queue while staff work through it, which would make page numbers skip items. Blocks use the usual `page` and `pageSize`.
 
 ## Real time
 

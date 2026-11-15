@@ -1,5 +1,7 @@
 package com.triphuddle.api.payment.repository;
 
+import java.util.List;
+import java.time.Instant;
 import com.triphuddle.amqp.license.LicenseTarget;
 import com.triphuddle.api.payment.entity.PaymentInvoice;
 import com.triphuddle.common.repository.BaseJpaRepository;
@@ -51,20 +53,26 @@ public interface PaymentInvoiceRepository extends BaseJpaRepository<PaymentInvoi
     Optional<PaymentInvoice> lockByStripePaymentIntentId(@Param("paymentIntentId") String paymentIntentId);
 
     /**
-     * Find a subscriber's invoices, newest first.
+     * Find a page of a subscriber's invoices, newest first, after a cursor.
      *
      * @param subscriberType USER or GROUP
      * @param subscriberId the ID of the user or group
-     * @param pageable the page
-     * @return a page of invoices
+     * @param isFirst whether this is the first page, which ignores the cursor
+     * @param at Stripe's creation time of the previous page's last invoice
+     * @param id its ID
+     * @param limit how many to take
+     * @return the invoices
      */
     @Query("""
             select i from PaymentInvoice i
             where i.subscriberType = :subscriberType and i.subscriberId = :subscriberId and i.deletedAt is null
-            order by i.stripeCreatedAt desc
+              and (:isFirst = true or i.stripeCreatedAt < :at or (i.stripeCreatedAt = :at and i.id < :id))
+            order by i.stripeCreatedAt desc, i.id desc
             """)
-    Page<PaymentInvoice> findForSubscriber(@Param("subscriberType") LicenseTarget subscriberType,
-                                           @Param("subscriberId") UUID subscriberId, Pageable pageable);
+    List<PaymentInvoice> findForSubscriber(@Param("subscriberType") LicenseTarget subscriberType,
+                                           @Param("subscriberId") UUID subscriberId,
+                                           @Param("isFirst") boolean isFirst, @Param("at") Instant at,
+                                           @Param("id") UUID id, Pageable limit);
 
     /**
      * Find invoices for staff, newest first.
@@ -81,7 +89,7 @@ public interface PaymentInvoiceRepository extends BaseJpaRepository<PaymentInvoi
               and (:licenseSubscriptionId is null or i.licenseSubscriptionId = :licenseSubscriptionId)
               and (:status is null or i.status = :status)
               and i.deletedAt is null
-            order by i.stripeCreatedAt desc
+            order by i.stripeCreatedAt desc, i.id desc
             """)
     Page<PaymentInvoice> findForStaff(@Param("subscriberId") UUID subscriberId,
                                       @Param("licenseSubscriptionId") UUID licenseSubscriptionId,

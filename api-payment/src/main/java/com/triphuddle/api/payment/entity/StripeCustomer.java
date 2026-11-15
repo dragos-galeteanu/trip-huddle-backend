@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,7 +18,9 @@ import java.util.UUID;
  * The Stripe Customer of a user or a group: one each, so a group's card and invoices belong to the group.
  */
 @Entity
-@Table(name = "payment_customers")
+@Table(name = "payment_customers", uniqueConstraints = @UniqueConstraint(
+        name = "payment_customers_subscriber_type_subscriber_id_key",
+        columnNames = {"subscriber_type", "subscriber_id"}))
 @Getter
 @Setter
 @NoArgsConstructor

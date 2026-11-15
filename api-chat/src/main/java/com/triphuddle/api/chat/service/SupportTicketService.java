@@ -1,5 +1,8 @@
 package com.triphuddle.api.chat.service;
 
+import com.triphuddle.common.filter.CursorPaginationFilter;
+import com.triphuddle.common.dto.PageCursor;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.amqp.RabbitMQMessageProducer;
 import com.triphuddle.amqp.chat.SupportTicketCreatedContract;
 import com.triphuddle.amqp.chat.SupportTicketCreatedEvent;
@@ -39,13 +42,10 @@ import com.triphuddle.api.chat.repository.MessageReportRepository;
 import com.triphuddle.api.chat.repository.SupportTicketEventRepository;
 import com.triphuddle.api.chat.repository.SupportTicketRepository;
 import com.triphuddle.api.chat.security.ChatAccess;
-import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.exception.ResourceNotFoundException;
-import com.triphuddle.common.filter.PaginationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -175,27 +175,47 @@ public class SupportTicketService {
      *
      * @param requesterId the ID of the customer
      * @param status the status to keep, or null for all
-     * @param filter pagination parameters
+     * @param filter the cursor and page size
      * @return a page of tickets
      */
     @Transactional(readOnly = true)
-    public Paginated<SupportTicketResponse> getMine(UUID requesterId, TicketStatus status, PaginationFilter filter) {
-        Page<SupportTicket> page = supportTicketRepository.findForRequester(requesterId, status, filter.toPageable());
-        return Paginated.of(page, tickets -> toResponses(tickets, false));
+    public CursorPaginated<SupportTicketResponse> getMine(UUID requesterId, TicketStatus status,
+                                                          CursorPaginationFilter filter) {
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 2);
+        boolean isFirst = cursor == null;
+        List<SupportTicket> found = supportTicketRepository.findForRequester(requesterId, status, isFirst,
+                isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(0),
+                isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(1), filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(), ticket -> PageCursor.of(ticket.getCreatedAt(),
+                ticket.getId()), tickets -> toResponses(tickets, false));
     }
 
     /**
      * Get the staff queue, most urgent first and then oldest first.
      *
-     * @param filter the page and the filters
+     * @param filter the cursor, page size and filters
      * @return a page of tickets
      */
     @Transactional(readOnly = true)
-    public Paginated<SupportTicketResponse> getQueue(SupportTicketQueueFilter filter) {
-        Page<SupportTicket> page = supportTicketRepository.findQueue(filter.getStatus(), filter.getCategory(),
+    public CursorPaginated<SupportTicketResponse> getQueue(SupportTicketQueueFilter filter) {
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 3);
+        boolean isFirst = cursor == null;
+        List<SupportTicket> found = supportTicketRepository.findQueue(filter.getStatus(), filter.getCategory(),
                 filter.getPriority(), filter.getAssigneeId(), Boolean.TRUE.equals(filter.getIsUnassigned()),
-                filter.toPageable());
-        return Paginated.of(page, tickets -> toResponses(tickets, true));
+                isFirst, isFirst ? 0 : cursor.intAt(0), isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(1),
+                isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(2), filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(), ticket -> PageCursor.of(urgencyRank(ticket.getPriority()),
+                ticket.getCreatedAt(), ticket.getId()), tickets -> toResponses(tickets, true));
+    }
+
+    // The queue's order: 0 for URGENT down to 3 for LOW, as the queue query ranks them.
+    private static int urgencyRank(TicketPriority priority) {
+        return switch (priority) {
+            case URGENT -> 0;
+            case HIGH -> 1;
+            case NORMAL -> 2;
+            case LOW -> 3;
+        };
     }
 
     /**

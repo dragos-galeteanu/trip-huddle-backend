@@ -10,8 +10,8 @@ import com.triphuddle.api.chat.dto.UpdateSupportTicketRequest;
 import com.triphuddle.api.chat.entity.TicketStatus;
 import com.triphuddle.api.chat.security.ChatAccess;
 import com.triphuddle.api.chat.service.SupportTicketService;
-import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.filter.PaginationFilter;
+import com.triphuddle.common.dto.CursorPaginated;
+import com.triphuddle.common.filter.CursorPaginationFilter;
 import com.triphuddle.common.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,15 +58,15 @@ public class SupportTicketController {
      * Get the caller's own tickets, newest first.
      *
      * @param status the status to keep, or all if not given
-     * @param filter pagination parameters
+     * @param filter the cursor and page size
      * @param authentication the caller
      * @return a page of tickets
      */
     @GetMapping("/mine")
     @Operation(summary = "Get my support tickets")
     @PreAuthorize("@SupportTicketPolicy.canGetMine(authentication)")
-    public ResponseEntity<Paginated<SupportTicketResponse>> getMine(
-            @RequestParam(required = false) TicketStatus status, @Valid @ModelAttribute PaginationFilter filter,
+    public ResponseEntity<CursorPaginated<SupportTicketResponse>> getMine(
+            @RequestParam(required = false) TicketStatus status, @Valid @ModelAttribute CursorPaginationFilter filter,
             Authentication authentication) {
         return ResponseEntity.ok(
                 supportTicketService.getMine(SecurityUtils.extractUserId(authentication), status, filter));
@@ -75,13 +75,13 @@ public class SupportTicketController {
     /**
      * Get the staff queue, most urgent first and then oldest first.
      *
-     * @param filter the page and the filters
+     * @param filter the cursor, page size and filters
      * @return a page of tickets
      */
     @GetMapping
     @Operation(summary = "Get the support ticket queue")
     @PreAuthorize("@SupportTicketPolicy.canGetAll(authentication)")
-    public ResponseEntity<Paginated<SupportTicketResponse>> getQueue(
+    public ResponseEntity<CursorPaginated<SupportTicketResponse>> getQueue(
             @Valid @ModelAttribute SupportTicketQueueFilter filter) {
         return ResponseEntity.ok(supportTicketService.getQueue(filter));
     }

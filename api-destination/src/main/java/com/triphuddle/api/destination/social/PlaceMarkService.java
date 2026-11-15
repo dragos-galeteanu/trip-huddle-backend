@@ -1,5 +1,8 @@
 package com.triphuddle.api.destination.social;
 
+import com.triphuddle.common.filter.CursorPaginationFilter;
+import com.triphuddle.common.dto.PageCursor;
+import com.triphuddle.common.dto.CursorPaginated;
 import com.triphuddle.api.destination.dto.MarkedPlaceResponse;
 import com.triphuddle.api.destination.dto.PlaceMarkResponse;
 import com.triphuddle.api.destination.dto.PlaceSummaryResponse;
@@ -7,8 +10,6 @@ import com.triphuddle.api.destination.entity.PlaceMark;
 import com.triphuddle.api.destination.entity.PlaceMarkKind;
 import com.triphuddle.api.destination.repository.PlaceMarkRepository;
 import com.triphuddle.api.destination.service.PlaceQueryService;
-import com.triphuddle.common.dto.Paginated;
-import com.triphuddle.common.filter.PaginationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -72,12 +73,19 @@ public class PlaceMarkService {
      *
      * @param userId the ID of the user
      * @param kind FAVOURITE or VISITED
-     * @param filter the page
+     * @param filter the cursor and page size
      * @return a page of places
      */
     @Transactional(readOnly = true)
-    public Paginated<MarkedPlaceResponse> getMine(UUID userId, PlaceMarkKind kind, PaginationFilter filter) {
-        return Paginated.of(repository.findListed(userId, kind, filter.toPageable()), marks -> {
+    public CursorPaginated<MarkedPlaceResponse> getMine(UUID userId, PlaceMarkKind kind,
+                                                        CursorPaginationFilter filter) {
+        PageCursor cursor = PageCursor.decode(filter.getCursor(), 2);
+        boolean isFirst = cursor == null;
+        List<PlaceMark> found = repository.findListed(userId, kind, isFirst,
+                isFirst ? PageCursor.FIRST_INSTANT : cursor.instantAt(0),
+                isFirst ? PageCursor.FIRST_ID : cursor.uuidAt(1), filter.toLimit());
+        return CursorPaginated.of(found, filter.getLimit(), mark -> PageCursor.of(mark.getCreatedAt(), mark.getId()),
+                marks -> {
             Map<UUID, PlaceSummaryResponse> places = placeQueryService.summariesOf(
                             marks.stream().map(PlaceMark::getPlaceId).toList()).stream()
                     .collect(Collectors.toMap(PlaceSummaryResponse::id, Function.identity()));
