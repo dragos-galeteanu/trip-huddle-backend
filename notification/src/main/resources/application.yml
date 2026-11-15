@@ -7,6 +7,10 @@ spring:
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
     virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+  data:
+    mongodb:
+      uri: mongodb://${MONGODB_HOST:mongodb}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:jobbie_giggle_notification}
+      auto-index-creation: true
   mail:
       host: smtp.gmail.com
       port: 465
@@ -18,6 +22,11 @@ spring:
             auth: true
             ssl:
               enable: true
+
+firebase:
+  # Set to false to run without push notifications; push requests are then logged and dropped.
+  enabled: ${FIREBASE_ENABLED:true}
+  project-id: jobbiegiggle
 
 server:
   port: 8090

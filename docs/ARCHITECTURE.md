@@ -26,18 +26,25 @@ flowchart TB
     subgraph GROUP[api-group :8083]
         GPG[(PostgreSQL)]
     end
+    subgraph CHAT[api-chat :8084]
+        CPG[(PostgreSQL)]
+        CMG[(MongoDB)]
+    end
 
     GW -->|/api/v1/users| USER
     GW -->|/api/v1/platform| PLATFORM
     GW -->|/api/v1/groups| GROUP
+    GW -->|/api/v1/chats, /ws/chats| CHAT
 
     MQ{{RabbitMQ}}
     USER <--> MQ
     PLATFORM --> MQ
     GROUP <--> MQ
+    CHAT <--> MQ
 
-    MQ -->|email requests| N[notification :8090]
+    MQ -->|email and push requests| N[notification :8090]
     N -->|SMTP| M[Mail server]
+    N -->|push| FCM[Firebase Cloud Messaging]
 ```
 
 Each API service box contains the data stores only it uses.
@@ -54,6 +61,7 @@ flowchart LR
         U[api-user :8081]
         P[api-platform :8082]
         G[api-group :8083]
+        CH[api-chat :8084]
         N[notification :8090]
         O[openai :8088]
     end
@@ -77,7 +85,8 @@ flowchart LR
 | `api-user` | service | 8081 | users, profiles, preferences, Firebase accounts | [docs](../api-user/docs/README.md) |
 | `api-platform` | service | 8082 | countries, currencies, languages, feature flags | [docs](../api-platform/docs/README.md) |
 | `api-group` | service | 8083 | groups, memberships, invitations | [docs](../api-group/docs/README.md) |
-| `notification` | service | 8090 | sends emails requested by other services | [docs](../notification/docs/README.md) |
+| `api-chat` | service | 8084 | private and group chats, messages, real time over STOMP | [docs](../api-chat/docs/README.md) |
+| `notification` | service | 8090 | sends emails and push notifications requested by other services | [docs](../notification/docs/README.md) |
 | `openai` | service | 8088 | text generation behind one interface | [docs](../openai/docs/README.md) |
 | `common` | library | | base classes, security, pagination, error handling | [docs](../common/docs/README.md) |
 | `amqp` | library | | RabbitMQ setup and every message definition | [docs](../amqp/docs/README.md) |
@@ -87,6 +96,8 @@ flowchart LR
     U[api-user] --> CM[common]
     P[api-platform] --> CM
     G[api-group] --> CM
+    CH[api-chat] --> CM
+    CH --> A
     U --> A[amqp]
     P --> A
     G --> A
@@ -139,6 +150,10 @@ flowchart LR
     G -- "GroupInvitationAccepted" --> U
     U -- "UserMatchedToGroupInvitation" --> G
     U -- "UserEmailVerified" --> G
+    U -- "UserRegistered, Disabled, Deleted" --> CH[api-chat]
+    G -- "Group*, GroupMembership*" --> CH
+    CH -- "SendPushRequest" --> N
+    U -- "UserDevice*" --> N
 ```
 
 A listener that throws is retried three times with a growing pause; after that the message goes to a dead-letter queue. Most created, updated, disabled and deleted events have no consumer yet; they exist so that future services can react without the publisher changing. The full catalogue is in the [amqp docs](../amqp/docs/README.md).
@@ -168,6 +183,8 @@ sequenceDiagram
 | `api-user` | `jobbie_giggle_user`: users, user profiles | user preferences |
 | `api-platform` | `jobbie_giggle_platform`: countries, currencies, languages | feature flags |
 | `api-group` | `jobbie_giggle_group`: groups, memberships, invitations | none |
+| `api-chat` | `jobbie_giggle_chat`: conversations, participants, blocks, reports, chat users | chat messages |
+| `notification` | none | device tokens |
 
 Relational schemas are checked at startup (`ddl-auto: validate`), so the tables must exist before a service starts.
 
@@ -180,12 +197,13 @@ Relational schemas are checked at startup (`ddl-auto: validate`), so the tables 
 | Errors | `GlobalExceptionHandler` returns one `ErrorResponse` shape: 400, 403, 404, 422, 500 |
 | API documentation | each API service serves OpenAPI at `/api-docs`; the gateway exposes it at `/<service>/v3/api-docs` |
 | Tracing | every service reports to Zipkin at `http://zipkin:9411` |
-| Pagination | `page` (from 1) and `pageSize` (up to 100) in; `Paginated<T>` with metadata out |
+| Pagination | `page` (from 1) and `pageSize` (up to 100) in; `Paginated<T>` with metadata out. Chat lists use cursors instead (`CursorPaginated<T>`) |
+| Real time | `api-chat` serves STOMP over WebSocket at `/ws/chats`, relayed through RabbitMQ's STOMP plugin so every instance reaches every client |
 
 ## What a deployment needs
 
-- PostgreSQL at host `postgres`, MongoDB at `mongodb`, RabbitMQ, Eureka at `eureka-server`, Zipkin at `zipkin`.
-- Environment: `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VIRTUAL_HOST`, `SMTP_PASSWORD`, and Google application default credentials for the Firebase Admin SDK.
+- PostgreSQL at host `postgres`, MongoDB at `mongodb`, RabbitMQ with the `rabbitmq_stomp` plugin (port 61613), Eureka at `eureka-server`, Zipkin at `zipkin`. `docker compose up -d` at the root starts all but Eureka for local development.
+- Environment: `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VIRTUAL_HOST`, `SMTP_PASSWORD`, and Google application default credentials for the Firebase Admin SDK (also used for FCM and for signing chat attachment URLs). Optionally `CHAT_ATTACHMENTS_BUCKET` to turn chat attachments on.
 
 ## Adding a service
 

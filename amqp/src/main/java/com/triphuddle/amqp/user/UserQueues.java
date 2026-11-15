@@ -12,6 +12,14 @@ public class UserQueues {
             UserEmailVerifiedContract.USER_EMAIL_VERIFIED_QUEUE_NAME,
             UserEmailVerifiedContract.USER_EMAIL_VERIFIED_DLQ_NAME,
             UserMatchedToGroupInvitationContract.USER_MATCHED_TO_GROUP_INVITATION_QUEUE_NAME,
-            UserMatchedToGroupInvitationContract.USER_MATCHED_TO_GROUP_INVITATION_DLQ_NAME
+            UserMatchedToGroupInvitationContract.USER_MATCHED_TO_GROUP_INVITATION_DLQ_NAME,
+            UserDisabledContract.USER_DISABLED_QUEUE_NAME,
+            UserDisabledContract.USER_DISABLED_DLQ_NAME,
+            UserDeletedContract.USER_DELETED_QUEUE_NAME,
+            UserDeletedContract.USER_DELETED_DLQ_NAME,
+            UserDeviceRegisteredContract.USER_DEVICE_REGISTERED_QUEUE_NAME,
+            UserDeviceRegisteredContract.USER_DEVICE_REGISTERED_DLQ_NAME,
+            UserDeviceUnregisteredContract.USER_DEVICE_UNREGISTERED_QUEUE_NAME,
+            UserDeviceUnregisteredContract.USER_DEVICE_UNREGISTERED_DLQ_NAME
     );
 }
