@@ -1,9 +1,11 @@
 package com.triphuddle.api.chat.entity;
 
 /**
- * Mirrors the member's role in the group; {@code ADMIN} may delete anyone's messages in a group chat.
+ * {@code ADMIN} and {@code MEMBER} mirror the member's role in a group; the customer of a support chat is a
+ * {@code MEMBER} and the Support or Admin users helping them are {@code STAFF}.
  */
 public enum ParticipantRole {
     ADMIN,
-    MEMBER
+    MEMBER,
+    STAFF
 }
