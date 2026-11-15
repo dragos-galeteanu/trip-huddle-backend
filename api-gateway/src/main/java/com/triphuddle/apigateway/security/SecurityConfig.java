@@ -58,6 +58,10 @@ public class SecurityConfig {
                                     "/api/v1/platform/countries/**",
                                     "/api/v1/platform/currencies/**",
                                     "/api/v1/platform/languages/**").permitAll()
+                            .pathMatchers(HttpMethod.GET,
+                                    "/api/v1/licenses",
+                                    "/api/v1/licenses/*",
+                                    "/api/v1/licenses/*/price").permitAll()
                             .pathMatchers(HttpMethod.POST,
                                     "/api/v1/groups/invitations/accept",
                                     "/api/v1/groups/invitations/reject").permitAll()
