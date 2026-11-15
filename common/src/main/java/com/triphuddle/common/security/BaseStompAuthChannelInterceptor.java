@@ -25,7 +25,7 @@ import java.util.UUID;
  * A session may only subscribe to its own user topic and only send to application destinations, unless overridden.
  */
 @Slf4j
-public class StompAuthChannelInterceptor implements ChannelInterceptor {
+public class BaseStompAuthChannelInterceptor implements ChannelInterceptor {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -33,7 +33,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private final JwtDecoder jwtDecoder;
     private final Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter;
 
-    public StompAuthChannelInterceptor(
+    public BaseStompAuthChannelInterceptor(
             JwtDecoder jwtDecoder,
             Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter) {
         this.jwtDecoder = jwtDecoder;
@@ -49,6 +49,18 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
      */
     protected boolean maySubscribe(UUID userId, String destination) {
         return StompDestinations.userTopic(userId).equals(destination);
+    }
+
+    /**
+     * Whether a session may subscribe to a destination; override it to open topics by role.
+     *
+     * @param authentication the authenticated session
+     * @param userId the ID of the user
+     * @param destination the destination of the SUBSCRIBE frame, possibly null
+     * @return true if the subscription is allowed
+     */
+    protected boolean maySubscribe(Authentication authentication, UUID userId, String destination) {
+        return maySubscribe(userId, destination);
     }
 
     /**
@@ -102,7 +114,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private void authorizeSubscribe(StompHeaderAccessor accessor) {
         UUID userId = requireLiveUser(accessor);
         String destination = accessor.getDestination();
-        if (!maySubscribe(userId, destination)) {
+        if (!maySubscribe((Authentication) accessor.getUser(), userId, destination)) {
             log.warn("STOMP SUBSCRIBE refused [userId={}, destination={}]", userId, destination);
             throw new MessageDeliveryException("You cannot subscribe to " + destination);
         }
