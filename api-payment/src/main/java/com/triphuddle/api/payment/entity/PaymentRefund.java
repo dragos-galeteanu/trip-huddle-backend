@@ -7,6 +7,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,7 +19,11 @@ import java.util.UUID;
  * Money given back from an invoice's payment: by staff through the API, or in the Stripe dashboard.
  */
 @Entity
-@Table(name = "payment_refunds")
+@Table(
+        name = "payment_refunds",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_payment_refund_stripe_refund", columnNames = "stripe_refund_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -28,7 +33,7 @@ public class PaymentRefund extends BaseJpaEntity {
     @JoinColumn(name = "invoice_id", nullable = false)
     private PaymentInvoice invoice;
 
-    @Column(name = "stripe_refund_id", nullable = false, unique = true)
+    @Column(name = "stripe_refund_id", nullable = false)
     private String stripeRefundId;
 
     @Column(name = "amount_minor", nullable = false)

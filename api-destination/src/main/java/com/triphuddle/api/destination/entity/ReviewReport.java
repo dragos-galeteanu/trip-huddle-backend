@@ -21,9 +21,11 @@ import java.util.UUID;
  * A user's report that a review is wrong or abusive; one per user and review.
  */
 @Entity
-@Table(name = "destination_review_reports", uniqueConstraints = @UniqueConstraint(
-        name = "destination_review_reports_review_id_user_id_key",
-        columnNames = {"review_id", "user_id"}))
+@Table(
+        name = "destination_review_reports",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_review_report_review_user", columnNames = {"review_id", "user_id"})
+)
 @Getter
 @Setter
 @NoArgsConstructor

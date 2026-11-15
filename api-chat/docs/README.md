@@ -102,7 +102,7 @@ A user has at most one open report of a message; the service checks before savin
 SELECT message_id, reporter_id FROM message_reports WHERE status = 'OPEN'
 GROUP BY message_id, reporter_id HAVING count(*) > 1;
 
-CREATE UNIQUE INDEX IF NOT EXISTS message_reports_open_uq
+CREATE UNIQUE INDEX IF NOT EXISTS uk_message_report_open
     ON message_reports (message_id, reporter_id) WHERE status = 'OPEN';
 ```
 

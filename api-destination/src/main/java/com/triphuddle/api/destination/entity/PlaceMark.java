@@ -18,9 +18,11 @@ import java.util.UUID;
  * A place a user saved as a favourite or marked as visited; private to them.
  */
 @Entity
-@Table(name = "destination_place_marks", uniqueConstraints = @UniqueConstraint(
-        name = "destination_place_marks_user_id_place_id_kind_key",
-        columnNames = {"user_id", "place_id", "kind"}))
+@Table(
+        name = "destination_place_marks",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_place_mark_user_place_kind", columnNames = {"user_id", "place_id", "kind"})
+)
 @Getter
 @Setter
 @NoArgsConstructor

@@ -10,14 +10,17 @@ import lombok.NoArgsConstructor;
  * The public profile of a user: biography, pictures and links.
  */
 @Entity
-@Table(name = "user_profiles")
+@Table(
+        name = "user_profiles",
+        uniqueConstraints = @UniqueConstraint(name = "uk_user_profile_user", columnNames = "user_id")
+)
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class UserProfile extends BaseJpaEntity {
 
     @OneToOne
-    @JoinColumn(name = "user_id", unique = true, foreignKey = @ForeignKey(name = "fk_user_profile_user"))
+    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_user_profile_user"))
     private User user;
 
     @Column(columnDefinition = "TEXT")

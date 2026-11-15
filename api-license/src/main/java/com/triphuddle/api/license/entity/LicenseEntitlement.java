@@ -10,8 +10,12 @@ import lombok.Setter;
  * One thing a license grants, by key: a limit such as {@code MAX_GROUPS=10}, or a flag when it has no value.
  */
 @Entity
-@Table(name = "license_entitlements",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"license_id", "entitlement_key"}))
+@Table(
+        name = "license_entitlements",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_license_entitlement_license_entitlement_key",
+                columnNames = {"license_id", "entitlement_key"})
+)
 @Getter
 @Setter
 @NoArgsConstructor

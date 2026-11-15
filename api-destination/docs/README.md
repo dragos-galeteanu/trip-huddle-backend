@@ -266,8 +266,8 @@ SELECT slug FROM destination_categories WHERE deleted_at IS NULL GROUP BY slug H
 SELECT place_id, section, language_code FROM destination_place_contents
 GROUP BY place_id, section, language_code HAVING count(*) > 1;
 
-CREATE UNIQUE INDEX IF NOT EXISTS destination_categories_slug_uq
+CREATE UNIQUE INDEX IF NOT EXISTS uk_category_slug
     ON destination_categories (slug) WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS destination_place_contents_place_section_language_uq
+CREATE UNIQUE INDEX IF NOT EXISTS uk_place_content_place_section_language_code
     ON destination_place_contents (place_id, section, language_code);
 ```

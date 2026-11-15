@@ -4,6 +4,7 @@ import com.triphuddle.common.entity.BaseJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,13 +15,17 @@ import java.util.UUID;
  * A local copy of a membership in api-group, kept from its events; a group's license applies to its members.
  */
 @Entity
-@Table(name = "destination_group_members")
+@Table(
+        name = "destination_group_members",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_group_member_group_membership", columnNames = "group_membership_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class GroupMember extends BaseJpaEntity {
 
-    @Column(name = "group_membership_id", nullable = false, unique = true)
+    @Column(name = "group_membership_id", nullable = false)
     private UUID groupMembershipId;
 
     @Column(name = "group_id", nullable = false)

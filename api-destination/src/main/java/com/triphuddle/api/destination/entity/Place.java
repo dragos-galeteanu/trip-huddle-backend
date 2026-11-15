@@ -15,6 +15,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -30,7 +31,14 @@ import java.util.UUID;
  * search columns in the database are worked out from its coordinates and names.
  */
 @Entity
-@Table(name = "destination_places")
+@Table(
+        name = "destination_places",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_place_slug", columnNames = "slug"),
+                @UniqueConstraint(name = "uk_place_wikidata", columnNames = "wikidata_id"),
+                @UniqueConstraint(name = "uk_place_osm", columnNames = "osm_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -55,7 +63,7 @@ public class Place extends BaseJpaEntity {
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
-    @Column(name = "slug", nullable = false, unique = true, length = 220)
+    @Column(name = "slug", nullable = false, length = 220)
     private String slug;
 
     @Column(name = "latitude")
@@ -64,11 +72,11 @@ public class Place extends BaseJpaEntity {
     @Column(name = "longitude")
     private Double longitude;
 
-    @Column(name = "wikidata_id", unique = true, length = 32)
+    @Column(name = "wikidata_id", length = 32)
     private String wikidataId;
 
     // OpenStreetMap's type and number, e.g. relation/295480.
-    @Column(name = "osm_id", unique = true, length = 40)
+    @Column(name = "osm_id", length = 40)
     private String osmId;
 
     @Column(name = "population")

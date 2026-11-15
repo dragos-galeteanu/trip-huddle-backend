@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,13 +17,16 @@ import java.time.Instant;
  * A verified Stripe webhook event, stored raw as received and handled later by {@code StripeEventProcessor}.
  */
 @Entity
-@Table(name = "payment_stripe_events")
+@Table(
+        name = "payment_stripe_events",
+        uniqueConstraints = @UniqueConstraint(name = "uk_stripe_event_stripe_event", columnNames = "stripe_event_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class StripeEvent extends BaseJpaEntity {
 
-    @Column(name = "stripe_event_id", nullable = false, unique = true)
+    @Column(name = "stripe_event_id", nullable = false)
     private String stripeEventId;
 
     @Column(name = "event_type", nullable = false)

@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,7 +23,10 @@ import java.util.UUID;
  * A user's question about a place and the AI's answer; private to them.
  */
 @Entity
-@Table(name = "destination_place_questions")
+@Table(
+        name = "destination_place_questions",
+        uniqueConstraints = @UniqueConstraint(name = "uk_place_question_pending_job", columnNames = "pending_job_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -55,7 +59,7 @@ public class PlaceQuestion extends BaseJpaEntity {
     @Column(name = "model", length = 64)
     private String model;
 
-    @Column(name = "pending_job_id", unique = true)
+    @Column(name = "pending_job_id")
     private UUID pendingJobId;
 
     @Column(name = "requested_at", nullable = false)

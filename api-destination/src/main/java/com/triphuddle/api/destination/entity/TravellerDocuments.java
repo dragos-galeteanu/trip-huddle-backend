@@ -5,6 +5,7 @@ import com.triphuddle.common.entity.BaseJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,13 +22,16 @@ import java.util.UUID;
  * late update can't bring them back.
  */
 @Entity
-@Table(name = "destination_traveller_documents")
+@Table(
+        name = "destination_traveller_documents",
+        uniqueConstraints = @UniqueConstraint(name = "uk_traveller_documents_user", columnNames = "user_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class TravellerDocuments extends BaseJpaEntity {
 
-    @Column(name = "user_id", nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @JdbcTypeCode(SqlTypes.JSON)

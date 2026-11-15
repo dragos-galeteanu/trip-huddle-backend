@@ -60,11 +60,11 @@ SELECT numeric_code FROM countries GROUP BY numeric_code HAVING count(*) > 1;
 SELECT code FROM currencies GROUP BY code HAVING count(*) > 1;
 SELECT code FROM languages GROUP BY code HAVING count(*) > 1;
 
-CREATE UNIQUE INDEX IF NOT EXISTS countries_alpha2_uq ON countries (alpha2);
-CREATE UNIQUE INDEX IF NOT EXISTS countries_alpha3_uq ON countries (alpha3);
-CREATE UNIQUE INDEX IF NOT EXISTS countries_numeric_code_uq ON countries (numeric_code);
-CREATE UNIQUE INDEX IF NOT EXISTS currencies_code_uq ON currencies (code);
-CREATE UNIQUE INDEX IF NOT EXISTS languages_code_uq ON languages (code);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_country_alpha2 ON countries (alpha2);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_country_alpha3 ON countries (alpha3);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_country_numeric_code ON countries (numeric_code);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_currency_code ON currencies (code);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_language_code ON languages (code);
 ```
 
 ## Endpoints

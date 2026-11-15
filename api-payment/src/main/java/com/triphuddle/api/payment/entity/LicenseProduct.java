@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,13 +20,19 @@ import java.util.UUID;
  * A license as api-license last reported it, and the state of its Stripe Product.
  */
 @Entity
-@Table(name = "payment_license_products")
+@Table(
+        name = "payment_license_products",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_license_product_license", columnNames = "license_id"),
+                @UniqueConstraint(name = "uk_license_product_stripe_product", columnNames = "stripe_product_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class LicenseProduct extends BaseJpaEntity {
 
-    @Column(name = "license_id", nullable = false, unique = true)
+    @Column(name = "license_id", nullable = false)
     private UUID licenseId;
 
     @Column(name = "code", nullable = false, length = 64)
@@ -60,7 +67,7 @@ public class LicenseProduct extends BaseJpaEntity {
     @Column(name = "catalog_changed_at", nullable = false)
     private Instant catalogChangedAt;
 
-    @Column(name = "stripe_product_id", nullable = false, unique = true)
+    @Column(name = "stripe_product_id", nullable = false)
     private String stripeProductId;
 
     // Null while Stripe matches what is stored here.

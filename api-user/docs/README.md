@@ -71,7 +71,7 @@ A user has at most one profile; the service checks before saving, and this index
 -- Check: should return no rows.
 SELECT user_id FROM user_profiles GROUP BY user_id HAVING count(*) > 1;
 
-CREATE UNIQUE INDEX IF NOT EXISTS user_profiles_user_id_uq ON user_profiles (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_user_profile_user ON user_profiles (user_id);
 ```
 
 ## Endpoints

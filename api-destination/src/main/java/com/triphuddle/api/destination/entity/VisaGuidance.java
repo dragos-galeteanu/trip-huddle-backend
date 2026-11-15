@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,14 +24,20 @@ import java.util.UUID;
  * traveller in the same case, so it holds nothing about any one of them.
  */
 @Entity
-@Table(name = "destination_visa_guidance")
+@Table(
+        name = "destination_visa_guidance",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_visa_guidance_guidance_key", columnNames = "guidance_key"),
+                @UniqueConstraint(name = "uk_visa_guidance_pending_job", columnNames = "pending_job_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class VisaGuidance extends BaseJpaEntity {
 
     // Destination, passport, requirement, permit countries and language, joined by "|".
-    @Column(name = "guidance_key", nullable = false, unique = true, length = 120)
+    @Column(name = "guidance_key", nullable = false, length = 120)
     private String guidanceKey;
 
     @Column(name = "destination_code", nullable = false, length = 2)
@@ -75,7 +82,7 @@ public class VisaGuidance extends BaseJpaEntity {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
-    @Column(name = "pending_job_id", unique = true)
+    @Column(name = "pending_job_id")
     private UUID pendingJobId;
 
     @Column(name = "requested_at")

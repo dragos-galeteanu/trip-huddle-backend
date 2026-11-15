@@ -13,7 +13,11 @@ import java.util.UUID;
  * A subscription's use of a promotion, kept so once-per-customer promotions can tell who used them.
  */
 @Entity
-@Table(name = "license_promotion_redemptions")
+@Table(
+        name = "license_promotion_redemptions",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_promotion_redemption_subscription", columnNames = "subscription_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,6 +35,6 @@ public class PromotionRedemption extends BaseJpaEntity {
     private UUID subscriberId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "subscription_id", nullable = false, unique = true)
+    @JoinColumn(name = "subscription_id", nullable = false)
     private Subscription subscription;
 }

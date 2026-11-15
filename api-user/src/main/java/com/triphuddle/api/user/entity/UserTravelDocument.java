@@ -19,9 +19,12 @@ import java.util.UUID;
  * A nationality or residence permit of a user, used for visa guidance; no document numbers are kept.
  */
 @Entity
-@Table(name = "user_travel_documents", uniqueConstraints = @UniqueConstraint(
-        name = "user_travel_documents_uq",
-        columnNames = {"user_id", "type", "country_code"}))
+@Table(
+        name = "user_travel_documents",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_user_travel_document_user_type_country_code",
+                columnNames = {"user_id", "type", "country_code"})
+)
 @Getter
 @Setter
 @NoArgsConstructor

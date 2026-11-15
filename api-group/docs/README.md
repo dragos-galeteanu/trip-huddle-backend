@@ -57,9 +57,9 @@ GROUP BY group_id, user_id HAVING count(*) > 1;
 SELECT group_id, email FROM group_invitations WHERE status = 'PENDING' AND deleted_at IS NULL
 GROUP BY group_id, email HAVING count(*) > 1;
 
-CREATE UNIQUE INDEX IF NOT EXISTS group_memberships_group_user_uq
+CREATE UNIQUE INDEX IF NOT EXISTS uk_group_membership_group_user
     ON group_memberships (group_id, user_id) WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS group_invitations_pending_email_uq
+CREATE UNIQUE INDEX IF NOT EXISTS uk_group_invitation_pending_email
     ON group_invitations (group_id, email) WHERE status = 'PENDING' AND deleted_at IS NULL;
 ```
 

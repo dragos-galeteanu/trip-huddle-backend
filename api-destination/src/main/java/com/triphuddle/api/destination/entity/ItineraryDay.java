@@ -25,9 +25,14 @@ import java.util.UUID;
  * One day of an itinerary; it can be written again on its own.
  */
 @Entity
-@Table(name = "destination_itinerary_days", uniqueConstraints = @UniqueConstraint(
-        name = "destination_itinerary_days_itinerary_id_day_number_key",
-        columnNames = {"itinerary_id", "day_number"}))
+@Table(
+        name = "destination_itinerary_days",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_itinerary_day_itinerary_day_number", columnNames = {"itinerary_id", "day_number"}),
+                @UniqueConstraint(name = "uk_itinerary_day_pending_job", columnNames = "pending_job_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -50,7 +55,7 @@ public class ItineraryDay extends BaseJpaEntity {
     private String summary;
 
     // The job rewriting this day alone; null when none is.
-    @Column(name = "pending_job_id", unique = true)
+    @Column(name = "pending_job_id")
     private UUID pendingJobId;
 
     @Column(name = "requested_at")

@@ -18,9 +18,15 @@ import java.util.UUID;
  * The Stripe Customer of a user or a group: one each, so a group's card and invoices belong to the group.
  */
 @Entity
-@Table(name = "payment_customers", uniqueConstraints = @UniqueConstraint(
-        name = "payment_customers_subscriber_type_subscriber_id_key",
-        columnNames = {"subscriber_type", "subscriber_id"}))
+@Table(
+        name = "payment_customers",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_stripe_customer_subscriber_type_subscriber",
+                        columnNames = {"subscriber_type", "subscriber_id"}),
+                @UniqueConstraint(name = "uk_stripe_customer_stripe_customer", columnNames = "stripe_customer_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -33,6 +39,6 @@ public class StripeCustomer extends BaseJpaEntity {
     @Column(name = "subscriber_id", nullable = false)
     private UUID subscriberId;
 
-    @Column(name = "stripe_customer_id", nullable = false, unique = true)
+    @Column(name = "stripe_customer_id", nullable = false)
     private String stripeCustomerId;
 }

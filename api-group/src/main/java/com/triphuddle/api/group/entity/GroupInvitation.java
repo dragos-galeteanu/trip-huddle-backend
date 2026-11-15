@@ -16,7 +16,10 @@ import java.util.UUID;
 @Entity
 // One PENDING invitation per group and email among those not deleted: a partial index, which JPA can't
 // declare.
-@Table(name = "group_invitations")
+@Table(
+        name = "group_invitations",
+        uniqueConstraints = @UniqueConstraint(name = "uk_group_invitation_token", columnNames = "token")
+)
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
@@ -35,7 +38,7 @@ public class GroupInvitation extends BaseJpaEntity {
     @Column(name = "role", nullable = false, length = 16)
     private GroupRole role;
 
-    @Column(name = "token", nullable = false, unique = true)
+    @Column(name = "token", nullable = false)
     @ToString.Exclude
     private UUID token;
 

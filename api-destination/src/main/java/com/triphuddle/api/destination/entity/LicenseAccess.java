@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,13 +24,16 @@ import java.util.UUID;
  * may use the service and how much.
  */
 @Entity
-@Table(name = "destination_license_subscriptions")
+@Table(
+        name = "destination_license_subscriptions",
+        uniqueConstraints = @UniqueConstraint(name = "uk_license_access_subscription", columnNames = "subscription_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class LicenseAccess extends BaseJpaEntity {
 
-    @Column(name = "subscription_id", nullable = false, unique = true)
+    @Column(name = "subscription_id", nullable = false)
     private UUID subscriptionId;
 
     @Column(name = "license_id", nullable = false)

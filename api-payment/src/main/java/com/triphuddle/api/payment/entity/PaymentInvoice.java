@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,13 +19,17 @@ import java.util.UUID;
  * A Stripe invoice of a license subscription, as the webhook last reported it, with what was refunded from it.
  */
 @Entity
-@Table(name = "payment_invoices")
+@Table(
+        name = "payment_invoices",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_payment_invoice_stripe_invoice", columnNames = "stripe_invoice_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class PaymentInvoice extends BaseJpaEntity {
 
-    @Column(name = "stripe_invoice_id", nullable = false, unique = true)
+    @Column(name = "stripe_invoice_id", nullable = false)
     private String stripeInvoiceId;
 
     @Column(name = "number", length = 64)

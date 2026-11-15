@@ -13,19 +13,26 @@ import java.util.UUID;
  * A platform user, linked to their Firebase account by {@code firebaseUid}.
  */
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_user_firebase_uid", columnNames = "firebase_uid"),
+                @UniqueConstraint(name = "uk_user_email", columnNames = "email"),
+                @UniqueConstraint(name = "uk_user_phone_number", columnNames = "phone_number")
+        }
+)
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class User extends BaseJpaEntity {
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String firebaseUid;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String phoneNumber;
 
     @Column(nullable = false)

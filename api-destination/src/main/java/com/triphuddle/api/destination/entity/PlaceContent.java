@@ -27,9 +27,15 @@ import java.util.UUID;
  * generated, the last ready one is still served.
  */
 @Entity
-@Table(name = "destination_place_contents", uniqueConstraints = @UniqueConstraint(
-        name = "destination_place_contents_place_section_language_uq",
-        columnNames = {"place_id", "section", "language_code"}))
+@Table(
+        name = "destination_place_contents",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_place_content_place_section_language_code",
+                        columnNames = {"place_id", "section", "language_code"}),
+                @UniqueConstraint(name = "uk_place_content_pending_job", columnNames = "pending_job_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -74,7 +80,7 @@ public class PlaceContent extends BaseJpaEntity {
     private Instant lastViewedAt;
 
     // The job in flight, matched against the worker's answer; null when none is.
-    @Column(name = "pending_job_id", unique = true)
+    @Column(name = "pending_job_id")
     private UUID pendingJobId;
 
     @Enumerated(EnumType.STRING)

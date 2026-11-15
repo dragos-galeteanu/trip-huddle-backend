@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,13 +21,21 @@ import java.util.UUID;
  * Its details come from api-license's pending event; an end that arrives first leaves only the ID and status.
  */
 @Entity
-@Table(name = "payment_subscriptions")
+@Table(
+        name = "payment_subscriptions",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_billing_subscription_license_subscription", columnNames = "license_subscription_id"),
+                @UniqueConstraint(
+                        name = "uk_billing_subscription_stripe_subscription", columnNames = "stripe_subscription_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class BillingSubscription extends BaseJpaEntity {
 
-    @Column(name = "license_subscription_id", nullable = false, unique = true)
+    @Column(name = "license_subscription_id", nullable = false)
     private UUID licenseSubscriptionId;
 
     @Enumerated(EnumType.STRING)
@@ -112,6 +121,6 @@ public class BillingSubscription extends BaseJpaEntity {
     @Column(name = "refund_due_at")
     private Instant refundDueAt;
 
-    @Column(name = "stripe_subscription_id", unique = true)
+    @Column(name = "stripe_subscription_id")
     private String stripeSubscriptionId;
 }

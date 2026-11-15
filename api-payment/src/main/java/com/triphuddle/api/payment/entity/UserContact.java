@@ -4,6 +4,7 @@ import com.triphuddle.common.entity.BaseJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,13 +17,16 @@ import java.util.UUID;
  * Its disabled and deleted timestamps follow the user's.
  */
 @Entity
-@Table(name = "payment_user_contacts")
+@Table(
+        name = "payment_user_contacts",
+        uniqueConstraints = @UniqueConstraint(name = "uk_user_contact_user", columnNames = "user_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class UserContact extends BaseJpaEntity {
 
-    @Column(name = "user_id", nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     // Null until the first contact event, when a disabled or deleted event came first.

@@ -13,7 +13,10 @@ import lombok.NoArgsConstructor;
  * A language, identified by its code, with its native name and writing direction.
  */
 @Entity
-@Table(name = "languages", uniqueConstraints = @UniqueConstraint(name = "languages_code_uq", columnNames = {"code"}))
+@Table(
+        name = "languages",
+        uniqueConstraints = @UniqueConstraint(name = "uk_language_code", columnNames = "code")
+)
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor

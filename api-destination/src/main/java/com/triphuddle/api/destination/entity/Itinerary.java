@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,7 +27,10 @@ import java.util.UUID;
  * itineraries.
  */
 @Entity
-@Table(name = "destination_itineraries")
+@Table(
+        name = "destination_itineraries",
+        uniqueConstraints = @UniqueConstraint(name = "uk_itinerary_pending_job", columnNames = "pending_job_id")
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -47,7 +51,7 @@ public class Itinerary extends BaseJpaEntity {
     private UUID requestedByUserId;
 
     // The job in flight for the whole itinerary; null when none is.
-    @Column(name = "pending_job_id", unique = true)
+    @Column(name = "pending_job_id")
     private UUID pendingJobId;
 
     @Column(name = "requested_at")
