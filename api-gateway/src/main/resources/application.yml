@@ -63,6 +63,21 @@ spring:
             - Path=/api-chat/v3/api-docs
           filters:
             - RewritePath=/api-chat/v3/api-docs, /api-docs
+        - id: api-license
+          uri: lb://API-LICENSE
+          predicates:
+            - Path=/api/v1/licenses/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: api-license
+                fallbackUri: forward:/fallback
+        - id: api-license-swagger
+          uri: lb://API-LICENSE
+          predicates:
+            - Path=/api-license/v3/api-docs
+          filters:
+            - RewritePath=/api-license/v3/api-docs, /api-docs
         - id: api-platform
           uri: lb://API-PLATFORM
           predicates:
@@ -97,6 +112,8 @@ resilience4j:
       api-user:
         timeoutDuration: 60s
       api-platform:
+        timeoutDuration: 60s
+      api-license:
         timeoutDuration: 60s
       api-group:
         timeoutDuration: 60s

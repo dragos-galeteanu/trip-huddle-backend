@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: api-license
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: 5672
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://securetoken.google.com/jobbiegiggle
+          jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
+  datasource:
+    url: jdbc:postgresql://postgres:5432/jobbie_giggle_license
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+app:
+  license:
+    # The one currency every license is priced in; prices are stored in its minor units.
+    currency: ${LICENSE_CURRENCY:EUR}
+    # A subscription still waiting for payment after this long is ended and gives its promotion back.
+    pending-expiry-hours: ${LICENSE_PENDING_EXPIRY_HOURS:48}
+    renewal-interval-ms: 60000
+    pending-timeout-interval-ms: 600000
+    renewal-reminder-days: ${LICENSE_RENEWAL_REMINDER_DAYS:3}
+    renewal-reminder-interval-ms: 3600000
+
+server:
+  port: 8085
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
