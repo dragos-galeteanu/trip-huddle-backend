@@ -26,21 +26,25 @@ flowchart LR
     R -->|no| D[(default.dlq)]
 ```
 
-Listeners that use `simpleRabbitListenerContainerFactory` get this retry policy. The notification service has its own factory that dead-letters to `notification.email.dlq` instead.
+Listeners that use `simpleRabbitListenerContainerFactory` get this retry policy. The notification service has its own factories that dead-letter to `notification.email.dlq` and `notification.push.dlq` instead.
 
 ## Message catalogue
 
 | Domain | Messages | Published by | Consumed by |
 |---|---|---|---|
 | `notification` | `SendEmailRequest` | `api-user`, `api-group` | `notification` |
-| `user` | `UserRegisteredEvent`, `UserProfilePictureUpdatedEvent` | `api-user` | nobody yet |
+| `notification` | `SendPushRequest` | `api-chat` | `notification` |
+| `user` | `UserRegisteredEvent`, `UserDisabledEvent`, `UserDeletedEvent` | `api-user` | `api-chat` |
+| `user` | `UserDeviceRegisteredEvent`, `UserDeviceUnregisteredEvent` | `api-user` | `notification` |
+| `user` | `UserProfilePictureUpdatedEvent` | `api-user` | nobody yet |
 | `user` | `UserEmailVerifiedEvent` | `api-user` | `api-group` |
 | `user` | `UserMatchedToGroupInvitationEvent` | `api-user` | `api-group` |
 | `platform` | Country, Currency, Language × Created, Disabled, Deleted (9) | `api-platform` | nobody yet |
-| `group` | Group × Created, Updated, Disabled, Deleted (4) | `api-group` | nobody yet |
-| `group` | GroupMembership × Created, Updated, Disabled, Deleted (4) | `api-group` | nobody yet |
+| `group` | Group × Created, Updated, Disabled, Deleted (4) | `api-group` | `api-chat` |
+| `group` | GroupMembership × Created, Updated, Disabled, Deleted (4) | `api-group` | `api-chat` |
 | `group` | GroupInvitation × Created, Updated, Disabled, Deleted, Rejected, Canceled (6) | `api-group` | nobody yet |
 | `group` | `GroupInvitationAcceptedEvent` | `api-group` | `api-user` |
+| `chat` | ChatMessage × Sent, Edited, Deleted, Disabled, Reported (5) | `api-chat` | nobody yet |
 
 Messages on a queue with no consumer stay there until one is added.
 
@@ -51,6 +55,10 @@ flowchart LR
     G -- GroupInvitationAccepted --> U
     U -- UserMatchedToGroupInvitation --> G
     U -- UserEmailVerified --> G
+    U -- "UserRegistered, Disabled, Deleted" --> CH[api-chat]
+    G -- "Group*, GroupMembership*" --> CH
+    CH -- SendPushRequest --> N
+    U -- "UserDevice*" --> N
     PL[api-platform] -- reference data events --> X([no consumer yet])
 ```
 

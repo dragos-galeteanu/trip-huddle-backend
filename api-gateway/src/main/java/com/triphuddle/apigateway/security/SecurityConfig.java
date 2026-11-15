@@ -61,6 +61,7 @@ public class SecurityConfig {
                             .pathMatchers(HttpMethod.POST,
                                     "/api/v1/groups/invitations/accept",
                                     "/api/v1/groups/invitations/reject").permitAll()
+                            .pathMatchers("/ws/chats", "/ws/chats/**").permitAll()
                             .pathMatchers("/api/**").authenticated()
                             .anyExchange().authenticated();
                 })

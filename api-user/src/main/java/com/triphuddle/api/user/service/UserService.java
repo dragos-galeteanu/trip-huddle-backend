@@ -5,6 +5,10 @@ import com.triphuddle.amqp.RabbitMQMessageProducer;
 import com.triphuddle.amqp.notification.NotificationEmailContract;
 import com.triphuddle.amqp.notification.NotificationEmailType;
 import com.triphuddle.amqp.notification.SendEmailRequest;
+import com.triphuddle.amqp.user.UserDeletedContract;
+import com.triphuddle.amqp.user.UserDeletedEvent;
+import com.triphuddle.amqp.user.UserDisabledContract;
+import com.triphuddle.amqp.user.UserDisabledEvent;
 import com.triphuddle.amqp.user.UserEmailVerifiedContract;
 import com.triphuddle.amqp.user.UserEmailVerifiedEvent;
 import com.triphuddle.amqp.user.UserRegisteredContract;
@@ -251,6 +255,9 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
 
         User saved = userRepository.save(user);
         log.info("User disabled [id={}]", saved.getId());
+
+        messageProducer.publish(new UserDisabledEvent(saved.getId()), "", UserDisabledContract.USER_DISABLED_QUEUE_NAME);
+        log.info("Event published for user disabling [userId={}]", saved.getId());
         return userMapper.toResponse(saved);
     }
 
@@ -262,6 +269,9 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
 
         User saved = userRepository.save(user);
         log.info("User deleted [id={}]", saved.getId());
+
+        messageProducer.publish(new UserDeletedEvent(saved.getId()), "", UserDeletedContract.USER_DELETED_QUEUE_NAME);
+        log.info("Event published for user deletion [userId={}]", saved.getId());
         return userMapper.toResponse(saved);
     }
 }

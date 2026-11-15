@@ -6,7 +6,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- * Entry point of the notification service, which sends the emails other services request.
+ * Entry point of the notification service, which sends the emails and push notifications other services request.
  */
 @SpringBootApplication
 @EnableDiscoveryClient

@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: api-chat
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: 5672
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://securetoken.google.com/jobbiegiggle
+          jwk-set-uri: https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
+  datasource:
+    url: jdbc:postgresql://postgres:5432/jobbie_giggle_chat
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  data:
+    mongodb:
+      uri: mongodb://${MONGODB_HOST:mongodb}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:jobbie_giggle_chat}
+      auto-index-creation: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+  chat:
+    broker:
+      # The STOMP relay to RabbitMQ lets several instances share socket traffic. Set to false to use
+      # the in-memory broker, which only works with a single instance.
+      relay-enabled: ${CHAT_STOMP_RELAY_ENABLED:true}
+      relay-host: ${RABBITMQ_HOST}
+      relay-port: ${RABBITMQ_STOMP_PORT:61613}
+      login: ${RABBITMQ_USERNAME}
+      passcode: ${RABBITMQ_PASSWORD}
+      virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+    attachments:
+      # Leave the bucket empty to run without attachments: upload URLs are then refused.
+      project-id: jobbiegiggle
+      bucket: ${CHAT_ATTACHMENTS_BUCKET:}
+      max-size-bytes: 20971520
+      upload-url-ttl-minutes: 15
+      download-url-ttl-minutes: 60
+
+server:
+  port: 8084
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
