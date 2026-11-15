@@ -12,6 +12,44 @@ So far it:
 - keeps copies of what it needs from other services: published licenses, subscriptions waiting for payment, user contacts and group admins;
 - pushes published licenses to Stripe as Products and Prices.
 
+## In short
+
+Where money changes hands. It sends people to Stripe Checkout to pay for a subscription, follows Stripe as it renews or fails to charge, records every invoice and refund, and checks against Stripe every day that nothing was missed. It tells api-license when a subscription is paid, renewed or over.
+
+**Stack:** Spring Boot (Web, Data JPA, Security), PostgreSQL, RabbitMQ, Stripe (stripe-java through the [stripe](../../stripe/docs/README.md) library: Checkout, Billing, Tax, webhooks).
+
+## User stories
+
+- As a traveller or group admin, I pay for a subscription on Stripe's checkout page, by card, Link, Apple Pay or Google Pay.
+- As a payer, I switch to another license and pay only the difference for the rest of the period.
+- As a payer, I get an email with the amount after each payment, and one with a link to fix my card when a renewal fails.
+- As a payer or group admin, I see my or my group's invoices, with Stripe's PDF.
+- As an administrator, I refund all or part of an invoice, optionally ending the subscription.
+- As an inspector, I see every Stripe event received and what happened to it, and staff can replay one that failed.
+
+## Main flows
+
+- **Paying at checkout:** see [Checkout](#checkout).
+- **Renewals and failed payments:** see [Paid subscriptions](#paid-subscriptions).
+- **A payment that arrives too late:** see [When the payment can't be taken](#when-the-payment-cant-be-taken).
+
+## Requirements
+
+- **PAY-1** Every webhook is verified by signature, stored once by its Stripe ID, and processed from that inbox with retries.
+- **PAY-2** Checkout opens only for a subscription still waiting for payment. The first payment activates it in api-license for Stripe's period.
+- **PAY-3** A payment for a subscription that no longer waits stops the Stripe subscription at once and flags it for refund.
+- **PAY-4** Renewals, failed renewals, ends and dashboard changes are passed to api-license. Cancel and resume from api-license reach Stripe.
+- **PAY-5** Every invoice and refund is recorded. Refunds never exceed what is left, and a double click makes one refund.
+- **PAY-6** A daily reconciliation compares each paid or pending subscription with Stripe and repairs what a lost webhook missed.
+- **PAY-7** Published licenses are pushed to Stripe as Products and tax-inclusive Prices.
+- **PAY-8** Payment emails go to the payer only, and only to a verified, active account.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Receiving events
 
 ```mermaid

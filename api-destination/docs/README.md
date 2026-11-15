@@ -2,6 +2,66 @@
 
 Places, their category tree, tags and photos, imported from Wikidata and Wikimedia Commons, AI content about them, trip plans with AI itineraries, and visa guidance for each traveller, all written through the openai worker, on port **8087**, in PostgreSQL with PostGIS, pgvector, pg_trgm and unaccent (`jobbie_giggle_destination`). Travellers also keep favourites and visited places, write reviews, ask about places, and find places by meaning.
 
+## In short
+
+The heart of the product: where to go and how. It holds the world's places, from countries down to landmarks and restaurants, imported from Wikidata with photos from Wikimedia Commons. It has the AI write about each place, finds places by words, distance or meaning, and plans trips with day-by-day itineraries. It tells each traveller what visa they need, and keeps people's favourites, reviews and questions. Everything needs a license.
+
+**Stack:** Spring Boot (Web, Data JPA, Security), PostgreSQL 16 with PostGIS (geography), pg_trgm and unaccent (fuzzy text search) and pgvector (semantic search), RabbitMQ, Google Cloud Storage (photo copies). AI goes through the [openai](../../openai/docs/README.md) worker over amqp, and open data comes from Wikidata SPARQL, Wikimedia Commons and the passport-index dataset.
+
+## User stories
+
+**Exploring**
+- As a traveller, I browse a country's regions, cities and landmarks, filter them by category or tag, and search by name in any language, forgiving typos.
+- As a traveller, I find places near me or on the visible map.
+- As a traveller, I describe what I'm after ("quiet beach town with seafood"), or ask for places like one I liked.
+- As a traveller, I read a place's overview, pros and cons, what visitors say with the sources, and practical tips, in my language.
+- As a traveller, I ask my own question about a place and get a sourced answer.
+
+**Planning**
+- As a traveller or group member, I make a trip plan with dates, destinations, must-sees, travellers, budget, pace and interests.
+- As a traveller, I get an AI itinerary for it, and I'm told by push, email and in the app when it's ready.
+- As a traveller, I have one day rewritten, or reorder, add and remove items myself.
+
+**Visas**
+- As a traveller, I see for each country on my trip what my best passport needs, with steps, costs and official links.
+- As a group admin, I see every member's visa situation, and who hasn't entered their documents yet.
+
+**My lists**
+- As a traveller, I save favourites, mark places visited, and write one review per place.
+- As a traveller, I report reviews or AI content that are wrong.
+
+**Staff**
+- As an administrator, I import a country from Wikidata, then fix, move, merge, hide or feature places and manage the category tree.
+- As a support agent, I settle reports on content and reviews, and have content rewritten.
+- As an administrator, I reload the visa rules.
+
+## Main flows
+
+The [root README](../../README.md#end-to-end-flows) shows planning a trip and checking visas end to end. Here:
+- **AI content:** see [AI content](#ai-content).
+- **Itineraries:** see [Trips and itineraries](#trips-and-itineraries).
+- **Visas:** see [Visas](#visas).
+- **Semantic search:** see [Semantic search](#semantic-search).
+
+## Requirements
+
+- **DST-1** Every route needs a token and a current license with the access entitlement, the user's own or, when acting for a group, the group's. Access lasts 48 hours past a period's end, for a renewal on its way. Staff always have access.
+- **DST-2** Places form a tree under each country. Slugs, Wikidata IDs and OSM IDs are unique. Merged places answer with their target, and hidden ones are for staff only.
+- **DST-3** Imports load regions, cities above a population threshold, and notable places with photos whose licences allow reuse. Wikimedia's limits are respected with pacing and retries.
+- **DST-4** Text search matches every name in any language, ignoring accents and forgiving typos. Points rank by distance; otherwise featured and populous places come first.
+- **DST-5** AI content is written once per place, section and language, and shared. It is served while stale and refreshed, within a daily token budget, a hard limit and a per-user share.
+- **DST-6** Trip plans run up to 30 days and 10 destinations. An itinerary takes one unit of the owner's monthly quota, and a failure gives it back. Only known, listed places are linked. Travellers are told by socket, push and email.
+- **DST-7** Visa checks use each traveller's best passport, and residence permits valid through the trip. Guidance is shared by everyone in the same case and carries a disclaimer. Group admins see everyone, and members only themselves.
+- **DST-8** Favourites, visited places and questions are private. There is one review per user and place, and three open reports hide a review until staff decide.
+- **DST-9** Semantic search embeds places in the background and caches each query's embedding, so repeated searches are instant.
+- **DST-10** A deleted user's documents, marks, reviews and questions are forgotten.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Access
 
 Every route needs a token and a license:

@@ -2,6 +2,53 @@
 
 The single public entry point, on port **8080**. It validates the Firebase token, applies CORS, and forwards each request to the right service, which it finds through Eureka. It is a Spring Cloud Gateway (WebFlux) application and holds no data.
 
+## In short
+
+The one door every request from the apps comes through. It checks that the caller is signed in, then passes the request on to the service that handles it, and gives a quick error rather than hanging when that service is down.
+
+**Stack:** Spring Cloud Gateway (WebFlux), Spring Security OAuth2 resource server (Firebase JWTs), Resilience4j circuit breakers, Eureka client.
+
+## User stories
+
+- As a client app, I call one address for every feature, and open the chat WebSocket through it too.
+- As a user, I get a fast error when a service is down, instead of waiting.
+- As a visitor, I read public pages (licenses and prices, countries) and answer an invitation without signing in.
+- As a developer, I read each service's OpenAPI document through the gateway.
+- As Stripe, I deliver webhooks without a token; api-payment checks my signature.
+
+## Main flows
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant GW as api-gateway
+    participant E as eureka-server
+    participant S as Service
+    C->>GW: GET /api/v1/groups/mine + token
+    GW->>GW: verify the Firebase token (unless the route is public)
+    GW->>E: where is api-group?
+    GW->>S: forward, within 60s
+    alt service answers
+        S-->>C: response
+    else down or too slow
+        GW-->>C: fallback error
+    end
+```
+
+## Requirements
+
+- **GW-1** Every route needs a valid Firebase JWT, except the public ones listed under [Security](#security).
+- **GW-2** Requests are routed by path prefix to a service instance found through Eureka.
+- **GW-3** Each HTTP route has a circuit breaker and a 60-second time limit. The WebSocket route has neither.
+- **GW-4** CORS allows only the configured origins.
+- **GW-5** Each service's OpenAPI document is reachable at `/<service>/v3/api-docs`; Swagger is public only in local development.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Routing
 
 | Path | Goes to | Notes |
@@ -12,6 +59,7 @@ The single public entry point, on port **8080**. It validates the Firebase token
 | `/api/v1/chats/**` | `api-chat` | circuit breaker, 60s time limit |
 | `/api/v1/licenses/**` | `api-license` | circuit breaker, 60s time limit |
 | `/api/v1/payments/**` | `api-payment` | circuit breaker, 60s time limit; includes the Stripe webhook |
+| `/api/v1/destinations/**` | `api-destination` | circuit breaker, 60s time limit |
 | `/ws/chats/**` | `api-chat`, as WebSocket (`lb:ws://`) | no circuit breaker or time limit: they would cut every socket |
 | `/api-user/v3/api-docs` | `api-user` `/api-docs` | OpenAPI document |
 | `/api-platform/v3/api-docs` | `api-platform` `/api-docs` | OpenAPI document |
@@ -19,6 +67,7 @@ The single public entry point, on port **8080**. It validates the Firebase token
 | `/api-chat/v3/api-docs` | `api-chat` `/api-docs` | OpenAPI document |
 | `/api-license/v3/api-docs` | `api-license` `/api-docs` | OpenAPI document |
 | `/api-payment/v3/api-docs` | `api-payment` `/api-docs` | OpenAPI document |
+| `/api-destination/v3/api-docs` | `api-destination` `/api-docs` | OpenAPI document |
 
 When a service does not answer, the circuit breaker forwards to `/fallback`.
 
@@ -31,6 +80,7 @@ flowchart LR
     GW -->|/api/v1/chats/**, /ws/chats| CH[api-chat :8084]
     GW -->|/api/v1/licenses/**| L[api-license :8085]
     GW -->|/api/v1/payments/**| PA[api-payment :8086]
+    GW -->|/api/v1/destinations/**| D[api-destination :8087]
     GW -.->|look up instances| E[eureka-server :8761]
 ```
 

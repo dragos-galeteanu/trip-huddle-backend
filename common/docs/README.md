@@ -1,6 +1,33 @@
 # common
 
-Shared building blocks for the API services. It is a library, not a running service: `api-user`, `api-platform` and `api-group` depend on it and inherit their controllers, services, repositories, mappers and security rules from it.
+Shared building blocks for the API services. It is a library, not a running service: every API service (`api-user`, `api-platform`, `api-group`, `api-chat`, `api-license`, `api-payment`, `api-destination`) depends on it and builds its controllers, services, repositories, mappers and security rules on it.
+
+## In short
+
+The shared toolbox the API services are built from, so they all look and behave the same: base entities, repositories, services and controllers for CRUD, the security setup and per-resource policies, pagination, and one error format.
+
+**Stack:** Spring Boot (Web, Data JPA, Data MongoDB, Security, WebSocket), Firebase Admin SDK, MapStruct, springdoc OpenAPI.
+
+## User stories
+
+- As a developer adding a resource, I extend the base entity, repository, service, controller and mapper, and get create, read, list, update, disable and delete with the usual rules.
+- As a developer, I write one authorization policy per resource, and `@PreAuthorize` asks it.
+- As a client developer, I get every error in the same `ErrorResponse` shape, and every list in the same paging shape.
+- As a developer, I page through a feed with a cursor, using `PageCursor` and `CursorPaginated.of`.
+
+## Requirements
+
+- **CMN-1** Every record has an ID, `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`. Lookups leave out deleted, and where asked disabled, records.
+- **CMN-2** Tokens are Firebase JWTs. The `role` claim becomes `ROLE_<ROLE>`, and the caller's platform ID comes from the `userId` claim.
+- **CMN-3** Errors map to 400, 403, 404, 422 or 500, with one body shape.
+- **CMN-4** Offset pages take `page` and `pageSize` up to 100. Cursor pages take `cursor` and `limit` up to 100.
+- **CMN-5** Unique rules are declared on the entity class and enforced in each service's DDL. See [Conventions](#conventions).
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
 
 ## What is inside
 

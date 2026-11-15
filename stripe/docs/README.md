@@ -2,6 +2,30 @@
 
 A library that holds the Stripe client and webhook verification. It has no endpoints, no port and no data. Only `api-payment` uses it, by importing `StripeConfig`.
 
+## In short
+
+A small library that keeps everything Stripe-specific in one place: the configured client, webhook signature checks, and thin wrappers for customers, checkout, subscriptions, invoices, refunds and the catalogue. api-payment is its only user.
+
+**Stack:** stripe-java 34.1.0, pinned to Stripe API version `2026-10-28.endive`.
+
+## User stories
+
+- As api-payment, I verify that a webhook really comes from Stripe and is recent, before trusting it.
+- As api-payment, I create customers and refunds with idempotency keys, so a retry never makes two customers or refunds twice.
+- As an operator, I can't start the service with a missing key, a wrong key type, or a Stripe API version the code wasn't written for.
+
+## Requirements
+
+- **STR-1** Webhooks are accepted only with a valid signature within the tolerance.
+- **STR-2** Customers and refunds are created with idempotency keys.
+- **STR-3** Startup fails without valid keys, or when the configured API version differs from stripe-java's.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## What it provides
 
 | Bean | Purpose |

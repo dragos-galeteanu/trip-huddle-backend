@@ -2,6 +2,40 @@
 
 Owns groups of users, who belongs to them, and the invitations that bring people in, on port **8083**. People join a group by accepting an invitation sent to their email address.
 
+## In short
+
+Groups of people who travel together: who is in each group, who runs it, and the email invitations that bring people in. An invitation can go to someone who has no account yet; they join once they sign up and verify that address.
+
+**Stack:** Spring Boot (Web, Data JPA, Security), PostgreSQL, RabbitMQ.
+
+## User stories
+
+- As a traveller, I create a group and become its admin.
+- As a group admin, I invite people by email, see who is pending, and cancel an invitation.
+- As an invitee, I accept or reject from the email's links, with or without an account.
+- As a group admin, I promote members to admin, demote or remove them, and rename or delete the group.
+- As a member, I leave a group.
+- As chat, licenses, payments and destinations, I learn about every change to groups and memberships, so that the group chat, the group's subscription and its trip plans follow.
+
+## Main flows
+
+- **An invitation's life:** see [Life of an invitation](#life-of-an-invitation).
+- **Accepting before or after signing up:** see [From acceptance to membership](#from-acceptance-to-membership).
+
+## Requirements
+
+- **GRP-1** The creator of a group becomes its first admin. A group always keeps at least one active admin.
+- **GRP-2** A user has at most one membership per group, and an email at most one pending invitation per group, among rows not deleted. The database enforces both.
+- **GRP-3** Invitations can be answered for 7 days. A rejected or canceled address can be invited again.
+- **GRP-4** An accepted invitation becomes a membership only for a verified user with the invited email. Someone signed in with another address is refused.
+- **GRP-5** Every change to a group or membership is published, through fanout exchanges where several services consume it.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Data
 
 Everything is in PostgreSQL (`jobbie_giggle_group`). Users live in `api-user`; this service only keeps their IDs.

@@ -2,6 +2,60 @@
 
 Owns conversations between users and their messages, on port **8084**. A conversation is **private**, between two users, the **group chat** of a group in `api-group`, or a **support chat**: the conversation of a support ticket between one customer and Support or Admin staff. Clients send over REST and receive in real time over STOMP on a WebSocket.
 
+## In short
+
+Everything people say to each other in TripHuddle: private chats between two users, each group's chat, and support chats between a customer and staff. Messages arrive live over a WebSocket, and as push notifications on phones. Support tickets live here too, with their queue, statuses and ratings.
+
+**Stack:** Spring Boot (Web, Data JPA, Data MongoDB, WebSocket/STOMP, Security), PostgreSQL (conversations, tickets), MongoDB (messages), RabbitMQ (events and the STOMP relay), Google Cloud Storage (attachments).
+
+## User stories
+
+- As a traveller, I open a private chat with someone, or write in my group's chat, and see replies, typing and read receipts live.
+- As a traveller, I send photos and files, edit or delete my messages, and react to others'.
+- As a traveller, I mute a chat, block a person, or report a message.
+- As a group admin, I delete anyone's message in my group's chat.
+- As a customer, I open a support ticket with a category and a first message, follow it in its chat, and rate the help.
+- As a support agent, I work a queue sorted by urgency, claim tickets, write internal notes the customer never sees, and resolve or close them.
+- As a moderator, I review reported messages and remove the bad ones.
+- As a traveller, I'm told live when my group's itinerary is ready.
+
+## Main flows
+
+- **Sending a message:**
+
+```mermaid
+sequenceDiagram
+    actor A as Sender
+    participant CH as api-chat
+    participant R as RabbitMQ STOMP relay
+    actor B as Other participants
+    participant N as notification
+    A->>CH: POST message (clientMessageId)
+    CH->>CH: check access, blocks; save
+    CH->>R: MESSAGE_CREATED to each participant's topic
+    R->>B: live event on every open socket
+    CH-->>N: push to those not muted
+```
+
+- **A support ticket's life:** see [Support tickets](#support-tickets).
+
+## Requirements
+
+- **CHT-1** There is one private chat per pair of users and one chat per group, kept in step with api-group's events.
+- **CHT-2** A message has up to 4,000 characters and 10 attachments. Sending again with the same `clientMessageId` returns the first message.
+- **CHT-3** Blocks stop private chats both ways. Disabled or deleted users can't send. A disabled or deleted group's chat is read-only.
+- **CHT-4** Members who leave keep the history up to their leaving. Rejoining brings it back.
+- **CHT-5** Reports are one per reader while open. Staff review them and may remove the message.
+- **CHT-6** A customer has at most 3 ongoing tickets. Tickets follow their status rules, close 7 days after being resolved, and can be rated 1 to 5.
+- **CHT-7** Internal notes never reach the customer.
+- **CHT-8** Real-time events reach every instance through RabbitMQ's STOMP relay. Message history, conversations, tickets and reports use cursor pagination.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Data
 
 Conversations, participants, support tickets and their history, blocks and reports are in PostgreSQL (`jobbie_giggle_chat`). Messages are in MongoDB (`jobbie_giggle_chat`, collection `chat_messages`). Users and groups live in their own services; this service keeps their IDs, learned from events.

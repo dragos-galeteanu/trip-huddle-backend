@@ -4,6 +4,39 @@ The AI worker, on port **8088**. Other services send it jobs over amqp; it calls
 
 It also still provides the older `AiTextGenerator` bean (chat completions), described further down, which nothing uses yet.
 
+## In short
+
+The AI worker. Services send it jobs (write this text to this schema, or embed these texts), and it calls OpenAI and answers each job on the asking service's own queue. It knows nothing about places, trips or visas: every job brings its own prompts and schema.
+
+**Stack:** Spring Boot, OpenAI Responses and Embeddings APIs over Spring `RestClient`, RabbitMQ.
+
+## User stories
+
+- As api-destination, I send a job with a system prompt, a user prompt and a JSON schema, and get valid JSON back, with the web pages it cited when I asked for web search.
+- As api-destination, I send up to 256 texts and get one embedding for each, in order.
+- As an operator, I choose a cheap model for bulk work and a stronger one for itineraries, visas and questions.
+- As an operator, I see the tokens each job used, to keep AI spending under control.
+- As an operator, I turn the worker off without stopping the services that use it; their jobs fail cleanly.
+
+## Main flows
+
+See [AI jobs](#ai-jobs).
+
+## Requirements
+
+- **AI-1** Text jobs ask for strict JSON when they carry a schema, and use web search when asked. Answers aren't stored at OpenAI.
+- **AI-2** The model comes from the job, else from its task's setting, else the default.
+- **AI-3** Rate limits, timeouts and server errors are retried with backoff, honouring `Retry-After`. An answer cut short is retried with more room, and a schema job's non-JSON answer is retried.
+- **AI-4** Every job gets an answer, `COMPLETED` or `FAILED` with the reason, and the tokens of every attempt.
+- **AI-5** Answers go only to registered reply queues, so AI output can't be pushed into another service's queue.
+- **AI-6** It has no HTTP API, and runs a set number of jobs at once per instance.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## AI jobs
 
 ```mermaid

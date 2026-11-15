@@ -4,6 +4,33 @@ The messaging library shared by every service that talks over RabbitMQ. It holds
 
 Services never call each other over HTTP. Everything between them goes through the queues defined here.
 
+## In short
+
+The shared language services speak over RabbitMQ. It defines every message, which queues and exchanges carry it, and how failures are retried, so a publisher and its consumers always agree.
+
+**Stack:** Spring AMQP with RabbitMQ, Jackson JSON messages.
+
+## User stories
+
+- As a service, I publish an event once, and every service that cares receives it on its own queue.
+- As a service, I can take the same message twice without harm, and a message I keep failing on ends up in a dead-letter queue instead of blocking the queue.
+- As a developer, I add a consumer to an existing event by adding a queue and a binding here, without touching the publisher.
+- As a developer, I find every message, its producer and its consumers in one catalogue.
+
+## Requirements
+
+- **MQ-1** Each message is an event record plus a contract class naming its queue, dead-letter queue and, for several consumers, its fanout exchange.
+- **MQ-2** One consumer: the message goes to the default exchange with the queue as routing key. Several consumers: one fanout exchange, with a queue per consuming service.
+- **MQ-3** Durable queues and exchanges are declared at startup. A binding to a queue no contract lists fails startup.
+- **MQ-4** A failing listener is retried three times with growing pauses, then the message goes to a dead-letter queue.
+- **MQ-5** Values both ends must agree on, such as `LicenseTarget` and `BillingInterval`, live here, not in each service.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Conventions
 
 - **Event**: a Java record with the data, for example `GroupInvitationAcceptedEvent(groupInvitationId, groupId, email, role)`.

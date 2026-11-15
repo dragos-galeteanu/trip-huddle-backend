@@ -2,6 +2,45 @@
 
 Owns the licenses the platform offers and the subscriptions to them, on port **8085**. A license is a recurring price (monthly or yearly, in one platform currency) plus a list of entitlements that other services enforce.
 
+## In short
+
+What TripHuddle sells and who has it. A license is a monthly or yearly price plus entitlements: switches and limits, such as `DESTINATIONS` or `AI_ITINERARIES_PER_MONTH`, that other services enforce. People and groups subscribe to licenses, promotions lower the price, and staff can grant licenses for free. Payment itself happens in api-payment.
+
+**Stack:** Spring Boot (Web, Data JPA, Security), PostgreSQL, RabbitMQ.
+
+## User stories
+
+- As a visitor, I see the published licenses and what each costs, with any running promotion, without signing in.
+- As a traveller, I enter a promotion code and see the price it gives me.
+- As a traveller, I subscribe to a license, then pay; as a group admin, I subscribe my group.
+- As a subscriber, I switch to another license, cancel (it runs to the end of the period), or resume before it ends.
+- As a subscriber, I get emails when it starts, before it renews, and when it is canceled or expires.
+- As an administrator, I create a license as a draft, set its price and entitlements, publish it, and archive it later.
+- As an administrator, I run promotions: by amount or percentage, automatic or by code, limited in time and redemptions.
+- As an administrator, I grant a license for free, activate one paid by bank transfer, or extend a period.
+
+## Main flows
+
+- **A license's life:** see [Lifecycle](#lifecycle).
+- **A subscription's life:** see [Subscriptions](#subscriptions). Paying is shown in [api-payment](../../api-payment/docs/README.md#checkout).
+
+## Requirements
+
+- **LIC-1** Only published licenses take new subscriptions. Archived ones keep their subscribers. Only drafts can be deleted. License codes are unique among licenses not deleted.
+- **LIC-2** Subscribers keep the price they subscribed at. Entitlement changes reach every subscriber at once.
+- **LIC-3** At most one automatic promotion runs at a time per license, and a code replaces it. Discounts never go below the floor. Redemption limits, once-per-customer and new-customers-only are enforced.
+- **LIC-4** A user or group has at most one active and one pending subscription. Subscribing to another license is a switch.
+- **LIC-5** Only a group's admins subscribe it, see its subscriptions, and cancel or resume them.
+- **LIC-6** Unpaid subscriptions end after 48 hours and give their promotion back. Periods follow the UTC calendar. Stripe-billed subscriptions renew on Stripe's events, the others on a job.
+- **LIC-7** Grants run 1 to 120 periods and don't renew. Extensions add 1 to 3650 days to subscriptions Stripe doesn't bill.
+- **LIC-8** Every change is published, so payments, emails and access in other services follow.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Data
 
 Licenses, their entitlements, promotions, subscriptions, promotion redemptions and a copy of group admins are in PostgreSQL (`jobbie_giggle_license`).

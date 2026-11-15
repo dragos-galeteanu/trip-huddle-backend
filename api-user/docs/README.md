@@ -2,6 +2,56 @@
 
 Owns users, their public profiles, their preferences and their travel documents (nationalities and residence permits, for visa guidance), on port **8081**. It is also the only service that talks to Firebase about accounts: it registers users, sets their token claims and keeps their roles in sync.
 
+## In short
+
+The home of everyone's account: who they are, their public profile, their settings, their push devices, and the passports and residence permits used for visa checks. It is also the bridge to Firebase, and turns other services' news (support tickets, subscriptions, finished itineraries) into emails to the right address.
+
+**Stack:** Spring Boot (Web, Data JPA, Data MongoDB, Security), PostgreSQL, MongoDB, Firebase Admin SDK, RabbitMQ.
+
+## User stories
+
+- As a new visitor, I sign up with the account I made in Firebase, so that I get a TripHuddle user and a verification email.
+- As a new user, I open the link in that email to verify my address, and get a welcome email.
+- As a signed-in user, I ask for a password reset link by email.
+- As a user, I edit my profile (bio, country, pictures, social links) and my preferences (language, country, marketing emails).
+- As a user, I register my phone for push notifications, and unregister it when I sign out.
+- As a traveller, I enter my nationalities and residence permits, so that visa checks know which passport I travel on.
+- As a user, I delete my account, and other services forget what they kept about me.
+- As a support agent or admin, I disable a user who breaks the rules.
+
+## Main flows
+
+- **Signing up and verifying:** see [Registration and verification](#registration-and-verification).
+- **Travel documents:**
+
+```mermaid
+sequenceDiagram
+    actor T as Traveller
+    participant U as api-user
+    participant D as api-destination
+    T->>U: PUT /me/travel-documents (PT, IN; US permanent permit)
+    U->>U: validate and replace them
+    U-->>D: UserTravelDocumentsUpdatedEvent, once saved
+    D->>D: keep the latest copy for visa checks
+```
+
+## Requirements
+
+- **USR-1** Registering creates one platform user per Firebase account; registering again returns the same user.
+- **USR-2** Each user gets the Customer role and the `userId` and `role` token claims. If Firebase can't be reached, a job sets them later.
+- **USR-3** Email addresses are verified through a single-use link. Verifying sends the welcome email and lets pending group invitations complete.
+- **USR-4** Emails, Firebase UIDs and phone numbers are unique. A user has at most one profile and one preference document.
+- **USR-5** Push device tokens are passed on to `notification`, which owns them.
+- **USR-6** Travel documents hold at most 4 nationalities and 10 residence permits, by ISO country code (plus Kosovo, `XK`). There is no permit for a country of nationality, one per country, and none expired. No document numbers are stored.
+- **USR-7** Deleting a user removes their travel documents and tells the other services (`UserDeletedEvent`). Disabling tells the other services too (`UserDisabledEvent`), which stop serving the user.
+- **USR-8** Emails about tickets, subscriptions and itineraries go only to verified, active users.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Data
 
 Users and profiles are in PostgreSQL (`jobbie_giggle_user`); preferences are documents in MongoDB.

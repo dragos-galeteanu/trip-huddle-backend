@@ -2,6 +2,38 @@
 
 Sends emails and push notifications, on port **8090**. It has no HTTP API. Other services ask for an email by publishing a `SendEmailRequest` to `notification.email.queue`, and this service renders the template and sends it over SMTP. They ask for a push by publishing a `SendPushRequest` to `notification.push.queue`, and this service sends it to every registered device of the recipients through Firebase Cloud Messaging.
 
+## In short
+
+The backend's post office. Other services ask it to send an email of a given type, or a push to some users' phones. It fills in the email template and sends it over SMTP, and sends pushes through Firebase Cloud Messaging to every device each user registered.
+
+**Stack:** Spring Boot, Spring Mail with Thymeleaf templates, MongoDB (device tokens), Firebase Admin SDK (FCM), RabbitMQ.
+
+## User stories
+
+- As a user, I get emails to verify my address, welcome me, reset my password, invite me to a group, follow my support tickets, my subscription and payments, and tell me my itinerary is ready.
+- As a user, I get pushes on all my phones for new messages and finished itineraries, and none on a phone I signed out of.
+- As a service, I ask for an email by its type with the data it needs, without knowing anything about SMTP or templates.
+- As an operator, I find every email that couldn't be sent in the dead-letter queue's log.
+
+## Main flows
+
+- **Sending an email:** see [Flow](#flow).
+- **Sending a push:** see [Push notifications](#push-notifications).
+
+## Requirements
+
+- **NTF-1** Each email type has a subject and a template; requests carry the template's data.
+- **NTF-2** Mail-server failures are retried three times, and other failures go to the dead-letter queue at once. Failed emails are logged.
+- **NTF-3** A device token belongs to one app install and moves with it to another account. Tokens FCM rejects are forgotten.
+- **NTF-4** Pushes go out 500 tokens at a time. Only a failure of the whole call is retried, so no device gets a push twice.
+- **NTF-5** It has no HTTP API; everything arrives over RabbitMQ.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Flow
 
 ```mermaid

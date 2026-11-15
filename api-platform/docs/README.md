@@ -2,6 +2,45 @@
 
 Owns the reference data every other part of the product relies on: countries, currencies and languages, on port **8082**. It also stores feature flags.
 
+## In short
+
+The shared reference lists every part of the product relies on: countries, currencies and languages. Apps read them without signing in, for example to fill a country picker. It also stores feature flags.
+
+**Stack:** Spring Boot (Web, Data JPA, Data MongoDB, Security), PostgreSQL, MongoDB, RabbitMQ.
+
+## User stories
+
+- As a visitor on the sign-up or pricing page, I see the lists of countries, currencies and languages without an account.
+- As an administrator, I add, correct, disable or delete a country, currency or language.
+- As api-destination, I learn about each new or removed country, so that places can be imported under it.
+- As a developer, I turn a feature on or off with a flag.
+
+## Main flows
+
+```mermaid
+sequenceDiagram
+    actor A as Administrator
+    participant P as api-platform
+    participant D as api-destination
+    A->>P: POST /countries (PT, PRT, 620, Portugal)
+    P->>P: check the codes are free
+    P-->>D: CountryCreatedEvent
+    D->>D: copy the country; places can be imported for it
+```
+
+## Requirements
+
+- **PLT-1** Countries have unique ISO alpha-2, alpha-3 and numeric codes. Currencies and languages have unique codes. The database enforces it.
+- **PLT-2** Reading the lists needs no token; changing them needs Admin or Support.
+- **PLT-3** Countries, currencies and languages publish created, disabled and deleted events. api-destination consumes the country events.
+- **PLT-4** Feature flags are stored by unique key.
+
+---
+
+## Technical reference
+
+The sections below describe how it works.
+
 ## Data
 
 Countries, currencies and languages are in PostgreSQL (`jobbie_giggle_platform`); feature flags are documents in MongoDB.
