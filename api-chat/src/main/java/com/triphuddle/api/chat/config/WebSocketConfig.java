@@ -1,8 +1,8 @@
 package com.triphuddle.api.chat.config;
 
+import com.triphuddle.api.chat.security.ChatAccess;
 import com.triphuddle.common.config.BaseWebSocketConfig;
 import com.triphuddle.common.config.StompBrokerProperties;
-import com.triphuddle.common.security.StompAuthChannelInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +28,7 @@ public class WebSocketConfig implements BaseWebSocketConfig {
     private final ChatProperties chatProperties;
     private final JwtDecoder jwtDecoder;
     private final Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter;
+    private final ChatAccess chatAccess;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -49,6 +50,6 @@ public class WebSocketConfig implements BaseWebSocketConfig {
 
     @Override
     public List<ChannelInterceptor> inboundInterceptors() {
-        return List.of(new StompAuthChannelInterceptor(jwtDecoder, jwtAuthenticationConverter));
+        return List.of(new ChatStompAuthChannelInterceptor(jwtDecoder, jwtAuthenticationConverter, chatAccess));
     }
 }
