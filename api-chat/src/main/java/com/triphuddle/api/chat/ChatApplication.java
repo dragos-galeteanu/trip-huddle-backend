@@ -9,13 +9,15 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Entry point of the chat service, which owns private and group conversations and their messages.
+ * Entry point of the chat service, which owns private, group and support conversations and their messages.
  */
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableConfigurationProperties(ChatProperties.class)
+@EnableScheduling
 @Import({
         GlobalExceptionHandler.class,
         RabbitMQConfig.class,
