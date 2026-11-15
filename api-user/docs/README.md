@@ -59,6 +59,8 @@ All need a Firebase token except `verify-email`.
 | `DELETE /api/v1/users/{id}/disable` | Admin or Support |
 | `DELETE /api/v1/users/{id}` | the user themselves |
 | `POST /api/v1/users` | nobody: returns 405, use `/register` |
+| `POST /api/v1/users/me/devices` `{token, platform}` | the signed-in user, for themselves |
+| `POST /api/v1/users/me/devices/unregister` `{token}` | the signed-in user, for themselves |
 
 Profiles live under `/api/v1/users/user-profiles` and preferences under `/api/v1/users/user-preferences`, each with the standard create, get, list, update, disable and delete.
 
@@ -68,6 +70,8 @@ Profiles live under `/api/v1/users/user-profiles` and preferences under `/api/v1
 | Preference | owner, or Admin, Support, Inspector | owner, Admin or Support | owner or Admin |
 
 A user has at most one profile and one preference document.
+
+Device tokens (Firebase Cloud Messaging, platform `ANDROID`, `IOS` or `WEB`) are not stored here. They are passed on to the notification service, which owns them, so the device endpoints answer 202.
 
 ## Registration and verification
 
@@ -106,6 +110,8 @@ Registering twice with the same Firebase account returns the existing user. If F
 | publishes | `UserRegisteredEvent` | a user registers |
 | publishes | `UserEmailVerifiedEvent` | a user verifies their email address |
 | publishes | `UserProfilePictureUpdatedEvent` | a profile or cover picture URL changes |
+| publishes | `UserDisabledEvent`, `UserDeletedEvent` | a user is disabled or deleted |
+| publishes | `UserDeviceRegisteredEvent`, `UserDeviceUnregisteredEvent` | a device is registered or unregistered for push |
 | consumes | `GroupInvitationAcceptedEvent` | an invitation is accepted in `api-group` |
 | publishes | `UserMatchedToGroupInvitationEvent` | in reply, if a verified user has the invited email |
 

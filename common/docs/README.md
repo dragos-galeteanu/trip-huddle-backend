@@ -11,10 +11,10 @@ Shared building blocks for the API services. It is a library, not a running serv
 | `service` | `BaseService`, `BaseJpaService`, `BaseMongoService`: the CRUD contract; `FirebaseUserService` |
 | `controller` | `BaseController`, `BaseJpaController`, `BaseMongoController`: the CRUD endpoints |
 | `mapper` | `BaseMapper`: entity to and from DTOs (implemented with MapStruct) |
-| `security` | `BaseSecurityConfig`, `BaseAuthorizationPolicy`, `SecurityUtils`, `UserRole`, the Firebase role converter |
-| `dto`, `filter` | `Paginated`, `PaginationMetaData`, `PaginationFilter`, `ErrorResponse` |
+| `security` | `BaseSecurityConfig`, `BaseAuthorizationPolicy`, `StompAuthChannelInterceptor`, `SecurityUtils`, `UserRole`, the Firebase role converter |
+| `dto`, `filter` | `Paginated`, `PaginationMetaData`, `PaginationFilter`, `CursorPaginated`, `CursorPaginationFilter`, `ErrorResponse` |
 | `exception` | `GlobalExceptionHandler` and the shared exceptions |
-| `config` | `FirebaseConfig`, `BaseOpenApiConfig` |
+| `config` | `FirebaseConfig`, `BaseOpenApiConfig`, `BaseWebSocketConfig`, `BaseStorageConfig`, `StompDestinations`, `StompBrokerProperties`, `StorageBucketProperties` |
 
 ## The base types
 
@@ -96,7 +96,7 @@ sequenceDiagram
 ## Conventions
 
 - **Soft delete and disable.** Nothing is removed from the database. `delete` sets `deletedAt`, `disable` sets `disabledAt`. The base repositories offer six lookups: by ID or all, filtered on `deletedAt`, on `disabledAt`, or on both.
-- **Pagination.** Lists take a `PaginationFilter` (`page` from 1, `pageSize` up to 100) and return `Paginated<T>`. A service calls `filter.toPageable()` and `Paginated.of(page, mapper::toResponseList)`.
+- **Pagination.** Lists take a `PaginationFilter` (`page` from 1, `pageSize` up to 100) and return `Paginated<T>`. A service calls `filter.toPageable()` and `Paginated.of(page, mapper::toResponseList)`. Lists that grow at their head while being read, such as chat messages, take a `CursorPaginationFilter` (`cursor`, `limit` up to 100) and return `CursorPaginated<T>` (`data`, `nextCursor`, `hasMore`) instead, so new items do not shift the pages.
 - **Roles.** `UserRole` is `Customer`, `Sales`, `Inspector`, `Support`, `Admin`. The role travels in the Firebase `role` claim and becomes the authority `ROLE_<ROLE>`.
 - **Caller identity.** `SecurityUtils.extractUserId` reads the platform user ID from the `userId` claim.
 - **Authorization.** Each resource has a policy bean implementing `BaseAuthorizationPolicy`. Disabling is Admin or Support unless a policy says otherwise.
