@@ -145,11 +145,11 @@ erDiagram
 
 Every record also has `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`.
 
-There are no migrations: the tables must exist before the service starts (`ddl-auto: validate`). That includes `support_tickets`, `support_ticket_events` and the sequence `support_ticket_number_seq`, which ticket numbers are drawn from.
+Flyway's [V1](../src/main/resources/db/migration/V1__create_chat_schema.sql) creates the tables, the sequence `support_ticket_number_seq` that ticket numbers are drawn from, and the partial index below; `ddl-auto: validate` then checks the tables at startup.
 
 ## Constraints
 
-A user has at most one open report of a message; the service checks before saving, and this partial index stops two requests at once. JPA can't declare a partial index, so `MessageReport` only says so in a comment. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+A user has at most one open report of a message; the service checks before saving, and this partial index stops two requests at once. JPA can't declare a partial index, so `MessageReport` only says so in a comment. A database whose tables existed before the migrations is baselined at `V1`, so it skips it, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand on it. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
 
 ```sql
 -- Check: should return no rows.

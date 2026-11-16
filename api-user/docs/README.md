@@ -95,7 +95,7 @@ erDiagram
 
 Every record also has `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`.
 
-**Travel documents:** each user's nationalities and residence permits, in `user_travel_documents`. Only countries, permit kinds and expiry dates are kept, never document numbers. They are removed when the user is deleted. There are no migrations (`ddl-auto: validate`), so create the table by hand:
+**Travel documents:** each user's nationalities and residence permits, in `user_travel_documents`. Only countries, permit kinds and expiry dates are kept, never document numbers. They are removed when the user is deleted. Flyway's [V1](../src/main/resources/db/migration/V1__create_user_schema.sql) creates it; on a database baselined at `V1` (its tables existed before the migrations), create it by hand:
 
 ```sql
 CREATE TABLE user_travel_documents (
@@ -115,7 +115,7 @@ CREATE UNIQUE INDEX user_travel_documents_uq ON user_travel_documents (user_id, 
 
 ## Constraints
 
-A user has at most one profile; the service checks before saving, and this index stops two requests at once. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+A user has at most one profile; the service checks before saving, and this index stops two requests at once. V1 creates it. A database whose tables existed before the migrations is baselined at `V1`, so it skips it, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand on it. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
 
 ```sql
 -- Check: should return no rows.

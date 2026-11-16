@@ -22,6 +22,9 @@ spring:
     mongodb:
       uri: mongodb://${MONGODB_HOST:mongodb}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:jobbie_giggle_platform}
       auto-index-creation: true
+  flyway:
+    # A database whose tables predate the migrations is marked as at V1, so only the seed runs on it.
+    baseline-on-migrate: true
   jpa:
     hibernate:
       ddl-auto: validate

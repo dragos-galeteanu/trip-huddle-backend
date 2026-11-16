@@ -314,11 +314,11 @@ An end that arrives before its activation is kept, so the activation can't reope
 
 ## Schema
 
-Run [schema.sql](schema.sql) on `jobbie_giggle_destination`; run only the parts after the phases you already ran ("Phase 4" to "Phase 8"). It needs PostGIS and, from phase 8, pgvector: docker-compose now builds `docker/postgres`, which adds pgvector to `postgis/postgis:16-3.4` (from the PostgreSQL apt archive, as that image is on Debian bullseye). Run `docker compose build postgres` and recreate the container; the data volume carries over; on an existing volume, also run `CREATE DATABASE jobbie_giggle_destination;`. The tests load the same file.
+Flyway's [V1](../src/main/resources/db/migration/V1__create_destination_schema.sql) creates the extensions, the tables, and what JPA doesn't map: the `geo` column, `destination_norm()` and the search indexes, the visa rules, AI usage and embedding tables, and the partial unique indexes. A database whose tables existed before the migrations is baselined at `V1`, so it skips it. It needs PostGIS and pgvector: docker-compose now builds `docker/postgres`, which adds pgvector to `postgis/postgis:16-3.4` (from the PostgreSQL apt archive, as that image is on Debian bullseye). Run `docker compose build postgres` and recreate the container; the data volume carries over; on an existing volume, also run `CREATE DATABASE jobbie_giggle_destination;`.
 
 ### Constraints added later
 
-A category's slug is unique among categories not deleted, and a place has one row per content section and language. Run these on databases created before they were added; skip the second if your schema already has a unique constraint on those columns. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+A category's slug is unique among categories not deleted, and a place has one row per content section and language. Run these on databases created before they were added; skip the second if your schema already has a unique constraint on those columns. V1 creates them; `ddl-auto: validate` doesn't check unique constraints, so run these by hand on a database baselined at `V1`. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
 
 ```sql
 -- Check: each should return no rows.

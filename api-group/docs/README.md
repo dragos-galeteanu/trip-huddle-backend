@@ -82,7 +82,7 @@ Every record also has `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`.
 
 ## Constraints
 
-A user has one membership per group and an email one pending invitation per group, among rows not deleted; the services check before saving, and these partial indexes stop two requests at once. JPA can't declare a partial index, so the entities only say so in a comment. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+A user has one membership per group and an email one pending invitation per group, among rows not deleted; the services check before saving, and these partial indexes stop two requests at once. JPA can't declare a partial index, so the entities only say so in a comment. Flyway's [V1](../src/main/resources/db/migration/V1__create_group_schema.sql) creates the tables with these indexes. A database whose tables existed before the migrations is baselined at `V1`, so it skips it, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand on it. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
 
 ```sql
 -- Check: each should return no rows.

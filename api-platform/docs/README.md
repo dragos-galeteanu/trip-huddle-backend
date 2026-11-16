@@ -89,7 +89,7 @@ Every record also has `createdAt`, `updatedAt`, `disabledAt` and `deletedAt`. Co
 
 ## Constraints
 
-The codes the services check before saving are unique in the database too, so two requests at once can't both create a code. There are no migrations, and `ddl-auto: validate` doesn't check unique constraints, so run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
+The codes the services check before saving are unique in the database too, so two requests at once can't both create a code. Flyway's `V1` creates the tables with these constraints and `V2` seeds every ISO 3166-1 country, the currencies and languages they default to. A database whose tables existed before the migrations is baselined at `V1`, so it gets the seed but not the constraints, and `ddl-auto: validate` doesn't check them; run these by hand. Creating one fails if duplicates already exist, so run the check query first and settle any rows it returns.
 
 ```sql
 -- Check: each should return no rows.

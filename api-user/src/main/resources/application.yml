@@ -22,6 +22,9 @@ spring:
     mongodb:
       uri: mongodb://${MONGODB_HOST:mongodb}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:jobbie_giggle_user}
       auto-index-creation: true
+  flyway:
+    # A database whose tables predate the migrations is marked as at V1, so V1 only runs on an empty one.
+    baseline-on-migrate: true
   jpa:
     hibernate:
       ddl-auto: validate
