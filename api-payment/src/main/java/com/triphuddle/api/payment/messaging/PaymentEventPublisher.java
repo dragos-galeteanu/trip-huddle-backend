@@ -17,8 +17,6 @@ import com.triphuddle.stripe.subscription.StripeSubscriptionPeriod;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -106,19 +104,7 @@ public class PaymentEventPublisher {
 
     // Sent once the transaction commits; a rollback drops it, and the retried Stripe event sends it again.
     private void publish(Object event, String queueName, UUID id) {
-        Runnable send = () -> {
-            messageProducer.publish(event, "", queueName);
-            log.info("Event published [queue={}, id={}]", queueName, id);
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    send.run();
-                }
-            });
-        } else {
-            send.run();
-        }
+        messageProducer.publishAfterCommit(event, "", queueName);
+        log.info("Event to publish after commit [queue={}, licenseSubscriptionId={}]", queueName, id);
     }
 }

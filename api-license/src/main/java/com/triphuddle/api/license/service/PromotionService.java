@@ -58,7 +58,7 @@ public class PromotionService {
         promotion.setMaxRedemptions(request.getMaxRedemptions());
         validate(promotion);
 
-        Promotion saved = promotionRepository.save(promotion);
+        Promotion saved = promotionRepository.saveAndFlush(promotion);
         log.info("Promotion created [id={}, licenseId={}]", saved.getId(), licenseId);
         return promotionMapper.toResponse(saved, Instant.now());
     }
@@ -120,7 +120,7 @@ public class PromotionService {
         promotion.setMaxRedemptions(request.getMaxRedemptions());
         validate(promotion);
 
-        Promotion saved = promotionRepository.save(promotion);
+        Promotion saved = promotionRepository.saveAndFlush(promotion);
         log.info("Promotion updated [id={}, licenseId={}]", saved.getId(), licenseId);
         return promotionMapper.toResponse(saved, Instant.now());
     }
@@ -145,7 +145,7 @@ public class PromotionService {
         }
         promotion.setEndsAt(now);
 
-        Promotion saved = promotionRepository.save(promotion);
+        Promotion saved = promotionRepository.saveAndFlush(promotion);
         log.info("Promotion ended [id={}, licenseId={}]", saved.getId(), licenseId);
         return promotionMapper.toResponse(saved, now);
     }
@@ -165,7 +165,7 @@ public class PromotionService {
         }
         promotion.setDeletedAt(Instant.now());
 
-        Promotion saved = promotionRepository.save(promotion);
+        Promotion saved = promotionRepository.saveAndFlush(promotion);
         log.info("Promotion deleted [id={}, licenseId={}]", saved.getId(), licenseId);
         return promotionMapper.toResponse(saved, Instant.now());
     }

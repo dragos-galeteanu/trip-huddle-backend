@@ -54,7 +54,7 @@ public class PlaceMarkService {
             return created;
         });
         mark.setVisitedOn(kind == PlaceMarkKind.VISITED ? visitedOn : null);
-        return toResponse(repository.save(mark));
+        return toResponse(repository.saveAndFlush(mark));
     }
 
     /**

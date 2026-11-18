@@ -1,0 +1,39 @@
+# Integration tests: Postgres (and Mongo where used) come from Testcontainers; everything that dials out is off.
+spring:
+  rabbitmq:
+    host: localhost
+    username: guest
+    password: guest
+    virtual-host: /
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Never fetched: MockMvc requests carry an already-decoded token.
+          issuer-uri: https://securetoken.google.com/test
+          jwk-set-uri: http://localhost/never-fetched
+
+rabbitmq:
+  enabled: false
+
+firebase:
+  enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+app:
+  chat:
+    broker:
+      # The in-memory broker: tests record what is sent instead of relaying it to RabbitMQ.
+      relay-enabled: false
+    attachments:
+      bucket: ""
+    support:
+      # The job runs only when a test calls it.
+      auto-close-interval-ms: 86400000

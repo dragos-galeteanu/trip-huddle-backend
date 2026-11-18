@@ -3,6 +3,7 @@ package com.triphuddle.api.chat.dto;
 import com.triphuddle.api.chat.entity.TicketStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder(toBuilder = true)
 public class ChangeTicketStatusRequest {
 
     @NotNull(message = "Status is required")

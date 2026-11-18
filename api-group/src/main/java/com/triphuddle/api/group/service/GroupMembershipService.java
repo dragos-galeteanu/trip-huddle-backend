@@ -49,7 +49,7 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
     @Override
     public GroupMembershipResponse create(CreateGroupMembershipRequest createGroupMembershipRequest) {
         UUID groupId = createGroupMembershipRequest.getGroupId();
-        Group group = groupRepository.findById(groupId)
+        Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group with id=%s not found".formatted(groupId)));
 
         UUID userId = createGroupMembershipRequest.getUserId();
@@ -65,22 +65,22 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         groupMembership.setUserId(userId);
         groupMembership.setRole(role);
 
-        GroupMembership saved = groupMembershipRepository.save(groupMembership);
+        GroupMembership saved = groupMembershipRepository.saveAndFlush(groupMembership);
         log.info("GroupMembership created [id={}, groupId={}, userId={}, role={}]",
                 saved.getId(), group.getId(), userId, role);
 
         GroupMembershipCreatedEvent event = new GroupMembershipCreatedEvent(
                 saved.getId(), group.getId(), userId, role.name());
         // Once, to the fanout exchange; each consuming service has its own queue bound to it.
-        messageProducer.publish(event, GroupMembershipCreatedContract.GROUP_MEMBERSHIP_CREATED_EXCHANGE_NAME, "");
-        log.info("Event published for group membership creation [groupMembershipId={}]", saved.getId());
+        messageProducer.publishAfterCommit(event, GroupMembershipCreatedContract.GROUP_MEMBERSHIP_CREATED_EXCHANGE_NAME, "");
+        log.info("Event to publish after commit for group membership creation [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public GroupMembership getEntityById(UUID id) {
-        return groupMembershipRepository.findById(id)
+        return groupMembershipRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("GroupMembership with id=%s not found".formatted(id)));
     }
 
@@ -93,7 +93,7 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
     @Override
     @Transactional(readOnly = true)
     public Paginated<GroupMembershipResponse> getAll(PaginationFilter filter) {
-        Page<GroupMembership> groupMembershipPage = groupMembershipRepository.findAll(filter.toPageable());
+        Page<GroupMembership> groupMembershipPage = groupMembershipRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(groupMembershipPage, groupMembershipMapper::toResponseList);
     }
 
@@ -121,14 +121,14 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
 
         groupMembershipMapper.updateEntityFromRequest(groupMembership, updateGroupMembershipRequest);
 
-        GroupMembership saved = groupMembershipRepository.save(groupMembership);
+        GroupMembership saved = groupMembershipRepository.saveAndFlush(groupMembership);
         log.info("GroupMembership updated [id={}, role={}]", saved.getId(), saved.getRole());
 
         GroupMembershipUpdatedEvent event = new GroupMembershipUpdatedEvent(
                 saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name());
         // Once, to the fanout exchange; each consuming service has its own queue bound to it.
-        messageProducer.publish(event, GroupMembershipUpdatedContract.GROUP_MEMBERSHIP_UPDATED_EXCHANGE_NAME, "");
-        log.info("Event published for group membership update [groupMembershipId={}]", saved.getId());
+        messageProducer.publishAfterCommit(event, GroupMembershipUpdatedContract.GROUP_MEMBERSHIP_UPDATED_EXCHANGE_NAME, "");
+        log.info("Event to publish after commit for group membership update [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
 
@@ -138,14 +138,14 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
         requireAnotherAdmin(groupMembership);
         groupMembership.setDisabledAt(Instant.now());
 
-        GroupMembership saved = groupMembershipRepository.save(groupMembership);
+        GroupMembership saved = groupMembershipRepository.saveAndFlush(groupMembership);
         log.info("GroupMembership disabled [id={}]", saved.getId());
 
         GroupMembershipDisabledEvent event = new GroupMembershipDisabledEvent(
                 saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name());
         // Once, to the fanout exchange; each consuming service has its own queue bound to it.
-        messageProducer.publish(event, GroupMembershipDisabledContract.GROUP_MEMBERSHIP_DISABLED_EXCHANGE_NAME, "");
-        log.info("Event published for group membership disabling [groupMembershipId={}]", saved.getId());
+        messageProducer.publishAfterCommit(event, GroupMembershipDisabledContract.GROUP_MEMBERSHIP_DISABLED_EXCHANGE_NAME, "");
+        log.info("Event to publish after commit for group membership disabling [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
 
@@ -153,21 +153,17 @@ public class GroupMembershipService implements BaseJpaService<GroupMembership, C
     public GroupMembershipResponse delete(UUID id) {
         GroupMembership groupMembership = getEntityById(id);
 
-        if (groupMembership.getDeletedAt() != null) {
-            throw new ResourceNotFoundException("GroupMembership with id=%s not found".formatted(id));
-        }
-
         requireAnotherAdmin(groupMembership);
         groupMembership.setDeletedAt(Instant.now());
 
-        GroupMembership saved = groupMembershipRepository.save(groupMembership);
+        GroupMembership saved = groupMembershipRepository.saveAndFlush(groupMembership);
         log.info("GroupMembership deleted [id={}]", saved.getId());
 
         GroupMembershipDeletedEvent event = new GroupMembershipDeletedEvent(
                 saved.getId(), saved.getGroup().getId(), saved.getUserId(), saved.getRole().name());
         // Once, to the fanout exchange; each consuming service has its own queue bound to it.
-        messageProducer.publish(event, GroupMembershipDeletedContract.GROUP_MEMBERSHIP_DELETED_EXCHANGE_NAME, "");
-        log.info("Event published for group membership deletion [groupMembershipId={}]", saved.getId());
+        messageProducer.publishAfterCommit(event, GroupMembershipDeletedContract.GROUP_MEMBERSHIP_DELETED_EXCHANGE_NAME, "");
+        log.info("Event to publish after commit for group membership deletion [groupMembershipId={}]", saved.getId());
         return groupMembershipMapper.toResponse(saved);
     }
 

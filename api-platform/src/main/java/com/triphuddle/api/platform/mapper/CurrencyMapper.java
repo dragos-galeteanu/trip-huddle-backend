@@ -6,6 +6,7 @@ import com.triphuddle.api.platform.dto.CurrencyResponse;
 import com.triphuddle.api.platform.dto.UpdateCurrencyRequest;
 import com.triphuddle.api.platform.entity.Currency;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 /**
@@ -21,5 +22,7 @@ public interface CurrencyMapper extends BaseMapper<Currency, CreateCurrencyReque
     void createEntityFromRequest(@MappingTarget Currency currency, CreateCurrencyRequest request);
 
     @Override
+    // The entity was loaded by this ID; copying it again could only ever re-key the row.
+    @Mapping(target = "id", ignore = true)
     void updateEntityFromRequest(@MappingTarget Currency currency, UpdateCurrencyRequest request);
 }

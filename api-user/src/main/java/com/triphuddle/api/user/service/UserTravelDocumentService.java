@@ -14,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -115,19 +113,9 @@ public class UserTravelDocumentService {
     private void publish(UUID userId, TravelDocumentsResponse documents, Instant changedAt) {
         UserTravelDocumentsUpdatedEvent event = new UserTravelDocumentsUpdatedEvent(userId,
                 documents.nationalities(), documents.residencePermits(), changedAt);
-        Runnable send = () -> messageProducer.publish(event, "",
-                UserTravelDocumentsUpdatedContract.USER_TRAVEL_DOCUMENTS_UPDATED_QUEUE_NAME);
         // Only once saved, so api-destination never hears of documents that were rolled back.
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    send.run();
-                }
-            });
-        } else {
-            send.run();
-        }
+        messageProducer.publishAfterCommit(event, "",
+                UserTravelDocumentsUpdatedContract.USER_TRAVEL_DOCUMENTS_UPDATED_QUEUE_NAME);
     }
 
     private static UserTravelDocument document(UUID userId, TravelDocumentType type, String countryCode) {

@@ -56,6 +56,15 @@ services:
     ports:
       - "9411:9411"
 
+  # Catches every email the services send, for smoke tests and local runs; read at http://localhost:8025.
+  # Opt-in: docker compose --profile smoke up -d mailpit
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["smoke"]
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
   # Forwards test-mode Stripe events to the gateway on the host. Opt-in, as it needs a key:
   #   STRIPE_SECRET_KEY=sk_test_... docker compose --profile stripe up -d stripe-cli
   # Its signing secret, for STRIPE_WEBHOOK_SECRET, stays the same for the key:

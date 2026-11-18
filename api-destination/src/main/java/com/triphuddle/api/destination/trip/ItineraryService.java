@@ -1,6 +1,5 @@
 package com.triphuddle.api.destination.trip;
 
-import com.triphuddle.api.destination.service.AfterCommit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -134,7 +133,7 @@ public class ItineraryService {
         itinerary.setRequestedByUserId(userId);
         itinerary.setPendingJobId(UUID.randomUUID());
         itinerary.setRequestedAt(clock.instant());
-        Itinerary saved = itineraryRepository.save(itinerary);
+        Itinerary saved = itineraryRepository.saveAndFlush(itinerary);
 
         List<Place> destinations = destinationsOf(plan);
         Collection<Place> candidates = candidatesFor(destinations, plan);
@@ -427,8 +426,8 @@ public class ItineraryService {
         AiTextRequestedEvent event = new AiTextRequestedEvent(jobId,
                 AiTextCompletedContract.AI_TEXT_COMPLETED_DESTINATION_QUEUE_NAME, task, null,
                 ItineraryPrompts.system(languageCode), prompt, schemaName, schema, false, 12_000);
-        AfterCommit.run(() -> messageProducer.publish(event, "",
-                AiTextRequestedContract.AI_TEXT_REQUESTED_QUEUE_NAME));
+        messageProducer.publishAfterCommit(event, "",
+                AiTextRequestedContract.AI_TEXT_REQUESTED_QUEUE_NAME);
     }
 
     private void requireWithinTokenLimit() {

@@ -12,6 +12,11 @@
     <name>api-payment</name>
     <description>Payment Module for Stripe checkout, billing and the Stripe webhook</description>
 
+    <properties>
+        <!-- The suite is complete: below the coverage gate in the root pom, the build fails. -->
+        <coverage.enforced>true</coverage.enforced>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.triphuddle</groupId>
@@ -30,10 +35,7 @@
         </dependency>
         <dependency>
             <groupId>com.triphuddle</groupId>
-            <artifactId>common</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
+            <artifactId>test-support</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -95,11 +97,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

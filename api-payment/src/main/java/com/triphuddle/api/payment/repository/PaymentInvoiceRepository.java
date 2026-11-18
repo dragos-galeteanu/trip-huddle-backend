@@ -83,10 +83,12 @@ public interface PaymentInvoiceRepository extends BaseJpaRepository<PaymentInvoi
      * @param pageable the page
      * @return a page of invoices
      */
+    // A null UUID compared to nothing has no type PostgreSQL can work out, so whether a filter is given is asked as a
+    // boolean of its own.
     @Query("""
             select i from PaymentInvoice i
-            where (:subscriberId is null or i.subscriberId = :subscriberId)
-              and (:licenseSubscriptionId is null or i.licenseSubscriptionId = :licenseSubscriptionId)
+            where (:#{#subscriberId == null} = true or i.subscriberId = :subscriberId)
+              and (:#{#licenseSubscriptionId == null} = true or i.licenseSubscriptionId = :licenseSubscriptionId)
               and (:status is null or i.status = :status)
               and i.deletedAt is null
             order by i.stripeCreatedAt desc, i.id desc

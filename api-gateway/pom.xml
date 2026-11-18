@@ -12,6 +12,11 @@
     <name>api-gateway</name>
     <description>API Gateway using Spring Cloud Gateway</description>
 
+    <properties>
+        <!-- The suite is complete: below the coverage gate in the root pom, the build fails. -->
+        <coverage.enforced>true</coverage.enforced>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.cloud</groupId>

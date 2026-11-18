@@ -59,23 +59,6 @@ public class QuotaRepository {
                 """, params(ownerType, ownerId, key, period));
     }
 
-    /**
-     * Get how many units were taken in a month.
-     *
-     * @param ownerType USER or GROUP
-     * @param ownerId the ID of the user or group
-     * @param key the entitlement key
-     * @param period the month, as yyyy-MM
-     * @return the units taken
-     */
-    public int used(LicenseTarget ownerType, UUID ownerId, String key, String period) {
-        List<Integer> used = jdbc.queryForList("""
-                select used from destination_ai_quota_usage
-                where owner_type = :ownerType and owner_id = :ownerId and entitlement_key = :key and period = :period
-                """, params(ownerType, ownerId, key, period), Integer.class);
-        return used.isEmpty() ? 0 : used.get(0);
-    }
-
     private static MapSqlParameterSource params(LicenseTarget ownerType, UUID ownerId, String key, String period) {
         return new MapSqlParameterSource("ownerType", ownerType.name()).addValue("ownerId", ownerId)
                 .addValue("key", key).addValue("period", period);

@@ -216,11 +216,11 @@ public class ChatMessageService {
         MessageResponse response = chatMessageMapper.toResponse(saved);
         chatEventPublisher.publish(userIds(audience), ChatEventType.MESSAGE_CREATED, conversationId, response);
         pushNotificationService.notifyNewMessage(conversation, saved, audience, ConversationService.preview(saved));
-        AfterCommit.run(() -> messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new ChatMessageSentEvent(saved.getId().toHexString(), conversationId, senderId),
                 "",
                 ChatMessageSentContract.CHAT_MESSAGE_SENT_QUEUE_NAME
-        ));
+        );
         // Last, so that whatever a listener changes in reply reaches clients after the message itself.
         applicationEventPublisher.publishEvent(new ChatMessageSentInternally(saved, conversationType, senderRole));
         return response;
@@ -290,11 +290,11 @@ public class ChatMessageService {
         MessageResponse response = chatMessageMapper.toResponse(saved);
         chatEventPublisher.publish(conversationService.audienceOf(saved),
                 ChatEventType.MESSAGE_UPDATED, saved.getConversationId(), response);
-        AfterCommit.run(() -> messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new ChatMessageEditedEvent(saved.getId().toHexString(), saved.getConversationId(), userId),
                 "",
                 ChatMessageEditedContract.CHAT_MESSAGE_EDITED_QUEUE_NAME
-        ));
+        );
         return response;
     }
 
@@ -413,11 +413,11 @@ public class ChatMessageService {
         MessageResponse response = chatMessageMapper.toResponse(saved);
         chatEventPublisher.publish(conversationService.audienceOf(saved),
                 ChatEventType.MESSAGE_DELETED, saved.getConversationId(), response);
-        AfterCommit.run(() -> messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new ChatMessageDeletedEvent(saved.getId().toHexString(), saved.getConversationId(), deletedByUserId),
                 "",
                 ChatMessageDeletedContract.CHAT_MESSAGE_DELETED_QUEUE_NAME
-        ));
+        );
         return response;
     }
 

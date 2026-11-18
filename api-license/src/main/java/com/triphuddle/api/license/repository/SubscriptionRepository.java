@@ -86,18 +86,20 @@ public interface SubscriptionRepository extends BaseJpaRepository<Subscription, 
     @Query(value = """
             select s from Subscription s
             where s.deletedAt is null
-              and (:subscriberId is null or s.subscriberId = :subscriberId)
-              and (:licenseId is null or s.license.id = :licenseId)
+              and s.subscriberId = coalesce(:subscriberId, s.subscriberId)
+              and s.license.id = coalesce(:licenseId, s.license.id)
               and (:status is null or s.status = :status)
             order by s.createdAt desc
             """,
             countQuery = """
             select count(s) from Subscription s
             where s.deletedAt is null
-              and (:subscriberId is null or s.subscriberId = :subscriberId)
-              and (:licenseId is null or s.license.id = :licenseId)
+              and s.subscriberId = coalesce(:subscriberId, s.subscriberId)
+              and s.license.id = coalesce(:licenseId, s.license.id)
               and (:status is null or s.status = :status)
             """)
+    // Coalesce rather than ":x is null or": PostgreSQL can't type a null UUID parameter compared to nothing. Both
+    // columns are NOT NULL, so a missing filter matches every row.
     Page<Subscription> findForStaff(@Param("subscriberId") UUID subscriberId,
                                     @Param("licenseId") UUID licenseId,
                                     @Param("status") SubscriptionStatus status,

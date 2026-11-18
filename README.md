@@ -358,6 +358,8 @@ Each API service box contains the data stores only it uses. Every service also r
 | `common` | library | | base classes, security, pagination, error handling | [docs](common/docs/README.md) |
 | `amqp` | library | | RabbitMQ setup and every message definition | [docs](amqp/docs/README.md) |
 | `stripe` | library | | the Stripe client and webhook signature checks | [docs](stripe/docs/README.md) |
+| `test-support` | tests | | shared test building blocks: containers, recorders, the authorization matrix, architecture rules | [strategy](docs/testing-strategy.md) |
+| `smoke-tests` | tests | | end-to-end tests through the gateway, and the check that every requirement has a test | [docs](smoke-tests/docs/README.md) |
 
 Every API service depends on `common` and `amqp`; `notification` and `openai` depend on `amqp` only, and only `api-payment` uses `stripe`. The gateway and Eureka depend on neither library.
 

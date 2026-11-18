@@ -55,7 +55,7 @@ public class UserBlockService {
                 });
         userBlock.setDeletedAt(null);
 
-        UserBlock saved = userBlockRepository.save(userBlock);
+        UserBlock saved = userBlockRepository.saveAndFlush(userBlock);
         log.info("User blocked [blockerId={}, blockedId={}]", blockerId, blockedId);
         return userBlockMapper.toResponse(saved);
     }

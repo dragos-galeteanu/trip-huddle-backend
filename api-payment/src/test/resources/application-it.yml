@@ -1,0 +1,41 @@
+# Integration tests: Postgres (and Mongo where used) come from Testcontainers; everything that dials out is off.
+spring:
+  rabbitmq:
+    host: localhost
+    username: guest
+    password: guest
+    virtual-host: /
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Never fetched: MockMvc requests carry an already-decoded token.
+          issuer-uri: https://securetoken.google.com/test
+          jwk-set-uri: http://localhost/never-fetched
+
+rabbitmq:
+  enabled: false
+
+firebase:
+  enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+integration:
+  stripe:
+    # Test-mode-shaped values: the clients are mocks in these tests, and webhooks are signed with this secret.
+    secret-key: sk_test_integration
+    webhook-secret: whsec_integration_test
+
+app:
+  payment:
+    # The jobs run only when a test calls them, never on their own in the middle of one.
+    event-interval-ms: 86400000
+    catalog-sync-interval-ms: 86400000
+    reconcile-interval-ms: 86400000

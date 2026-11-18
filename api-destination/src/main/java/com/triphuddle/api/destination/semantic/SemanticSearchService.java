@@ -25,7 +25,6 @@ import com.triphuddle.api.destination.repository.EmbeddingRepository.PendingPlac
 import com.triphuddle.api.destination.repository.EmbeddingRepository.QueryState;
 import com.triphuddle.api.destination.repository.PlaceContentRepository;
 import com.triphuddle.api.destination.repository.PlaceRepository;
-import com.triphuddle.api.destination.service.AfterCommit;
 import com.triphuddle.api.destination.service.PlaceQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -293,8 +292,8 @@ public class SemanticSearchService {
                 AiEmbeddingCompletedContract.AI_EMBEDDING_COMPLETED_DESTINATION_QUEUE_NAME, task,
                 properties.embeddingModel() == null || properties.embeddingModel().isBlank() ? null
                         : properties.embeddingModel(), inputs);
-        AfterCommit.run(() -> messageProducer.publish(event, "",
-                AiEmbeddingRequestedContract.AI_EMBEDDING_REQUESTED_QUEUE_NAME));
+        messageProducer.publishAfterCommit(event, "",
+                AiEmbeddingRequestedContract.AI_EMBEDDING_REQUESTED_QUEUE_NAME);
     }
 
     private boolean isOverHardLimit() {

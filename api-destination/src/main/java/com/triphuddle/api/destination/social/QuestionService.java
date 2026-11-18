@@ -22,7 +22,6 @@ import com.triphuddle.api.destination.entity.Place;
 import com.triphuddle.api.destination.entity.PlaceQuestion;
 import com.triphuddle.api.destination.repository.AiUsageRepository;
 import com.triphuddle.api.destination.repository.PlaceQuestionRepository;
-import com.triphuddle.api.destination.service.AfterCommit;
 import com.triphuddle.api.destination.service.PlaceQueryService;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -103,7 +102,7 @@ public class QuestionService {
         AiTextRequestedEvent event = new AiTextRequestedEvent(saved.getPendingJobId(),
                 AiTextCompletedContract.AI_TEXT_COMPLETED_DESTINATION_QUEUE_NAME, TASK, null,
                 system(saved.getLanguageCode()), prompt, "place_answer", SCHEMA, true, 1500);
-        AfterCommit.run(() -> messageProducer.publish(event, "", AiTextRequestedContract.AI_TEXT_REQUESTED_QUEUE_NAME));
+        messageProducer.publishAfterCommit(event, "", AiTextRequestedContract.AI_TEXT_REQUESTED_QUEUE_NAME);
         log.info("Place question asked [id={}, placeId={}, userId={}]", saved.getId(), place.getId(), userId);
         return toResponse(saved);
     }

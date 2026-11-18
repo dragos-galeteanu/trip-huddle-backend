@@ -106,7 +106,7 @@ public class SubscriptionService {
             subscription.setPriceMinor(PriceCalculator.discount(license.getPriceMinor(), found));
             subscription.setPromotionPeriodsRemaining(found.getDurationPeriods());
         });
-        Subscription saved = subscriptionRepository.save(subscription);
+        Subscription saved = subscriptionRepository.saveAndFlush(subscription);
 
         // Taken now rather than at activation, so the price quoted to the customer holds until they pay.
         promotion.ifPresent(found -> redeem(found, saved));
@@ -221,7 +221,7 @@ public class SubscriptionService {
         }
         moveToNextPeriod(subscription, periodStart, periodEnd);
         subscription.setPastDueAt(null);
-        Subscription saved = subscriptionRepository.save(subscription);
+        Subscription saved = subscriptionRepository.saveAndFlush(subscription);
         eventPublisher.renewed(saved);
         log.info("Subscription renewed by payment [id={}, periodEnd={}]", saved.getId(), saved.getCurrentPeriodEnd());
     }
@@ -257,7 +257,7 @@ public class SubscriptionService {
                     subscription.setStatus(SubscriptionStatus.EXPIRED);
                     subscription.setEndedAt(endedAt);
                     subscription.setAutoRenew(false);
-                    Subscription saved = subscriptionRepository.save(subscription);
+                    Subscription saved = subscriptionRepository.saveAndFlush(subscription);
                     eventPublisher.ended(saved);
                     log.info("Subscription expired by Stripe [id={}, reason={}]", id, reason);
                 });
@@ -295,7 +295,7 @@ public class SubscriptionService {
         subscription.setCurrentPeriodEnd(periodEnd);
         subscription.setPastDueAt(null);
 
-        Subscription saved = subscriptionRepository.save(subscription);
+        Subscription saved = subscriptionRepository.saveAndFlush(subscription);
         replaced.ifPresent(eventPublisher::ended);
         eventPublisher.activated(saved);
         return saved;
@@ -339,7 +339,7 @@ public class SubscriptionService {
         subscription.setCurrentPeriodEnd(license.getBillingInterval().addTo(now, request.getPeriods()));
 
         Optional<Subscription> replaced = endActive(subscriber, now);
-        Subscription saved = subscriptionRepository.save(subscription);
+        Subscription saved = subscriptionRepository.saveAndFlush(subscription);
         replaced.ifPresent(old -> old.setSwitchedToSubscriptionId(saved.getId()));
         replaced.ifPresent(eventPublisher::ended);
         eventPublisher.activated(saved);
@@ -366,7 +366,7 @@ public class SubscriptionService {
         }
         subscription.setCurrentPeriodEnd(subscription.getCurrentPeriodEnd().plus(Duration.ofDays(days)));
 
-        Subscription saved = subscriptionRepository.save(subscription);
+        Subscription saved = subscriptionRepository.saveAndFlush(subscription);
         log.info("Subscription extended [id={}, days={}, actorId={}]", saved.getId(), days, actorId);
         return subscriptionMapper.toResponse(saved);
     }
@@ -397,7 +397,7 @@ public class SubscriptionService {
             default -> throw new IllegalStateException("Subscription with id=%s is over".formatted(id));
         }
 
-        Subscription saved = subscriptionRepository.save(subscription);
+        Subscription saved = subscriptionRepository.saveAndFlush(subscription);
         if (saved.getStatus() == SubscriptionStatus.ENDED) {
             eventPublisher.ended(saved);
         } else {
@@ -423,7 +423,7 @@ public class SubscriptionService {
         subscription.setAutoRenew(true);
         subscription.setCanceledAt(null);
 
-        Subscription saved = subscriptionRepository.save(subscription);
+        Subscription saved = subscriptionRepository.saveAndFlush(subscription);
         eventPublisher.resumed(saved, actorId);
         log.info("Subscription resumed [id={}, actorId={}]", saved.getId(), actorId);
         return subscriptionMapper.toResponse(saved);
@@ -564,7 +564,7 @@ public class SubscriptionService {
             } else {
                 continue;
             }
-            subscriptionRepository.save(subscription);
+            subscriptionRepository.saveAndFlush(subscription);
             log.info("Subscription stopped for removed group [id={}, groupId={}]", subscription.getId(), groupId);
         }
     }

@@ -24,6 +24,8 @@ public interface LanguageMapper extends BaseMapper<Language, CreateLanguageReque
     void createEntityFromRequest(@MappingTarget Language language, CreateLanguageRequest request);
 
     @Override
+    // The entity was loaded by this ID; copying it again could only ever re-key the row.
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "rightToLeft", source = "isRightToLeft")
     void updateEntityFromRequest(@MappingTarget Language language, UpdateLanguageRequest request);
 }

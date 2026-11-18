@@ -39,6 +39,8 @@ public interface CountryMapper extends BaseMapper<Country, CreateCountryRequest,
     @Mapping(target = "euVatMember", source = "isEuVatMember")
     @Mapping(target = "euMember", source = "isEuMember")
     @Mapping(target = "eeaMember", source = "isEeaMember")
+    // The entity was loaded by this ID; copying it again could only ever re-key the row.
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "schengenMember", source = "isSchengenMember")
     void updateEntityFromRequest(@MappingTarget Country country, UpdateCountryRequest request);
 }

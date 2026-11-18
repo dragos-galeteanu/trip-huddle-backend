@@ -352,7 +352,14 @@ public class WikidataClient {
     }
 
     private static Long max(Long a, Long b) {
-        return a == null ? b : b == null ? a : Math.max(a, b);
+        // Not one ternary: with Math.max's long in it, Java would unbox a null b and throw.
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+        return Math.max(a, b);
     }
 
     private static String values(Collection<String> itemIds) {

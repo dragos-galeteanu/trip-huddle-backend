@@ -34,7 +34,6 @@ import com.triphuddle.api.destination.repository.VisaGuidanceRepository;
 import com.triphuddle.api.destination.repository.VisaRule;
 import com.triphuddle.api.destination.repository.VisaRuleImportRepository;
 import com.triphuddle.api.destination.repository.VisaRuleRepository;
-import com.triphuddle.api.destination.service.AfterCommit;
 import com.triphuddle.api.destination.trip.TripPlanService;
 import com.triphuddle.common.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -291,7 +290,7 @@ public class VisaGuidanceService {
                 VisaPrompts.system(languageCode),
                 VisaPrompts.user(passport, destination, requirement, allowedDays, permitCodes), "visa_guidance",
                 VisaSchemas.GUIDANCE, true, 3000);
-        AfterCommit.run(() -> messageProducer.publish(event, "", AiTextRequestedContract.AI_TEXT_REQUESTED_QUEUE_NAME));
+        messageProducer.publishAfterCommit(event, "", AiTextRequestedContract.AI_TEXT_REQUESTED_QUEUE_NAME);
         log.info("Visa guidance requested [key={}]", key);
         return view(guidance, hasContent ? "READY" : "GENERATING", hasContent);
     }

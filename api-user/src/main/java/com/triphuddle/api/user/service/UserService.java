@@ -85,13 +85,13 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         user.setPhoneNumber(registerRequest.getPhoneNumber());
         user.setRole(UserRole.Customer);
         user.setEmailVerificationToken(UUID.randomUUID());
-        User saved = userRepository.save(user);
+        User saved = userRepository.saveAndFlush(user);
         log.info("User registered [id={}]", saved.getId());
 
         try {
             firebaseUserService.setUserClaims(firebaseUid, saved.getId(), saved.getRole());
             saved.setFirebaseSyncedRole(saved.getRole());
-            userRepository.save(saved);
+            userRepository.saveAndFlush(saved);
             log.info("Firebase synced role for user [id={}] set to {}", saved.getId() ,saved.getFirebaseSyncedRole());
         } catch (FirebaseAuthException e) {
             log.warn("Firebase role sync deferred - FirebaseRoleSyncJob will retry "
@@ -107,27 +107,27 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
 
     // For api-payment's copy of billing contacts; carries the whole contact, so it can drop stale ones.
     private void publishContactUpdated(User user) {
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new UserContactUpdatedEvent(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(),
                         user.isEmailVerified(), Instant.now()),
                 "",
                 UserContactUpdatedContract.USER_CONTACT_UPDATED_QUEUE_NAME
         );
-        log.info("Event published for user contact update [userId={}]", user.getId());
+        log.info("Event to publish after commit for user contact update [userId={}]", user.getId());
     }
 
     private void publishUserRegistered(User user) {
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new UserRegisteredEvent(user.getId()),
                 "",
                 UserRegisteredContract.USER_REGISTERED_QUEUE_NAME
         );
-        log.info("Event published for user registration [userId={}]", user.getId());
+        log.info("Event to publish after commit for user registration [userId={}]", user.getId());
     }
 
     private void publishVerificationEmail(User user) {
         String verificationLink = baseUrl + "/api/v1/users/verify-email?token=" + user.getEmailVerificationToken();
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new SendEmailRequest(
                         NotificationEmailType.EMAIL_VERIFICATION,
                         user.getEmail(),
@@ -139,7 +139,7 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
                 "",
                 NotificationEmailContract.EMAIL_QUEUE_NAME
         );
-        log.info("Event published for user verification email [userId={}]", user.getId());
+        log.info("Event to publish after commit for user verification email [userId={}]", user.getId());
     }
 
     /**
@@ -160,18 +160,18 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
 
         user.setEmailVerified(true);
         user.setEmailVerificationToken(null);
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
         log.info("Email address of [userId={}] is verified", user.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new UserEmailVerifiedEvent(user.getId(), user.getEmail()),
                 "",
                 UserEmailVerifiedContract.USER_EMAIL_VERIFIED_QUEUE_NAME
         );
-        log.info("Event published for user email verification [userId={}]", user.getId());
+        log.info("Event to publish after commit for user email verification [userId={}]", user.getId());
         publishContactUpdated(user);
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new SendEmailRequest(
                         NotificationEmailType.WELCOME,
                         user.getEmail(),
@@ -183,7 +183,7 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
                 "",
                 NotificationEmailContract.EMAIL_QUEUE_NAME
         );
-        log.info("Event published for welcoming user email [userId={}]",  user.getId());
+        log.info("Event to publish after commit for welcoming user email [userId={}]",  user.getId());
     }
 
     /**
@@ -202,7 +202,7 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
             User user = userOpt.get();
             try {
                 String resetLink = firebaseUserService.generatePasswordResetLink(email);
-                messageProducer.publish(
+                messageProducer.publishAfterCommit(
                         new SendEmailRequest(
                                 NotificationEmailType.PASSWORD_RESET,
                                 email,
@@ -229,7 +229,7 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
     @Override
     @Transactional(readOnly = true)
     public User getEntityById(UUID id) {
-        return userRepository.findById(id)
+        return userRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id=%s not found".formatted(id)));
     }
 
@@ -241,7 +241,7 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
 
     @Override
     public Paginated<UserResponse> getAll(PaginationFilter filter) {
-        Page<User> userPage = userRepository.findAll(filter.toPageable());
+        Page<User> userPage = userRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(userPage, userMapper::toResponseList);
     }
 
@@ -261,8 +261,12 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
             user.setEmailVerificationToken(UUID.randomUUID());
         }
 
-        User saved = userRepository.save(user);
+        User saved = userRepository.saveAndFlush(user);
         log.info("User updated [id={}]", saved.getId());
+        if (isEmailChanged) {
+            // The new address stays unverified until its owner follows the link sent to it.
+            publishVerificationEmail(saved);
+        }
         if (isEmailChanged || !Objects.equals(previousFirstName, saved.getFirstName())
                 || !Objects.equals(previousLastName, saved.getLastName())) {
             publishContactUpdated(saved);
@@ -276,13 +280,13 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         User user = getEntityById(id);
         user.setDisabledAt(Instant.now());
 
-        User saved = userRepository.save(user);
+        User saved = userRepository.saveAndFlush(user);
         log.info("User disabled [id={}]", saved.getId());
 
         UserDisabledEvent event = new UserDisabledEvent(saved.getId());
         // Once, to the fanout exchange; each consuming service has its own queue bound to it.
-        messageProducer.publish(event, UserDisabledContract.USER_DISABLED_EXCHANGE_NAME, "");
-        log.info("Event published for user disabling [userId={}]", saved.getId());
+        messageProducer.publishAfterCommit(event, UserDisabledContract.USER_DISABLED_EXCHANGE_NAME, "");
+        log.info("Event to publish after commit for user disabling [userId={}]", saved.getId());
         return userMapper.toResponse(saved);
     }
 
@@ -292,14 +296,14 @@ public class UserService implements BaseJpaService<User, RegisterRequest, Update
         User user = getEntityById(id);
         user.setDeletedAt(Instant.now());
 
-        User saved = userRepository.save(user);
+        User saved = userRepository.saveAndFlush(user);
         log.info("User deleted [id={}]", saved.getId());
         travelDocumentService.deleteForUser(saved.getId());
 
         UserDeletedEvent event = new UserDeletedEvent(saved.getId());
         // Once, to the fanout exchange; each consuming service has its own queue bound to it.
-        messageProducer.publish(event, UserDeletedContract.USER_DELETED_EXCHANGE_NAME, "");
-        log.info("Event published for user deletion [userId={}]", saved.getId());
+        messageProducer.publishAfterCommit(event, UserDeletedContract.USER_DELETED_EXCHANGE_NAME, "");
+        log.info("Event to publish after commit for user deletion [userId={}]", saved.getId());
         return userMapper.toResponse(saved);
     }
 }

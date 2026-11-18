@@ -53,7 +53,7 @@ public class UserPreferenceService implements BaseMongoService<UserPreference, C
     @Override
     @Transactional(readOnly = true)
     public UserPreference getEntityById(String id) {
-        return userPreferenceRepository.findById(new ObjectId(id))
+        return userPreferenceRepository.findByIdAndDeletedAtIsNull(new ObjectId(id))
                 .orElseThrow(() -> new ResourceNotFoundException("UserPreference with id=%s not found".formatted(id)));
     }
 
@@ -66,7 +66,7 @@ public class UserPreferenceService implements BaseMongoService<UserPreference, C
     @Override
     @Transactional(readOnly = true)
     public Paginated<UserPreferenceResponse> getAll(PaginationFilter filter) {
-        Page<UserPreference> userPreferencePage = userPreferenceRepository.findAll(filter.toPageable());
+        Page<UserPreference> userPreferencePage = userPreferenceRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(userPreferencePage, userPreferenceMapper::toResponseList);
     }
 
@@ -76,7 +76,7 @@ public class UserPreferenceService implements BaseMongoService<UserPreference, C
 
         if (!userPreference.getUserId().equals(updateUserPreferenceRequest.getUserId())) {
             throw new ResourceNotFoundException("UserPreference with id=%s and userId=%s not found"
-                    .formatted(updateUserPreferenceRequest.getUserId(), updateUserPreferenceRequest.getUserId()));
+                    .formatted(updateUserPreferenceRequest.getId(), updateUserPreferenceRequest.getUserId()));
         }
 
         userPreferenceMapper.updateEntityFromRequest(userPreference, updateUserPreferenceRequest);

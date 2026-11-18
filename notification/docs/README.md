@@ -118,3 +118,9 @@ sequenceDiagram
 | `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VIRTUAL_HOST` | broker connection |
 | `spring.data.mongodb.uri` | where device tokens are stored (`MONGODB_HOST`, `MONGODB_PORT`, `MONGODB_DATABASE`) |
 | `firebase.project-id`, `firebase.enabled` (`FIREBASE_ENABLED`) | Firebase project for FCM, and whether to send pushes at all; credentials are the application default ones |
+
+## Testing
+
+`mvn test` runs the unit tests, with no Docker: every email type rendered from its template with the values its senders put in, and again without the optional ones, attachments, pushes in batches of 500 with rejected tokens forgotten (NTF-1, NTF-3, NTF-4), and the architecture rules. `mvn verify` adds `NotificationIT`, against a real RabbitMQ and MongoDB in Testcontainers, with the mail sender and FCM replaced by mocks: emails and pushes taken off their queues, mail-server and FCM failures tried three times and then dead-lettered, failures that will never pass dead-lettered after one try (NTF-2), and device tokens moving between accounts (NTF-3).
+
+Coverage is enforced: 85% of lines and 75% of branches, unit and integration tests together. `FirebaseMessagingConfig` is the only class left out: it needs real Google credentials.

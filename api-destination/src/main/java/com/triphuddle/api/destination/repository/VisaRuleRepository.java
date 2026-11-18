@@ -83,17 +83,6 @@ public class VisaRuleRepository {
                 VisaRuleRepository::map);
     }
 
-    /**
-     * Count the rules.
-     *
-     * @return how many there are
-     */
-    public long count() {
-        Long count = jdbc.queryForObject("select count(*) from destination_visa_rules", new MapSqlParameterSource(),
-                Long.class);
-        return count == null ? 0 : count;
-    }
-
     private static VisaRule map(ResultSet rs, int row) throws SQLException {
         return new VisaRule(rs.getString("passport_code"), rs.getString("destination_code"),
                 VisaRequirement.valueOf(rs.getString("requirement")), rs.getObject("allowed_days", Integer.class));

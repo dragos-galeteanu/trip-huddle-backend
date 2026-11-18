@@ -117,6 +117,8 @@ The three resources have the same endpoints, under `/api/v1/platform/countries`,
 | `DELETE /{resource}/{id}/disable` | Admin or Support |
 | `DELETE /{resource}/{id}` | Admin or Support |
 
+A deleted record answers 404 to every endpoint and is left out of lists. Its codes stay taken, as the unique constraints still hold them.
+
 **Feature flags have no endpoints and no service.** They are meant to be managed by administrators directly in the database.
 
 ## Why reads work without a token
@@ -134,4 +136,14 @@ The read routes are listed in `additionalPermitAllMatchers()`, and `anonymousAut
 
 ## Messages
 
-Publishes one event when a country, currency or language is created, disabled or deleted (nine in all), for example `CountryCreatedEvent(countryId, alpha2)`. Nothing consumes them yet. This service consumes no messages.
+Publishes one event when a country, currency or language is created, disabled or deleted (nine in all), for example `CountryCreatedEvent(countryId, alpha2)`, once its transaction commits, so a rolled-back change sends nothing. Nothing consumes them yet. This service consumes no messages.
+
+## Testing
+
+`mvn test` runs the unit tests, with no Docker: the authorization policies against the shared matrix (`PlatformMatrices`), the services with their collaborators mocked, the MapStruct mappers and the architecture rules. `mvn verify` adds the integration tests, against Postgres and MongoDB in Testcontainers, with Flyway building the schema and Hibernate validating it:
+
+- `CountryApiIT`, `CurrencyApiIT` and `LanguageApiIT` extend `AbstractCrudApiIT` from [test-support](../../test-support), which covers create, read, list, update, disable, delete, 400/404/422 and every role over HTTP. Each adds its own cases: events, defaults, codes taken by seeded or deleted records, and a duplicate the database refuses.
+- `SeedMigrationIT` checks the data V2 seeds: counts, memberships, disabled countries and currencies, and that running it again changes nothing.
+- `FeatureFlagIT` checks a flag key is unique (PLT-4).
+
+Fixtures use codes ISO leaves to users (alpha-2 `QB`–`QZ` and `X?`, numeric 900–999, currency `QB?`–`QZ?`, language `zz…`), so they never meet the seeded data, and each integration test deletes its rows afterwards. Coverage is enforced: 85% of lines and 75% of branches, unit and integration tests together, excluding DTOs and MapStruct's generated code.

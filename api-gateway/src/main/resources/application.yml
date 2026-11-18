@@ -158,7 +158,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: gateway
+        # Health only. The gateway endpoint can add and change routes, so it stays off.
+        include: health
   tracing:
     sampling:
       probability: 1.0

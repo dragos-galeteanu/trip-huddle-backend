@@ -157,14 +157,19 @@ public class RabbitMQConfig {
     }
 
     static List<Declarable> exchangeDeclarables() {
+        return exchangeDeclarables(EXCHANGE_BINDINGS, QUEUE_NAMES);
+    }
+
+    // Takes the bindings and queues as arguments, so a test can give it a binding to an unlisted queue.
+    static List<Declarable> exchangeDeclarables(Map<String, List<String>> exchangeBindings, List<String> queueNames) {
         List<Declarable> declarables = new ArrayList<>();
-        EXCHANGE_BINDINGS.entrySet().stream()
+        exchangeBindings.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> {
                     FanoutExchange exchange = new FanoutExchange(entry.getKey(), true, false);
                     declarables.add(exchange);
                     for (String queueName : entry.getValue()) {
-                        if (!QUEUE_NAMES.contains(queueName)) {
+                        if (!queueNames.contains(queueName)) {
                             throw new IllegalStateException("Exchange %s binds queue %s, which no *Queues class lists"
                                     .formatted(entry.getKey(), queueName));
                         }

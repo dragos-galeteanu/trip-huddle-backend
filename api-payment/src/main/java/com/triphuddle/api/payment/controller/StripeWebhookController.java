@@ -2,6 +2,7 @@ package com.triphuddle.api.payment.controller;
 
 import com.triphuddle.api.payment.service.StripeWebhookService;
 import com.triphuddle.stripe.webhook.StripeSignatureException;
+import com.triphuddle.common.security.PublicEndpoint;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class StripeWebhookController {
      * @return 200 when stored or a duplicate, 400 when the signature is wrong
      */
     @PostMapping
+    @PublicEndpoint("Stripe's signature on the payload is the credential, checked before anything is stored")
     @Operation(summary = "Receive a Stripe event", description = "Called by Stripe, not by clients.")
     public ResponseEntity<Void> receive(@RequestBody String payload,
                                         @RequestHeader(value = "Stripe-Signature", required = false)

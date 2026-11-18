@@ -78,15 +78,15 @@ public class MessageReportService {
         report.setReason(request.getReason().strip());
         report.setStatus(ReportStatus.OPEN);
 
-        MessageReport saved = messageReportRepository.save(report);
+        MessageReport saved = messageReportRepository.saveAndFlush(report);
         log.info("Chat message reported [reportId={}, messageId={}, reporterId={}]",
                 saved.getId(), messageId, reporterId);
 
-        AfterCommit.run(() -> messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new ChatMessageReportedEvent(saved.getId(), saved.getMessageId(), saved.getConversationId(), reporterId),
                 "",
                 ChatMessageReportedContract.CHAT_MESSAGE_REPORTED_QUEUE_NAME
-        ));
+        );
         // The reporter does not get the message back: they already see it, and a deleted one stays hidden.
         return toResponse(saved, null);
     }
@@ -158,7 +158,7 @@ public class MessageReportService {
         report.setResolutionNote(request.getResolutionNote());
         report.setResolvedByUserId(staffUserId);
         report.setResolvedAt(Instant.now());
-        MessageReport saved = messageReportRepository.save(report);
+        MessageReport saved = messageReportRepository.saveAndFlush(report);
         log.info("Message report resolved [id={}, status={}, staffUserId={}, isMessageRemoved={}]",
                 saved.getId(), saved.getStatus(), staffUserId, request.getIsMessageRemoved());
         return toStaffResponse(saved);

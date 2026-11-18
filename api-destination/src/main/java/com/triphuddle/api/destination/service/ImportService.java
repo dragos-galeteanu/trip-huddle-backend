@@ -107,7 +107,7 @@ public class ImportService {
                     ? properties.minPoiSitelinks() : request.getMinPoiSitelinks());
             job.setIncludingPois(!Boolean.FALSE.equals(request.getIsIncludingPois()));
             job.setIncludingPhotos(!Boolean.FALSE.equals(request.getIsIncludingPhotos()));
-            ImportJob saved = jobRepository.save(job);
+            ImportJob saved = jobRepository.saveAndFlush(job);
             log.info("Import queued [id={}, countryCode={}, userId={}]", saved.getId(), countryCode, userId);
             return toResponse(saved);
         });

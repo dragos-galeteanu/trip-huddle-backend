@@ -78,10 +78,7 @@ public class PushNotificationService {
         );
         SendPushRequest request = new SendPushRequest(recipients, title, preview, data);
 
-        AfterCommit.run(() -> {
-            messageProducer.publish(request, "", NotificationPushContract.PUSH_QUEUE_NAME);
-            log.info("Push requested for chat message [messageId={}, recipients={}]",
-                    message.getId(), recipients.size());
-        });
+        messageProducer.publishAfterCommit(request, "", NotificationPushContract.PUSH_QUEUE_NAME);
+        log.info("Push requested for chat message [messageId={}, recipients={}]", message.getId(), recipients.size());
     }
 }

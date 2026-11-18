@@ -29,8 +29,6 @@ import com.triphuddle.api.license.entity.Subscription;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -214,19 +212,7 @@ public class LicenseEventPublisher {
 
     // Built now, while the entities are loaded, and sent once the transaction commits; a rollback drops it.
     private void send(Object event, String exchangeName, String queueName, UUID id) {
-        Runnable send = () -> {
-            messageProducer.publish(event, exchangeName, queueName);
-            log.info("Event published [exchange={}, queue={}, id={}]", exchangeName, queueName, id);
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    send.run();
-                }
-            });
-        } else {
-            send.run();
-        }
+        messageProducer.publishAfterCommit(event, exchangeName, queueName);
+        log.info("Event to publish after commit [exchange={}, queue={}, id={}]", exchangeName, queueName, id);
     }
 }

@@ -3,6 +3,8 @@ package com.triphuddle.amqp;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Registered as a bean by {@link RabbitMQConfig} rather than annotated {@code @Component}: this
@@ -28,4 +30,24 @@ public class RabbitMQMessageProducer {
         log.info("Published to {} using routingKey {}. Payload: {}", exchange, routingKey, payload);
     }
 
+    /**
+     * Publish once the current transaction commits, so nothing rolled back is ever announced (NFR-4); at once
+     * outside a transaction.
+     *
+     * @param payload the message
+     * @param exchange the exchange, empty for the default one
+     * @param routingKey the queue on the default exchange, or the routing key
+     */
+    public void publishAfterCommit(Object payload, String exchange, String routingKey) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            publish(payload, exchange, routingKey);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                publish(payload, exchange, routingKey);
+            }
+        });
+    }
 }

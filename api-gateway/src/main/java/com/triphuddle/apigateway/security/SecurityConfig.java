@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .cors(corsSpec -> corsSpec.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchanges -> {
                     exchanges.pathMatchers("/actuator/health", "/fallback").permitAll();
+                    // Any other actuator endpoint, should one be exposed, is for no caller through the gateway.
+                    exchanges.pathMatchers("/actuator/**").denyAll();
                     if (swaggerPublic) {
                         exchanges.pathMatchers("/*/v3/api-docs", "/*/swagger-ui/**").permitAll();
                     } else {

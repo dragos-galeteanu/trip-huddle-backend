@@ -57,15 +57,15 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         groupMapper.createEntityFromRequest(group, createGroupRequest);
         group.setCreatedByUserId(userId);
 
-        Group saved = groupRepository.save(group);
+        Group saved = groupRepository.saveAndFlush(group);
         log.info("Group created [id={}, createdByUserId={}]", saved.getId(), userId);
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new GroupCreatedEvent(saved.getId(), saved.getName()),
                 "",
                 GroupCreatedContract.GROUP_CREATED_QUEUE_NAME
         );
-        log.info("Event published for group creation [groupId={}]", saved.getId());
+        log.info("Event to publish after commit for group creation [groupId={}]", saved.getId());
 
         // The creator is the group's first Admin, so the group is never without one.
         groupMembershipService.create(new CreateGroupMembershipRequest(saved.getId(), userId, GroupRole.ADMIN));
@@ -75,7 +75,7 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
     @Override
     @Transactional(readOnly = true)
     public Group getEntityById(UUID id) {
-        return groupRepository.findById(id)
+        return groupRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Group with id=%s not found".formatted(id)));
     }
 
@@ -88,7 +88,7 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
     @Override
     @Transactional(readOnly = true)
     public Paginated<GroupResponse> getAll(PaginationFilter filter) {
-        Page<Group> groupPage = groupRepository.findAll(filter.toPageable());
+        Page<Group> groupPage = groupRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(groupPage, groupMapper::toResponseList);
     }
 
@@ -103,7 +103,7 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         UUID userId = SecurityUtils.extractUserId(SecurityContextHolder.getContext().getAuthentication());
 
         Page<GroupMembership> membershipPage = groupMembershipRepository
-                .findByUserIdAndDeletedAtIsNullAndDisabledAtIsNull(userId, filter.toPageable());
+                .findByUserIdAndDeletedAtIsNullAndDisabledAtIsNullAndGroupDeletedAtIsNull(userId, filter.toPageable());
         return Paginated.of(membershipPage, memberships -> memberships.stream()
                 .map(GroupMembership::getGroup)
                 .map(groupMapper::toResponse)
@@ -115,15 +115,15 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         Group group = getEntityById(updateGroupRequest.getId());
         groupMapper.updateEntityFromRequest(group, updateGroupRequest);
 
-        Group saved = groupRepository.save(group);
+        Group saved = groupRepository.saveAndFlush(group);
         log.info("Group updated [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new GroupUpdatedEvent(saved.getId(), saved.getName()),
                 "",
                 GroupUpdatedContract.GROUP_UPDATED_QUEUE_NAME
         );
-        log.info("Event published for group update [groupId={}]", saved.getId());
+        log.info("Event to publish after commit for group update [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }
 
@@ -132,13 +132,13 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         Group group = getEntityById(id);
         group.setDisabledAt(Instant.now());
 
-        Group saved = groupRepository.save(group);
+        Group saved = groupRepository.saveAndFlush(group);
         log.info("Group disabled [id={}]", saved.getId());
 
         GroupDisabledEvent event = new GroupDisabledEvent(saved.getId(), saved.getName());
         // Once, to the fanout exchange; each consuming service has its own queue bound to it.
-        messageProducer.publish(event, GroupDisabledContract.GROUP_DISABLED_EXCHANGE_NAME, "");
-        log.info("Event published for group disabling [groupId={}]", saved.getId());
+        messageProducer.publishAfterCommit(event, GroupDisabledContract.GROUP_DISABLED_EXCHANGE_NAME, "");
+        log.info("Event to publish after commit for group disabling [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }
 
@@ -147,13 +147,13 @@ public class GroupService implements BaseJpaService<Group, CreateGroupRequest, U
         Group group = getEntityById(id);
         group.setDeletedAt(Instant.now());
 
-        Group saved = groupRepository.save(group);
+        Group saved = groupRepository.saveAndFlush(group);
         log.info("Group deleted [id={}]", saved.getId());
 
         GroupDeletedEvent event = new GroupDeletedEvent(saved.getId(), saved.getName());
         // Once, to the fanout exchange; each consuming service has its own queue bound to it.
-        messageProducer.publish(event, GroupDeletedContract.GROUP_DELETED_EXCHANGE_NAME, "");
-        log.info("Event published for group deletion [groupId={}]", saved.getId());
+        messageProducer.publishAfterCommit(event, GroupDeletedContract.GROUP_DELETED_EXCHANGE_NAME, "");
+        log.info("Event to publish after commit for group deletion [groupId={}]", saved.getId());
         return groupMapper.toResponse(saved);
     }
 }

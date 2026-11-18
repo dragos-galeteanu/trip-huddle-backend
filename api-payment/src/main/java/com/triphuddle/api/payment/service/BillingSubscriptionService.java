@@ -1,5 +1,8 @@
 package com.triphuddle.api.payment.service;
 
+import com.triphuddle.api.payment.dto.BillingSubscriptionFilter;
+import com.triphuddle.api.payment.dto.BillingSubscriptionResponse;
+import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.amqp.license.LicenseSubscriptionActivatedEvent;
 import com.triphuddle.amqp.license.LicenseSubscriptionEndedEvent;
 import com.triphuddle.amqp.license.LicenseSubscriptionPendingEvent;
@@ -32,6 +35,19 @@ public class BillingSubscriptionService {
     private final StripeCheckoutClient stripeCheckoutClient;
     private final StripeSubscriptionClient stripeSubscriptionClient;
     private final PaymentEventPublisher eventPublisher;
+
+    /**
+     * Get billing subscriptions for staff, newest first.
+     *
+     * @param filter the page and filters
+     * @return a page of billing subscriptions
+     */
+    @Transactional(readOnly = true)
+    public Paginated<BillingSubscriptionResponse> getAll(BillingSubscriptionFilter filter) {
+        return Paginated.of(billingSubscriptionRepository.findForStaff(filter.getStatus(), filter.getSubscriberId(),
+                filter.getIsRefundDue(), filter.toPageable()),
+                subscriptions -> subscriptions.stream().map(BillingSubscriptionService::toResponse).toList());
+    }
 
     /**
      * Record a subscription that waits for payment.
@@ -214,5 +230,15 @@ public class BillingSubscriptionService {
             subscription.setLicenseSubscriptionId(licenseSubscriptionId);
             return subscription;
         });
+    }
+
+    private static BillingSubscriptionResponse toResponse(BillingSubscription subscription) {
+        return new BillingSubscriptionResponse(subscription.getLicenseSubscriptionId(), subscription.getStatus(),
+                subscription.getLicenseId(), subscription.getSubscriberType(), subscription.getSubscriberId(),
+                subscription.getPurchasedByUserId(), subscription.getBillingInterval(),
+                subscription.getListPriceMinor(), subscription.getFirstPriceMinor(), subscription.getCurrency(),
+                subscription.getStripeCustomerId(), subscription.getStripeSubscriptionId(),
+                subscription.isCancelAtPeriodEnd(), subscription.getPaidAt(), subscription.getActivatedAt(),
+                subscription.getEndedAt(), subscription.getRefundDueAt());
     }
 }

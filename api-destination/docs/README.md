@@ -310,7 +310,16 @@ An end that arrives before its activation is kept, so the activation can't reope
 
 ## Testing
 
-`PlaceDatabaseTest`, `ImportDatabaseTest`, `ContentDatabaseTest`, `ItineraryDatabaseTest`, `VisaDatabaseTest`, `SocialDatabaseTest` and `SemanticDatabaseTest` load `schema.sql` into a container of the project's PostGIS + pgvector image (built once from `docker/postgres` as `triphuddle/postgres-test`), have Hibernate validate the entities against it, and run search, moves, merges, hiding, access, imports (from mocked Wikimedia answers) and AI content (with the worker answered by hand: dedupe, fallback, refresh, failures, budgets, limits, reports) and itineraries (answers checked against known places, quota taken and given back, overdue jobs, day rewrites, edits, group access and notifications) and visas (imports with skipped and removed rules, one at a time, the easiest passport, shared guidance, who sees whom, stale and deleted documents, failures and timeouts), favourites, reviews with reports, questions, and semantic search (place and query embeddings, the cache, similar places, filters, unchanged and bad vectors) on real SQL. They are skipped when Docker isn't running. `WikidataClientTest` and `CommonsClientTest` pin the parsing, retries and licence filter against mocked HTTP.
+`mvn test` runs the unit tests, with no Docker: the Wikidata and Commons clients and the visa dataset download against mocked HTTP (parsing, pacing, retries, the licence filter), the visa dataset parser, entitlement and quota parsing, the destination policy, import naming and the architecture rules. `mvn verify` adds the integration tests, against the project's PostGIS and pgvector image (built once from `docker/postgres` as `triphuddle/postgres-test`; failsafe passes it to test-support), with Flyway building the schema and Hibernate validating it. Wikimedia and the visa dataset are mocks, the clock can be moved, RabbitMQ is replaced by a recorder, and the AI worker is answered by hand through `AiReplyListener`:
+
+- `PlacesIT`: access with the user's or the group's license and its 48 hours of grace (DST-1); the tree, unique slugs and IDs, moves, merges, hiding and deleting (DST-2); search by any name, accents and typos, distance, map areas, subtrees and ranking (DST-4).
+- `ImportsAndCategoriesIT`: imports of regions, cities and notable places with photos, again over existing places, and their failures (DST-3); photos and the category tree.
+- `ContentIT`: content written once per place, section and language and shared, the English stand-in, failures, refreshes, late answers, the daily budget, the hard limit and each reader's share, reports and regeneration (DST-5).
+- `TripsIT`: plans' limits, owners and groups; itineraries linking only known places, the quota taken and given back, overdue jobs, day rewrites and edits (DST-6).
+- `VisasIT`: the rule import, each traveller's easiest passport, permits lasting the trip, who sees whom, shared guidance, retries and limits (DST-7).
+- `SocialAndSemanticIT`: favourites and visits, one review per user and place, three reports hiding a review, questions (DST-8); place and query embeddings, the cache, similar places and retries (DST-9); and forgetting a deleted user (DST-10).
+
+Each integration test empties the `destination_*` tables afterwards. Coverage is enforced: 85% of lines and 75% of branches, unit and integration tests together, excluding DTOs and MapStruct's generated code.
 
 ## Schema
 

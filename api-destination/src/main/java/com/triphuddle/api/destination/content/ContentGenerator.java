@@ -1,6 +1,5 @@
 package com.triphuddle.api.destination.content;
 
-import com.triphuddle.api.destination.service.AfterCommit;
 import com.triphuddle.amqp.RabbitMQMessageProducer;
 import com.triphuddle.amqp.ai.AiTextCompletedContract;
 import com.triphuddle.amqp.ai.AiTextRequestedContract;
@@ -92,7 +91,7 @@ public class ContentGenerator {
                 PlacePrompts.system(content.getLanguageCode()),
                 PlacePrompts.user(content.getPlace(), ancestors, spec), spec.schemaName(), spec.jsonSchema(),
                 spec.isWebSearch(), null);
-        AfterCommit.run(() -> messageProducer.publish(event, "", AiTextRequestedContract.AI_TEXT_REQUESTED_QUEUE_NAME));
+        messageProducer.publishAfterCommit(event, "", AiTextRequestedContract.AI_TEXT_REQUESTED_QUEUE_NAME);
         log.info("Section sent for generation [contentId={}, section={}, language={}, priority={}, jobId={}]",
                 content.getId(), content.getSection(), content.getLanguageCode(), priority, jobId);
         return Refusal.NONE;

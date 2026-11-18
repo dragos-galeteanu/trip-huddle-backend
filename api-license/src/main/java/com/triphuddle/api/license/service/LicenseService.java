@@ -60,7 +60,7 @@ public class LicenseService {
                 request.getBillingInterval());
         replaceEntitlements(license, request.getEntitlements());
 
-        License saved = licenseRepository.save(license);
+        License saved = licenseRepository.saveAndFlush(license);
         log.info("License created [id={}, code={}]", saved.getId(), saved.getCode());
         return toResponse(saved);
     }
@@ -121,7 +121,7 @@ public class LicenseService {
         applyDetails(license, request.getName(), request.getDescription(), request.getPriceMinor(),
                 request.getBillingInterval());
 
-        License saved = licenseRepository.save(license);
+        License saved = licenseRepository.saveAndFlush(license);
         if (saved.getStatus() != LicenseStatus.DRAFT) {
             eventPublisher.catalogChanged(saved);
         }
@@ -143,7 +143,7 @@ public class LicenseService {
         }
         replaceEntitlements(license, entitlements);
 
-        License saved = licenseRepository.save(license);
+        License saved = licenseRepository.saveAndFlush(license);
         eventPublisher.entitlementsChanged(saved);
         log.info("License entitlements replaced [id={}, count={}]", saved.getId(), saved.getEntitlements().size());
         return toResponse(saved);
@@ -164,7 +164,7 @@ public class LicenseService {
         license.setPublishedAt(Instant.now());
         license.setArchivedAt(null);
 
-        License saved = licenseRepository.save(license);
+        License saved = licenseRepository.saveAndFlush(license);
         eventPublisher.catalogChanged(saved);
         log.info("License published [id={}]", saved.getId());
         return toResponse(saved);
@@ -185,7 +185,7 @@ public class LicenseService {
         license.setStatus(LicenseStatus.ARCHIVED);
         license.setArchivedAt(Instant.now());
 
-        License saved = licenseRepository.save(license);
+        License saved = licenseRepository.saveAndFlush(license);
         eventPublisher.catalogChanged(saved);
         log.info("License archived [id={}]", saved.getId());
         return toResponse(saved);
@@ -205,7 +205,7 @@ public class LicenseService {
         }
         license.setDeletedAt(Instant.now());
 
-        License saved = licenseRepository.save(license);
+        License saved = licenseRepository.saveAndFlush(license);
         log.info("License deleted [id={}]", saved.getId());
         return toResponse(saved);
     }

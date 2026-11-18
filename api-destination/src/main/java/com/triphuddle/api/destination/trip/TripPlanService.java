@@ -56,7 +56,7 @@ public class TripPlanService {
         plan.setOwnerId(request.getGroupId() == null ? userId : request.getGroupId());
         plan.setCreatedByUserId(userId);
         apply(plan, request);
-        TripPlan saved = planRepository.save(plan);
+        TripPlan saved = planRepository.saveAndFlush(plan);
         log.info("Trip plan created [id={}, ownerType={}, ownerId={}]", saved.getId(), saved.getOwnerType(),
                 saved.getOwnerId());
         return toResponse(saved);
@@ -72,7 +72,7 @@ public class TripPlanService {
     public TripPlanResponse update(UUID planId, TripPlanRequest request) {
         TripPlan plan = find(planId);
         apply(plan, request);
-        return toResponse(plan);
+        return toResponse(planRepository.saveAndFlush(plan));
     }
 
     /**

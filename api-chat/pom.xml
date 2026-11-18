@@ -12,7 +12,17 @@
     <name>api-chat</name>
     <description>Chat Module for private and group conversations between users</description>
 
+    <properties>
+        <!-- The suite is complete: below the coverage gate in the root pom, the build fails. -->
+        <coverage.enforced>true</coverage.enforced>
+    </properties>
+
     <dependencies>
+        <dependency>
+            <groupId>com.triphuddle</groupId>
+            <artifactId>test-support</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.triphuddle</groupId>
             <artifactId>common</artifactId>

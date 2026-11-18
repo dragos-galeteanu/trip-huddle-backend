@@ -75,11 +75,13 @@ public interface BillingSubscriptionRepository extends BaseJpaRepository<Billing
      * @param pageable the page
      * @return a page of billing subscriptions
      */
+    // A null UUID or Boolean compared to nothing has no type PostgreSQL can work out, so whether a filter is given is
+    // asked as a boolean of its own.
     @Query("""
             select s from BillingSubscription s
             where (:status is null or s.status = :status)
-              and (:subscriberId is null or s.subscriberId = :subscriberId)
-              and (:isRefundDue is null or (:isRefundDue = true and s.refundDueAt is not null)
+              and (:#{#subscriberId == null} = true or s.subscriberId = :subscriberId)
+              and (:#{#isRefundDue == null} = true or (:isRefundDue = true and s.refundDueAt is not null)
                    or (:isRefundDue = false and s.refundDueAt is null))
               and s.deletedAt is null
             order by s.createdAt desc

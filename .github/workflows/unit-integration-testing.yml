@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: '0 00 * * *'
   workflow_dispatch:
+  # smoke-testing.yml runs this first, so smoke tests start only once these pass.
+  workflow_call:
   pull_request:
     types:
       - opened
@@ -35,12 +37,25 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run tests with timestamped output
+      # Unit tests (*Test, Surefire) and integration tests (*IT, Failsafe, Testcontainers on the runner's Docker),
+      # then the JaCoCo report and, in modules that enforce it, the coverage gate.
+      - name: Run unit and integration tests
         env:
           FIREBASE_ENABLED: false
         run: |
-          mvn -B -ntp test \
+          mvn -B -ntp verify \
             -Dfirebase.enabled=false \
             -Dsurefire.useFile=false \
             -Dsurefire.printSummary=true \
             -Dsurefire.reportFormat=plain
+
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/target/surefire-reports/
+            **/target/failsafe-reports/
+            **/target/site/jacoco-merged/
+          if-no-files-found: ignore

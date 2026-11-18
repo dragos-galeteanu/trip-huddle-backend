@@ -29,6 +29,7 @@ public interface GroupInvitationMapper extends BaseMapper<GroupInvitation, Creat
     @Mapping(target = "acceptedByUserId", ignore = true)
     void createEntityFromRequest(@MappingTarget GroupInvitation groupInvitation, CreateGroupInvitationRequest request);
 
+    // The entity was loaded by this ID; copying it again could only ever re-key the row.
     @Override
     @Mapping(target = "group", ignore = true)
     @Mapping(target = "email", ignore = true)
@@ -37,5 +38,6 @@ public interface GroupInvitationMapper extends BaseMapper<GroupInvitation, Creat
     @Mapping(target = "expiresAt", ignore = true)
     @Mapping(target = "invitedByUserId", ignore = true)
     @Mapping(target = "acceptedByUserId", ignore = true)
+    @Mapping(target = "id", ignore = true)
     void updateEntityFromRequest(@MappingTarget GroupInvitation groupInvitation, UpdateGroupInvitationRequest request);
 }

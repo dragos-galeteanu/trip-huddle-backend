@@ -142,7 +142,9 @@ public class VisaRuleImportService {
         job.setStatus(status);
         job.setError(error);
         job.setFinishedAt(now);
-        importRepository.save(job);
+        // Flushed at once: Hibernate inserts before it updates, so a new import would otherwise meet this one
+        // still active.
+        importRepository.saveAndFlush(job);
     }
 
     private static VisaRuleImportResponse toResponse(VisaRuleImport job) {

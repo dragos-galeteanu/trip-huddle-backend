@@ -69,7 +69,7 @@ The sections below describe how it works.
 | `/api-payment/v3/api-docs` | `api-payment` `/api-docs` | OpenAPI document |
 | `/api-destination/v3/api-docs` | `api-destination` `/api-docs` | OpenAPI document |
 
-When a service does not answer, the circuit breaker forwards to `/fallback`.
+When a service does not answer, the circuit breaker forwards to `/fallback`, which answers 503 Service Unavailable, so clients retry later rather than take it for a missing resource.
 
 ```mermaid
 flowchart LR
@@ -97,7 +97,7 @@ Every route needs a valid Firebase JWT except:
 | `/api/v1/users/forgot-password` | permitted here; no service route behind it yet |
 | `/api/v1/payments/webhook`, `/api/v1/payments/webhook/**` | Stripe calls it without a token; `api-payment` checks the Stripe signature |
 | `/ws/chats/**` | browsers cannot put a token on the WebSocket handshake; `api-chat` checks the one in the STOMP CONNECT frame |
-| `/actuator/health`, `/fallback` | health and fallback |
+| `/actuator/health`, `/fallback` | health and fallback; health is the only actuator endpoint exposed, and any other under `/actuator` is refused |
 
 Swagger paths are public only when `app.swagger.public=true` (local development).
 
@@ -109,6 +109,10 @@ A route that is public here must also be public in the service behind it: the se
 |---|---|---|
 | `app.cors.allowed-origins` | `http://localhost:3000` | origins allowed to call `/api/**` |
 | `app.swagger.public` | `false` | open the Swagger paths without a token |
+
+## Testing
+
+`GatewayIT` starts the gateway with a plain HTTP server standing in for every service, found through Spring Cloud's simple discovery client instead of Eureka, and requests carrying test JWTs. It checks that each prefix reaches its service unchanged and the OpenAPI paths are rewritten (GW-2, GW-5), that exactly the public routes pass without a token (GW-1), the CORS preflight for allowed and other origins (GW-4), that a service that is down answers 503 through `/fallback` (GW-3), and that no actuator endpoint but health is reachable. `GatewaySecurityTest` checks the role claim becomes the same authority the services use. `mvn verify` runs both; no Docker is needed. Coverage is enforced: 85% of lines and 75% of branches.
 
 ## Adding a service
 

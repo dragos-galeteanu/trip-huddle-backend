@@ -9,6 +9,7 @@ import com.triphuddle.api.user.dto.UpdateUserRequest;
 import com.triphuddle.api.user.dto.UserResponse;
 import com.triphuddle.api.user.entity.User;
 import com.triphuddle.api.user.service.UserService;
+import com.triphuddle.common.security.PublicEndpoint;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,7 @@ public class UserController extends BaseJpaController<User, RegisterRequest, Upd
      * @return an empty response
      */
     @PostMapping("/reset-password")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> resetPassword(@AuthenticationPrincipal Jwt jwt) {
         userService.resetPassword(jwt.getClaimAsString("email"));
         return ResponseEntity.ok().build();
@@ -57,6 +59,7 @@ public class UserController extends BaseJpaController<User, RegisterRequest, Upd
      * @return a small HTML page confirming the verification
      */
     @GetMapping(value = "/verify-email", produces = MediaType.TEXT_HTML_VALUE)
+    @PublicEndpoint("the single-use token in the link is the credential")
     public ResponseEntity<String> verifyEmail(@RequestParam UUID token) {
         userService.verifyEmail(token);
         return ResponseEntity.ok("""
@@ -75,6 +78,8 @@ public class UserController extends BaseJpaController<User, RegisterRequest, Upd
      * @return the response object containing the registered user
      */
     @PostMapping("/register")
+    // Any Firebase-signed-in caller: the platform user, and so the userId claim, doesn't exist yet.
+    @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<UserResponse> register(
             @AuthenticationPrincipal Jwt jwt,

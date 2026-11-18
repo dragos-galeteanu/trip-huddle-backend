@@ -50,22 +50,22 @@ public class CurrencyService implements BaseJpaService<Currency, CreateCurrencyR
         Currency currency = new Currency();
         currencyMapper.createEntityFromRequest(currency, createCurrencyRequest);
 
-        Currency saved = currencyRepository.save(currency);
+        Currency saved = currencyRepository.saveAndFlush(currency);
         log.info("Currency created [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new CurrencyCreatedEvent(saved.getId(), saved.getCode()),
                 "",
                 CurrencyCreatedContract.CURRENCY_CREATED_QUEUE_NAME
         );
-        log.info("Event published for currency creation [currencyId={}]", saved.getId());
+        log.info("Event to publish after commit for currency creation [currencyId={}]", saved.getId());
         return currencyMapper.toResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Currency getEntityById(UUID id) {
-        return currencyRepository.findById(id)
+        return currencyRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Currency with id=%s not found".formatted(id)));
     }
 
@@ -78,7 +78,7 @@ public class CurrencyService implements BaseJpaService<Currency, CreateCurrencyR
     @Override
     @Transactional(readOnly = true)
     public Paginated<CurrencyResponse> getAll(PaginationFilter filter) {
-        Page<Currency> currencyPage = currencyRepository.findAll(filter.toPageable());
+        Page<Currency> currencyPage = currencyRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(currencyPage, currencyMapper::toResponseList);
     }
 
@@ -93,7 +93,7 @@ public class CurrencyService implements BaseJpaService<Currency, CreateCurrencyR
 
         currencyMapper.updateEntityFromRequest(currency, updateCurrencyRequest);
 
-        Currency saved = currencyRepository.save(currency);
+        Currency saved = currencyRepository.saveAndFlush(currency);
         log.info("Currency updated [id={}]", saved.getId());
         return currencyMapper.toResponse(saved);
     }
@@ -103,15 +103,15 @@ public class CurrencyService implements BaseJpaService<Currency, CreateCurrencyR
         Currency currency = getEntityById(id);
         currency.setDisabledAt(Instant.now());
 
-        Currency saved = currencyRepository.save(currency);
+        Currency saved = currencyRepository.saveAndFlush(currency);
         log.info("Currency disabled [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new CurrencyDisabledEvent(saved.getId(), saved.getCode()),
                 "",
                 CurrencyDisabledContract.CURRENCY_DISABLED_QUEUE_NAME
         );
-        log.info("Event published for currency disabling [currencyId={}]", saved.getId());
+        log.info("Event to publish after commit for currency disabling [currencyId={}]", saved.getId());
         return currencyMapper.toResponse(saved);
     }
 
@@ -120,15 +120,15 @@ public class CurrencyService implements BaseJpaService<Currency, CreateCurrencyR
         Currency currency = getEntityById(id);
         currency.setDeletedAt(Instant.now());
 
-        Currency saved = currencyRepository.save(currency);
+        Currency saved = currencyRepository.saveAndFlush(currency);
         log.info("Currency deleted [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new CurrencyDeletedEvent(saved.getId(), saved.getCode()),
                 "",
                 CurrencyDeletedContract.CURRENCY_DELETED_QUEUE_NAME
         );
-        log.info("Event published for currency deletion [currencyId={}]", saved.getId());
+        log.info("Event to publish after commit for currency deletion [currencyId={}]", saved.getId());
         return currencyMapper.toResponse(saved);
     }
 }

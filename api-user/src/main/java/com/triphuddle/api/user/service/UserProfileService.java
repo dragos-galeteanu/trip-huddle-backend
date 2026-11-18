@@ -54,7 +54,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
         userProfileMapper.createEntityFromRequest(userProfile, createUserProfileRequest);
         userProfile.setUser(userService.getEntityById(userId));
 
-        UserProfile saved = userProfileRepository.save(userProfile);
+        UserProfile saved = userProfileRepository.saveAndFlush(userProfile);
         log.info("UserProfile created [id={}]", saved.getId());
         return userProfileMapper.toResponse(saved);
     }
@@ -62,7 +62,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
     @Override
     @Transactional(readOnly = true)
     public UserProfile getEntityById(UUID id) {
-        return userProfileRepository.findById(id)
+        return userProfileRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("UserProfile with id=%s not found".formatted(id)));
     }
 
@@ -75,7 +75,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
     @Override
     @Transactional(readOnly = true)
     public Paginated<UserProfileResponse> getAll(PaginationFilter filter) {
-        Page<UserProfile> userProfilePage = userProfileRepository.findAll(filter.toPageable());
+        Page<UserProfile> userProfilePage = userProfileRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(userProfilePage, userProfileMapper::toResponseList);
     }
 
@@ -93,7 +93,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
 
         userProfileMapper.updateEntityFromRequest(userProfile, updateUserProfileRequest);
 
-        UserProfile saved = userProfileRepository.save(userProfile);
+        UserProfile saved = userProfileRepository.saveAndFlush(userProfile);
         log.info("UserProfile updated [id={}]", saved.getId());
 
         publishPictureUpdatedIfChanged(saved, previousProfilePictureUrl, previousCoverPictureUrl);
@@ -118,7 +118,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
             return;
         }
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new UserProfilePictureUpdatedEvent(
                         userProfile.getUser().getId(),
                         userProfile.getId(),
@@ -130,12 +130,12 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
                 "",
                 UserProfilePictureUpdatedContract.USER_PROFILE_PICTURE_UPDATED_QUEUE_NAME
         );
-        log.info("Event published for user profile picture update "
+        log.info("Event to publish after commit for user profile picture update "
                         + "[userProfileId={}, profilePictureChanged={}, coverPictureChanged={}]",
                 userProfile.getId(), profilePictureChanged, coverPictureChanged);
 
         User user = userProfile.getUser();
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new SendEmailRequest(
                         NotificationEmailType.PROFILE_PICTURE_UPDATED,
                         user.getEmail(),
@@ -148,7 +148,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
                 "",
                 NotificationEmailContract.EMAIL_QUEUE_NAME
         );
-        log.info("Event published for user profile picture updated email [userProfileId={}]", userProfile.getId());
+        log.info("Event to publish after commit for user profile picture updated email [userProfileId={}]", userProfile.getId());
     }
 
     @Override
@@ -156,7 +156,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
         UserProfile userProfile = getEntityById(id);
         userProfile.setDisabledAt(Instant.now());
 
-        UserProfile saved = userProfileRepository.save(userProfile);
+        UserProfile saved = userProfileRepository.saveAndFlush(userProfile);
         log.info("UserProfile disabled [id={}]", saved.getId());
         return userProfileMapper.toResponse(saved);
     }
@@ -166,7 +166,7 @@ public class UserProfileService implements BaseJpaService<UserProfile, CreateUse
         UserProfile userProfile = getEntityById(id);
         userProfile.setDeletedAt(Instant.now());
 
-        UserProfile saved = userProfileRepository.save(userProfile);
+        UserProfile saved = userProfileRepository.saveAndFlush(userProfile);
         log.info("UserProfile deleted [id={}]", saved.getId());
         return userProfileMapper.toResponse(saved);
     }

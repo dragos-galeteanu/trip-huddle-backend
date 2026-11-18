@@ -50,22 +50,22 @@ public class LanguageService implements BaseJpaService<Language, CreateLanguageR
         Language language = new Language();
         languageMapper.createEntityFromRequest(language, createLanguageRequest);
 
-        Language saved = languageRepository.save(language);
+        Language saved = languageRepository.saveAndFlush(language);
         log.info("Language created [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new LanguageCreatedEvent(saved.getId(), saved.getCode()),
                 "",
                 LanguageCreatedContract.LANGUAGE_CREATED_QUEUE_NAME
         );
-        log.info("Event published for language creation [languageId={}]", saved.getId());
+        log.info("Event to publish after commit for language creation [languageId={}]", saved.getId());
         return languageMapper.toResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Language getEntityById(UUID id) {
-        return languageRepository.findById(id)
+        return languageRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Language with id=%s not found".formatted(id)));
     }
 
@@ -78,7 +78,7 @@ public class LanguageService implements BaseJpaService<Language, CreateLanguageR
     @Override
     @Transactional(readOnly = true)
     public Paginated<LanguageResponse> getAll(PaginationFilter filter) {
-        Page<Language> languagePage = languageRepository.findAll(filter.toPageable());
+        Page<Language> languagePage = languageRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(languagePage, languageMapper::toResponseList);
     }
 
@@ -93,7 +93,7 @@ public class LanguageService implements BaseJpaService<Language, CreateLanguageR
 
         languageMapper.updateEntityFromRequest(language, updateLanguageRequest);
 
-        Language saved = languageRepository.save(language);
+        Language saved = languageRepository.saveAndFlush(language);
         log.info("Language updated [id={}]", saved.getId());
         return languageMapper.toResponse(saved);
     }
@@ -103,15 +103,15 @@ public class LanguageService implements BaseJpaService<Language, CreateLanguageR
         Language language = getEntityById(id);
         language.setDisabledAt(Instant.now());
 
-        Language saved = languageRepository.save(language);
+        Language saved = languageRepository.saveAndFlush(language);
         log.info("Language disabled [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new LanguageDisabledEvent(saved.getId(), saved.getCode()),
                 "",
                 LanguageDisabledContract.LANGUAGE_DISABLED_QUEUE_NAME
         );
-        log.info("Event published for language disabling [languageId={}]", saved.getId());
+        log.info("Event to publish after commit for language disabling [languageId={}]", saved.getId());
         return languageMapper.toResponse(saved);
     }
 
@@ -120,15 +120,15 @@ public class LanguageService implements BaseJpaService<Language, CreateLanguageR
         Language language = getEntityById(id);
         language.setDeletedAt(Instant.now());
 
-        Language saved = languageRepository.save(language);
+        Language saved = languageRepository.saveAndFlush(language);
         log.info("Language deleted [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new LanguageDeletedEvent(saved.getId(), saved.getCode()),
                 "",
                 LanguageDeletedContract.LANGUAGE_DELETED_QUEUE_NAME
         );
-        log.info("Event published for language deletion [languageId={}]", saved.getId());
+        log.info("Event to publish after commit for language deletion [languageId={}]", saved.getId());
         return languageMapper.toResponse(saved);
     }
 }

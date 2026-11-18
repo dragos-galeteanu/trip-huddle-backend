@@ -98,13 +98,14 @@ public interface SupportTicketRepository extends BaseJpaRepository<SupportTicket
      * @param limit how many to take
      * @return the tickets
      */
+    // Postgres cannot type a null UUID parameter, so whether it is set is asked in SpEL instead.
     @Query(value = """
             select t from SupportTicket t
             where t.deletedAt is null
               and (:status is null or t.status = :status)
               and (:category is null or t.category = :category)
               and (:priority is null or t.priority = :priority)
-              and (:assigneeId is null or t.assigneeId = :assigneeId)
+              and (:#{#assigneeId == null} = true or t.assigneeId = :assigneeId)
               and (:isUnassigned = false or t.assigneeId is null)
               and (:isFirst = true or case t.priority
                                               when com.triphuddle.api.chat.entity.TicketPriority.URGENT then 0

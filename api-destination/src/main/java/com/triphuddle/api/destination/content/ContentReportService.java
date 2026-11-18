@@ -57,7 +57,7 @@ public class ContentReportService {
         report.setContent(content);
         report.setReportedByUserId(userId);
         report.setReason(reason.strip());
-        ContentReport saved = reportRepository.save(report);
+        ContentReport saved = reportRepository.saveAndFlush(report);
         log.info("Content reported [reportId={}, contentId={}, userId={}]", saved.getId(), content.getId(), userId);
         return toResponse(saved);
     }

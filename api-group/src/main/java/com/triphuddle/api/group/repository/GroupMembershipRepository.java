@@ -62,11 +62,12 @@ public interface GroupMembershipRepository extends BaseJpaRepository<GroupMember
     Page<GroupMembership> findByGroupIdAndDeletedAtIsNull(UUID groupId, Pageable pageable);
 
     /**
-     * Find the active memberships of a user.
+     * Find the active memberships of a user in groups not deleted.
      *
      * @param userId the ID of the user
      * @param pageable the page to return
      * @return a page of the user's active memberships
      */
-    Page<GroupMembership> findByUserIdAndDeletedAtIsNullAndDisabledAtIsNull(UUID userId, Pageable pageable);
+    Page<GroupMembership> findByUserIdAndDeletedAtIsNullAndDisabledAtIsNullAndGroupDeletedAtIsNull(UUID userId,
+                                                                                                Pageable pageable);
 }

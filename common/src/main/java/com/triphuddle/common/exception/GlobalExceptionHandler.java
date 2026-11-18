@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -165,6 +166,29 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
                 request.getRequestURI(),
                 message,
+                null);
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handle a request body that cannot be read: malformed JSON, or a value of the wrong type such as an unknown
+     * enum constant.
+     * @param ex the exception
+     * @param request the HTTP request
+     * @return the error response
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex,
+                                                                               HttpServletRequest request) {
+        // The parser's own message names internals and can echo the input, so it stays in the log.
+        log.warn("Unreadable request body [path={}, reason={}]", request.getRequestURI(), ex.getMostSpecificCause()
+                .getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                request.getRequestURI(),
+                "The request body is malformed or has a value of the wrong type",
                 null);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }

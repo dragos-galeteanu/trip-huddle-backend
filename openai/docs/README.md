@@ -143,3 +143,9 @@ sequenceDiagram
 | `base-url` | `https://api.openai.com/v1` | API base URL |
 | `temperature` | `0.4` | sampling temperature |
 | `max-tokens` | `800` | upper limit of generated tokens |
+
+## Testing
+
+`mvn test` runs the unit tests, with no Docker: what the client sends OpenAI and how it reads answers, citations, refusals, cut answers, embeddings and errors, against mocked HTTP (AI-1, AI-3); the job runner's models, retries, backoff, token growth and failures with a mocked client (AI-2, AI-3, AI-4); the listener's reply-queue check (AI-5); the older text generator: what it sends, its default system prompt and each way an answer fails it, and which generator is wired with OpenAI on or off; the settings' defaults; and the architecture rules. `mvn verify` adds `AiWorkerIT`: jobs go through a real RabbitMQ in Testcontainers to the worker, which calls a fake OpenAI over HTTP and answers on api-destination's reply queues, so the messages are checked end to end, retries and failures included.
+
+Coverage is enforced: 85% of lines and 75% of branches, unit and integration tests together.

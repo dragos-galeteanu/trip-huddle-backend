@@ -1,0 +1,40 @@
+# Integration tests: Postgres (and Mongo where used) come from Testcontainers; everything that dials out is off.
+spring:
+  rabbitmq:
+    host: localhost
+    username: guest
+    password: guest
+    virtual-host: /
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Never fetched: MockMvc requests carry an already-decoded token.
+          issuer-uri: https://securetoken.google.com/test
+          jwk-set-uri: http://localhost/never-fetched
+
+rabbitmq:
+  enabled: false
+
+firebase:
+  enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+app:
+  destination:
+    import:
+      # The jobs run only when a test calls them, never on their own in the middle of one; Wikimedia is never dialled.
+      interval-ms: 86400000
+      query-interval-ms: 0
+      max-retry-wait-seconds: 0
+    content:
+      refresh-interval-ms: 86400000
+    photos:
+      bucket: ""

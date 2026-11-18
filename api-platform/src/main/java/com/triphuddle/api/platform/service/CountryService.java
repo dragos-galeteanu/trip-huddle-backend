@@ -60,22 +60,22 @@ public class CountryService implements BaseJpaService<Country, CreateCountryRequ
         countryMapper.createEntityFromRequest(country, createCountryRequest);
         setDefaults(country, createCountryRequest.getDefaultCurrencyId(), createCountryRequest.getDefaultLanguageId());
 
-        Country saved = countryRepository.save(country);
+        Country saved = countryRepository.saveAndFlush(country);
         log.info("Country created [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new CountryCreatedEvent(saved.getId(), saved.getAlpha2()),
                 "",
                 CountryCreatedContract.COUNTRY_CREATED_QUEUE_NAME
         );
-        log.info("Event published for country creation [countryId={}]", saved.getId());
+        log.info("Event to publish after commit for country creation [countryId={}]", saved.getId());
         return countryMapper.toResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Country getEntityById(UUID id) {
-        return countryRepository.findById(id)
+        return countryRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Country with id=%s not found".formatted(id)));
     }
 
@@ -88,7 +88,7 @@ public class CountryService implements BaseJpaService<Country, CreateCountryRequ
     @Override
     @Transactional(readOnly = true)
     public Paginated<CountryResponse> getAll(PaginationFilter filter) {
-        Page<Country> countryPage = countryRepository.findAll(filter.toPageable());
+        Page<Country> countryPage = countryRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(countryPage, countryMapper::toResponseList);
     }
 
@@ -113,7 +113,7 @@ public class CountryService implements BaseJpaService<Country, CreateCountryRequ
         countryMapper.updateEntityFromRequest(country, updateCountryRequest);
         setDefaults(country, updateCountryRequest.getDefaultCurrencyId(), updateCountryRequest.getDefaultLanguageId());
 
-        Country saved = countryRepository.save(country);
+        Country saved = countryRepository.saveAndFlush(country);
         log.info("Country updated [id={}]", saved.getId());
         return countryMapper.toResponse(saved);
     }
@@ -128,15 +128,15 @@ public class CountryService implements BaseJpaService<Country, CreateCountryRequ
         Country country = getEntityById(id);
         country.setDisabledAt(Instant.now());
 
-        Country saved = countryRepository.save(country);
+        Country saved = countryRepository.saveAndFlush(country);
         log.info("Country disabled [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new CountryDisabledEvent(saved.getId(), saved.getAlpha2()),
                 "",
                 CountryDisabledContract.COUNTRY_DISABLED_QUEUE_NAME
         );
-        log.info("Event published for country disabling [countryId={}]", saved.getId());
+        log.info("Event to publish after commit for country disabling [countryId={}]", saved.getId());
         return countryMapper.toResponse(saved);
     }
 
@@ -145,15 +145,15 @@ public class CountryService implements BaseJpaService<Country, CreateCountryRequ
         Country country = getEntityById(id);
         country.setDeletedAt(Instant.now());
 
-        Country saved = countryRepository.save(country);
+        Country saved = countryRepository.saveAndFlush(country);
         log.info("Country deleted [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new CountryDeletedEvent(saved.getId(), saved.getAlpha2()),
                 "",
                 CountryDeletedContract.COUNTRY_DELETED_QUEUE_NAME
         );
-        log.info("Event published for country deletion [countryId={}]", saved.getId());
+        log.info("Event to publish after commit for country deletion [countryId={}]", saved.getId());
         return countryMapper.toResponse(saved);
     }
 }

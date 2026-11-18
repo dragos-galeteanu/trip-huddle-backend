@@ -22,7 +22,9 @@ public interface GroupMapper extends BaseMapper<Group, CreateGroupRequest, Updat
     @Mapping(target = "createdByUserId", ignore = true)
     void createEntityFromRequest(@MappingTarget Group group, CreateGroupRequest request);
 
+    // The entity was loaded by this ID; copying it again could only ever re-key the row.
     @Override
     @Mapping(target = "createdByUserId", ignore = true)
+    @Mapping(target = "id", ignore = true)
     void updateEntityFromRequest(@MappingTarget Group group, UpdateGroupRequest request);
 }

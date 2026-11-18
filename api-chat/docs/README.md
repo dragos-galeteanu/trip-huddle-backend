@@ -342,3 +342,14 @@ Group events arrive on separate queues, so a membership can arrive before its gr
 | `app.chat.support.auto-close-interval-ms` | `600000` | pause between runs of the auto-close job |
 | `app.cors.allowed-origins` | `http://localhost:3000` | browser origins allowed to open the WebSocket |
 | `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VIRTUAL_HOST` | | broker connection, for AMQP and STOMP |
+
+## Testing
+
+`mvn test` runs the unit tests, with no Docker: the authorization policies and `ChatAccess` (who is a participant, who sees which message), attachments against a mocked Storage, the event publisher's after-commit delivery, the STOMP subscription rule for the support queue, the auto-close job's batching, message previews and the architecture rules. `mvn verify` adds the integration tests, against Postgres and MongoDB in Testcontainers, with Flyway building the schema and Hibernate validating it. RabbitMQ and the STOMP broker are replaced by recorders, so each test checks what was published and which user's topic got which event; users and groups are seeded the way api-user and api-group announce them.
+
+- `PrivateChatIT`: one chat per pair, sending with replays, the size limits, replies, blocks, inactive users, edits, deletes, reactions, read receipts, mutes, pushes and cursor pages (CHT-1, CHT-2, CHT-3, and the pagination of CHT-8). The STOMP relay itself is left to the smoke tests.
+- `GroupChatIT`: chats following api-group's events in any order, read-only groups, group admins, leaving and rejoining, typing and finished itineraries (CHT-1, CHT-3, CHT-4).
+- `SupportTicketIT`: the three-ticket limit, replays, links, outbound tickets, claiming, joining, leaving, releasing, the status rules, auto-close after seven days, ratings, internal notes and the queue's filters and order (CHT-6, CHT-7).
+- `ModerationIT`: one open report per reader, what can't be reported, the review with its context, removal and the staff list (CHT-5).
+
+Each integration test empties the tables and the message collection afterwards. Coverage is enforced: 85% of lines and 75% of branches, unit and integration tests together, excluding DTOs.

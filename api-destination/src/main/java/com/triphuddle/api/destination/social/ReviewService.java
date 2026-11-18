@@ -72,7 +72,7 @@ public class ReviewService {
         review.setVisitedOn(request.getVisitedOn());
         review.setLanguageCode(ContentService.normalise(request.getLanguage()));
         // A hidden review stays hidden when its author changes it; staff decide on it.
-        return toResponse(reviewRepository.save(review));
+        return toResponse(reviewRepository.saveAndFlush(review));
     }
 
     /**
@@ -175,7 +175,7 @@ public class ReviewService {
         report.setUserId(userId);
         report.setReason(reason.strip());
         report.setStatus(ReviewReportStatus.OPEN);
-        reportRepository.save(report);
+        reportRepository.saveAndFlush(report);
         review.setOpenReportCount(review.getOpenReportCount() + 1);
         if (review.getOpenReportCount() >= properties.reviewAutoHideReports()) {
             hide(review, "Hidden after reports, waiting for staff", null);

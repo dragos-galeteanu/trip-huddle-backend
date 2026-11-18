@@ -12,6 +12,11 @@
     <name>stripe</name>
     <description>The Stripe client and webhook verification, shared by the services that talk to Stripe</description>
 
+    <properties>
+        <!-- The suite is complete: below the coverage gate in the root pom, the build fails. -->
+        <coverage.enforced>true</coverage.enforced>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.stripe</groupId>

@@ -490,8 +490,8 @@ public class SupportTicketService {
         SupportTicketRepliedEvent replied = new SupportTicketRepliedEvent(ticket.getId(), ticket.getReference(),
                 reply.getConversationId(), ticket.getRequesterId(), reply.getSenderId(), reply.getId().toHexString(),
                 ticket.getSubject());
-        AfterCommit.run(() -> messageProducer.publish(
-                replied, "", SupportTicketRepliedContract.SUPPORT_TICKET_REPLIED_QUEUE_NAME));
+        messageProducer.publishAfterCommit(
+                replied, "", SupportTicketRepliedContract.SUPPORT_TICKET_REPLIED_QUEUE_NAME);
     }
 
     private void validateLinks(CreateSupportTicketRequest request, UUID requesterId, boolean isOutbound) {
@@ -646,14 +646,14 @@ public class SupportTicketService {
                 SupportTicketCreatedEvent created = new SupportTicketCreatedEvent(ticket.getId(),
                         ticket.getReference(), conversationId, ticket.getRequesterId(), ticket.getOpenedByUserId(),
                         ticket.getSubject(), ticket.getCategory().name());
-                AfterCommit.run(() -> messageProducer.publish(
-                        created, "", SupportTicketCreatedContract.SUPPORT_TICKET_CREATED_QUEUE_NAME));
+                messageProducer.publishAfterCommit(
+                        created, "", SupportTicketCreatedContract.SUPPORT_TICKET_CREATED_QUEUE_NAME);
             } else if (change.type() == SupportTicketEventType.STATUS_CHANGED) {
                 SupportTicketStatusChangedEvent statusChanged = new SupportTicketStatusChangedEvent(ticket.getId(),
                         ticket.getReference(), conversationId, ticket.getRequesterId(), actorId,
                         change.fromValue(), change.toValue(), ticket.getSubject());
-                AfterCommit.run(() -> messageProducer.publish(statusChanged, "",
-                        SupportTicketStatusChangedContract.SUPPORT_TICKET_STATUS_CHANGED_QUEUE_NAME));
+                messageProducer.publishAfterCommit(statusChanged, "",
+                        SupportTicketStatusChangedContract.SUPPORT_TICKET_STATUS_CHANGED_QUEUE_NAME);
             }
         }
     }

@@ -45,8 +45,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -82,7 +80,7 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
     @Override
     public GroupInvitationResponse create(CreateGroupInvitationRequest createGroupInvitationRequest) {
         UUID groupId = createGroupInvitationRequest.getGroupId();
-        Group group = groupRepository.findById(groupId)
+        Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group with id=%s not found".formatted(groupId)));
 
         // Stored lower-cased so that the duplicate check and the later match on a user's email are exact.
@@ -107,15 +105,15 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         groupInvitation.setInvitedByUserId(
                 SecurityUtils.extractUserId(SecurityContextHolder.getContext().getAuthentication()));
 
-        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+        GroupInvitation saved = groupInvitationRepository.saveAndFlush(groupInvitation);
         log.info("GroupInvitation created [id={}, groupId={}]", saved.getId(), groupId);
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new GroupInvitationCreatedEvent(saved.getId(), groupId, saved.getEmail(), saved.getRole().name()),
                 "",
                 GroupInvitationCreatedContract.GROUP_INVITATION_CREATED_QUEUE_NAME
         );
-        log.info("Event published for group invitation creation [groupInvitationId={}]", saved.getId());
+        log.info("Event to publish after commit for group invitation creation [groupInvitationId={}]", saved.getId());
 
         publishInvitationEmail(saved, group);
         return groupInvitationMapper.toResponse(saved);
@@ -132,7 +130,7 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         String acceptUrl = "%s/group-invitations/accept?token=%s".formatted(frontendUrl, groupInvitation.getToken());
         String rejectUrl = "%s/group-invitations/reject?token=%s".formatted(frontendUrl, groupInvitation.getToken());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new SendEmailRequest(
                         NotificationEmailType.GROUP_INVITATION,
                         groupInvitation.getEmail(),
@@ -147,13 +145,13 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
                 "",
                 NotificationEmailContract.EMAIL_QUEUE_NAME
         );
-        log.info("Event published for group invitation email [groupInvitationId={}]", groupInvitation.getId());
+        log.info("Event to publish after commit for group invitation email [groupInvitationId={}]", groupInvitation.getId());
     }
 
     @Override
     @Transactional(readOnly = true)
     public GroupInvitation getEntityById(UUID id) {
-        return groupInvitationRepository.findById(id)
+        return groupInvitationRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("GroupInvitation with id=%s not found".formatted(id)));
     }
 
@@ -166,7 +164,7 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
     @Override
     @Transactional(readOnly = true)
     public Paginated<GroupInvitationResponse> getAll(PaginationFilter filter) {
-        Page<GroupInvitation> groupInvitationPage = groupInvitationRepository.findAll(filter.toPageable());
+        Page<GroupInvitation> groupInvitationPage = groupInvitationRepository.findAllByDeletedAtIsNull(filter.toPageable());
         return Paginated.of(groupInvitationPage, groupInvitationMapper::toResponseList);
     }
 
@@ -191,16 +189,16 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
 
         groupInvitationMapper.updateEntityFromRequest(groupInvitation, updateGroupInvitationRequest);
 
-        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+        GroupInvitation saved = groupInvitationRepository.saveAndFlush(groupInvitation);
         log.info("GroupInvitation updated [id={}, role={}]", saved.getId(), saved.getRole());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new GroupInvitationUpdatedEvent(
                         saved.getId(), saved.getGroup().getId(), saved.getEmail(), saved.getRole().name()),
                 "",
                 GroupInvitationUpdatedContract.GROUP_INVITATION_UPDATED_QUEUE_NAME
         );
-        log.info("Event published for group invitation update [groupInvitationId={}]", saved.getId());
+        log.info("Event to publish after commit for group invitation update [groupInvitationId={}]", saved.getId());
         return groupInvitationMapper.toResponse(saved);
     }
 
@@ -209,16 +207,16 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         GroupInvitation groupInvitation = getEntityById(id);
         groupInvitation.setDisabledAt(Instant.now());
 
-        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+        GroupInvitation saved = groupInvitationRepository.saveAndFlush(groupInvitation);
         log.info("GroupInvitation disabled [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new GroupInvitationDisabledEvent(
                         saved.getId(), saved.getGroup().getId(), saved.getEmail(), saved.getRole().name()),
                 "",
                 GroupInvitationDisabledContract.GROUP_INVITATION_DISABLED_QUEUE_NAME
         );
-        log.info("Event published for group invitation disabling [groupInvitationId={}]", saved.getId());
+        log.info("Event to publish after commit for group invitation disabling [groupInvitationId={}]", saved.getId());
         return groupInvitationMapper.toResponse(saved);
     }
 
@@ -226,22 +224,18 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
     public GroupInvitationResponse delete(UUID id) {
         GroupInvitation groupInvitation = getEntityById(id);
 
-        if (groupInvitation.getDeletedAt() != null) {
-            throw new ResourceNotFoundException("GroupInvitation with id=%s not found".formatted(id));
-        }
-
         groupInvitation.setDeletedAt(Instant.now());
 
-        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+        GroupInvitation saved = groupInvitationRepository.saveAndFlush(groupInvitation);
         log.info("GroupInvitation deleted [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new GroupInvitationDeletedEvent(
                         saved.getId(), saved.getGroup().getId(), saved.getEmail(), saved.getRole().name()),
                 "",
                 GroupInvitationDeletedContract.GROUP_INVITATION_DELETED_QUEUE_NAME
         );
-        log.info("Event published for group invitation deletion [groupInvitationId={}]", saved.getId());
+        log.info("Event to publish after commit for group invitation deletion [groupInvitationId={}]", saved.getId());
         return groupInvitationMapper.toResponse(saved);
     }
 
@@ -272,13 +266,14 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
 
         groupInvitation.setStatus(GroupInvitationStatus.ACCEPTED);
 
-        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+        GroupInvitation saved = groupInvitationRepository.saveAndFlush(groupInvitation);
         log.info("GroupInvitation accepted [id={}]", saved.getId());
 
         // After the commit: api-user may answer at once, and its answer must find the invitation ACCEPTED.
-        publishAfterCommit(
+        messageProducer.publishAfterCommit(
                 new GroupInvitationAcceptedEvent(
                         saved.getId(), saved.getGroup().getId(), saved.getEmail(), saved.getRole().name()),
+                "",
                 GroupInvitationAcceptedContract.GROUP_INVITATION_ACCEPTED_QUEUE_NAME
         );
         return groupInvitationMapper.toResponse(saved);
@@ -298,16 +293,16 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
 
         groupInvitation.setStatus(GroupInvitationStatus.REJECTED);
 
-        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+        GroupInvitation saved = groupInvitationRepository.saveAndFlush(groupInvitation);
         log.info("GroupInvitation rejected [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new GroupInvitationRejectedEvent(
                         saved.getId(), saved.getGroup().getId(), saved.getEmail(), saved.getRole().name()),
                 "",
                 GroupInvitationRejectedContract.GROUP_INVITATION_REJECTED_QUEUE_NAME
         );
-        log.info("Event published for group invitation rejection [groupInvitationId={}]", saved.getId());
+        log.info("Event to publish after commit for group invitation rejection [groupInvitationId={}]", saved.getId());
         return groupInvitationMapper.toResponse(saved);
     }
 
@@ -325,16 +320,16 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
 
         groupInvitation.setStatus(GroupInvitationStatus.CANCELED);
 
-        GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+        GroupInvitation saved = groupInvitationRepository.saveAndFlush(groupInvitation);
         log.info("GroupInvitation canceled [id={}]", saved.getId());
 
-        messageProducer.publish(
+        messageProducer.publishAfterCommit(
                 new GroupInvitationCanceledEvent(
                         saved.getId(), saved.getGroup().getId(), saved.getEmail(), saved.getRole().name()),
                 "",
                 GroupInvitationCanceledContract.GROUP_INVITATION_CANCELED_QUEUE_NAME
         );
-        log.info("Event published for group invitation cancellation [groupInvitationId={}]", saved.getId());
+        log.info("Event to publish after commit for group invitation cancellation [groupInvitationId={}]", saved.getId());
         return groupInvitationMapper.toResponse(saved);
     }
 
@@ -413,7 +408,7 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         }
 
         groupInvitation.setAcceptedByUserId(userId);
-        groupInvitationRepository.save(groupInvitation);
+        groupInvitationRepository.saveAndFlush(groupInvitation);
         log.info("GroupInvitation linked to user [id={}, userId={}]", groupInvitation.getId(), userId);
     }
 
@@ -445,26 +440,5 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
             throw new IllegalStateException("GroupInvitation with id=%s is already %s"
                     .formatted(groupInvitation.getId(), groupInvitation.getStatus().name().toLowerCase(Locale.ROOT)));
         }
-    }
-
-    /**
-     * Publish an event once the current transaction commits, or at once if there is none.
-     *
-     * @param event the event to publish
-     * @param queueName the queue to publish to
-     */
-    private void publishAfterCommit(Object event, String queueName) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            messageProducer.publish(event, "", queueName);
-            return;
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                messageProducer.publish(event, "", queueName);
-                log.info("Event published after commit [queue={}]", queueName);
-            }
-        });
     }
 }

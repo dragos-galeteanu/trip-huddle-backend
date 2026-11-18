@@ -33,3 +33,7 @@ The phone book of the backend: every service says where it runs, and the gateway
 
 - **EUR-1** Services register under `spring.application.name`, and the gateway routes to `lb://<NAME>`.
 - **EUR-2** It keeps no other data and needs no database.
+
+## Testing
+
+`EurekaServerIT` starts the registry, registers a service the way a client does, and checks it is listed while the registry lists no instance of itself (EUR-1, EUR-2). There is no coverage gate: the only class is the application, which coverage leaves out.

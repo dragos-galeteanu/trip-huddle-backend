@@ -10,6 +10,7 @@ import com.triphuddle.common.controller.BaseJpaController;
 import com.triphuddle.common.dto.Paginated;
 import com.triphuddle.common.filter.PaginationFilter;
 import com.triphuddle.common.service.BaseJpaService;
+import com.triphuddle.common.security.PublicEndpoint;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -82,6 +83,7 @@ public class GroupInvitationController extends BaseJpaController<GroupInvitation
      * @return the response object containing the accepted invitation
      */
     @PostMapping("/accept")
+    @PublicEndpoint("the invitation token in the body is the credential")
     @Operation(summary = "Accept a group invitation by its token")
     public ResponseEntity<GroupInvitationResponse> accept(
             @Valid @RequestBody GroupInvitationTokenRequest groupInvitationTokenRequest, Authentication authentication) {
@@ -95,6 +97,7 @@ public class GroupInvitationController extends BaseJpaController<GroupInvitation
      * @return the response object containing the rejected invitation
      */
     @PostMapping("/reject")
+    @PublicEndpoint("the invitation token in the body is the credential")
     @Operation(summary = "Reject a group invitation by its token")
     public ResponseEntity<GroupInvitationResponse> reject(
             @Valid @RequestBody GroupInvitationTokenRequest groupInvitationTokenRequest) {

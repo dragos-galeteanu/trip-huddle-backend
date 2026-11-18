@@ -1,0 +1,43 @@
+# Integration tests: Postgres (and Mongo where used) come from Testcontainers; everything that dials out is off.
+spring:
+  # test-support brings JPA onto the test classpath; this service has no database.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+  rabbitmq:
+    host: localhost
+    username: guest
+    password: guest
+    virtual-host: /
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Never fetched: MockMvc requests carry an already-decoded token.
+          issuer-uri: https://securetoken.google.com/test
+          jwk-set-uri: http://localhost/never-fetched
+
+# The worker's round trip is what these tests check, against a real broker.
+rabbitmq:
+  enabled: true
+
+firebase:
+  enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  tracing:
+    enabled: false
+
+integration:
+  openai:
+    # The tests point base-url at a fake OpenAI and set the key.
+    api-key: sk-test
+    worker:
+      retry-base-ms: 10
+      max-retry-ms: 50

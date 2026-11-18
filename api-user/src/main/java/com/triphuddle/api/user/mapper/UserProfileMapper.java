@@ -17,11 +17,14 @@ public interface UserProfileMapper extends BaseMapper<UserProfile, CreateUserPro
 
     @Override
     @Mapping(target = "xUrl", expression = "java(userProfile.getXUrl())")
+    @Mapping(target = "userId", source = "user.id")
     UserProfileResponse toResponse(UserProfile userProfile);
 
     @Override
     void createEntityFromRequest(@MappingTarget UserProfile userProfile, CreateUserProfileRequest request);
 
+    // The entity was loaded by this ID; copying it again could only ever re-key the row.
     @Override
+    @Mapping(target = "id", ignore = true)
     void updateEntityFromRequest(@MappingTarget UserProfile userProfile, UpdateUserProfileRequest request);
 }

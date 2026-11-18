@@ -1,0 +1,103 @@
+name: Smoke Testing
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      base-url:
+        description: 'A running deployment to test instead of starting the stack, e.g. https://staging.example.com'
+        required: false
+        default: ''
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    branches:
+      - main
+      - e2e-testing
+      - live
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    uses: ./.github/workflows/unit-integration-testing.yml
+
+  smoke:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SMOKE_FIREBASE_PROJECT_ID: ${{ secrets.SMOKE_FIREBASE_PROJECT_ID }}
+      SMOKE_FIREBASE_API_KEY: ${{ secrets.SMOKE_FIREBASE_API_KEY }}
+      STRIPE_SECRET_KEY: ${{ secrets.SMOKE_STRIPE_SECRET_KEY }}
+      SMOKE_BASE_URL: ${{ inputs.base-url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pull requests from forks get no secrets; the run then says so instead of failing.
+      - name: Check the Firebase test project is configured
+        id: secrets
+        run: |
+          if [ -z "$SMOKE_FIREBASE_PROJECT_ID" ] || [ -z "$SMOKE_FIREBASE_API_KEY" ]; then
+            echo "::notice::Smoke tests skipped: SMOKE_FIREBASE_PROJECT_ID and SMOKE_FIREBASE_API_KEY are not set."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Java 17
+        if: steps.secrets.outputs.ready == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Write the Firebase test project's credentials
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          CREDENTIALS: ${{ secrets.SMOKE_FIREBASE_CREDENTIALS }}
+        run: |
+          printf '%s' "$CREDENTIALS" > "$RUNNER_TEMP/firebase-smoke.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-smoke.json" >> "$GITHUB_ENV"
+
+      - name: Build the services
+        if: steps.secrets.outputs.ready == 'true' && env.SMOKE_BASE_URL == ''
+        run: mvn -B -ntp -DskipTests package
+
+      # Stripe's CLI forwards real, signed test-mode webhooks to the gateway; its secret signs them.
+      - name: Start the Stripe CLI
+        if: steps.secrets.outputs.ready == 'true' && env.SMOKE_BASE_URL == '' && env.STRIPE_SECRET_KEY != ''
+        run: |
+          echo "STRIPE_WEBHOOK_SECRET=$(docker compose run --rm stripe-cli listen --print-secret)" >> "$GITHUB_ENV"
+          docker compose --profile stripe up -d stripe-cli
+
+      - name: Start the stack
+        if: steps.secrets.outputs.ready == 'true' && env.SMOKE_BASE_URL == ''
+        run: scripts/smoke-stack.sh start
+
+      - name: Run the smoke tests
+        if: steps.secrets.outputs.ready == 'true'
+        run: mvn -B -ntp -pl smoke-tests -am -Psmoke -DskipTests=false -Dsurefire.failIfNoSpecifiedTests=false verify
+
+      - name: Upload the reports and service logs
+        if: always() && steps.secrets.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-reports
+          path: |
+            smoke-tests/target/failsafe-reports/
+            smoke-tests/target/traceability.md
+            target/smoke-stack/*.log
+          if-no-files-found: ignore
+
+      - name: Stop the stack
+        if: always() && steps.secrets.outputs.ready == 'true' && env.SMOKE_BASE_URL == ''
+        run: scripts/smoke-stack.sh stop

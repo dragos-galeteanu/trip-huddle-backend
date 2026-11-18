@@ -1,6 +1,5 @@
 package com.triphuddle.api.destination.trip;
 
-import com.triphuddle.api.destination.service.AfterCommit;
 import com.triphuddle.amqp.RabbitMQMessageProducer;
 import com.triphuddle.amqp.destination.ItineraryFinishedContract;
 import com.triphuddle.amqp.destination.ItineraryFinishedEvent;
@@ -50,10 +49,8 @@ public class TripNotifier {
                 isReady ? plan.getTitle() + ": " + plan.dayCount() + " days planned" : plan.getTitle() + ": try again",
                 Map.of("type", "ITINERARY_FINISHED", "planId", plan.getId().toString(),
                         "itineraryId", itinerary.getId().toString(), "status", itinerary.getStatus().name()));
-        AfterCommit.run(() -> {
-            messageProducer.publish(event, ItineraryFinishedContract.ITINERARY_FINISHED_EXCHANGE_NAME, "");
-            messageProducer.publish(push, "", NotificationPushContract.PUSH_QUEUE_NAME);
-        });
+        messageProducer.publishAfterCommit(event, ItineraryFinishedContract.ITINERARY_FINISHED_EXCHANGE_NAME, "");
+        messageProducer.publishAfterCommit(push, "", NotificationPushContract.PUSH_QUEUE_NAME);
     }
 
 }

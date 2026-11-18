@@ -24,8 +24,10 @@ public interface GroupMembershipMapper extends BaseMapper<GroupMembership, Creat
     @Mapping(target = "group", ignore = true)
     void createEntityFromRequest(@MappingTarget GroupMembership groupMembership, CreateGroupMembershipRequest request);
 
+    // The entity was loaded by this ID; copying it again could only ever re-key the row.
     @Override
     @Mapping(target = "group", ignore = true)
     @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "id", ignore = true)
     void updateEntityFromRequest(@MappingTarget GroupMembership groupMembership, UpdateGroupMembershipRequest request);
 }

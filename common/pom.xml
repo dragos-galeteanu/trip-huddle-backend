@@ -13,8 +13,14 @@
 
     <artifactId>common</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+
     <name>common</name>
     <description>Shared abstractions that can be used when building packages or services</description>
+
+    <properties>
+        <!-- The suite is complete: below the coverage gate in the root pom, the build fails. -->
+        <coverage.enforced>true</coverage.enforced>
+    </properties>
 
     <dependencies>
         <dependency>
