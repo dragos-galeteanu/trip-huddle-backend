@@ -37,6 +37,11 @@ jobs:
           java-version: '17'
           cache: maven
 
+      # api-destination's integration tests need PostGIS and pgvector: the project's own image, which is on no
+      # registry, so it is built here under the name failsafe passes to test-support.
+      - name: Build the Postgres test image
+        run: docker build -t triphuddle/postgres-test docker/postgres
+
       # Unit tests (*Test, Surefire) and integration tests (*IT, Failsafe, Testcontainers on the runner's Docker),
       # then the JaCoCo report and, in modules that enforce it, the coverage gate.
       - name: Run unit and integration tests

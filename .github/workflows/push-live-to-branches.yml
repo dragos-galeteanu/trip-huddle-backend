@@ -5,16 +5,24 @@ on:
     branches:
       - live
 
+# For the fallback to GITHUB_TOKEN below.
+permissions:
+  contents: write
+
 jobs:
   merge:
     runs-on: ubuntu-latest
+    env:
+      HAS_MERGE_APP: ${{ secrets.MERGE_APP_ID != '' }}
 
     steps:
-      # A push made with GITHUB_TOKEN starts no workflows, so main and e2e-testing would never run their tests
-      # after a merge. A GitHub App's token does start them. The App needs contents: write on this repository;
-      # its ID and private key are the MERGE_APP_ID and MERGE_APP_PRIVATE_KEY secrets.
+      # A push made with GITHUB_TOKEN starts no workflows, so main and e2e-testing would not run their tests after
+      # a merge. A GitHub App's token does start them. The App needs contents: write on this repository; its ID and
+      # private key are the MERGE_APP_ID and MERGE_APP_PRIVATE_KEY secrets. Until they are set, the merges are
+      # pushed with GITHUB_TOKEN, as before.
       - name: Get a token for the merge app
         id: app-token
+        if: env.HAS_MERGE_APP == 'true'
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.MERGE_APP_ID }}
@@ -24,12 +32,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Set Git identity
         run: |
-          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
-          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          if [ -n "$APP_SLUG" ]; then
+            git config user.name "$APP_SLUG[bot]"
+            git config user.email "$APP_SLUG[bot]@users.noreply.github.com"
+          else
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+          fi
+        env:
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
 
       - name: Fetch all branches
         run: git fetch origin
