@@ -48,6 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -101,7 +102,9 @@ public class GroupInvitationService implements BaseJpaService<GroupInvitation, C
         }
         groupInvitation.setToken(UUID.randomUUID());
         groupInvitation.setStatus(GroupInvitationStatus.PENDING);
-        groupInvitation.setExpiresAt(Instant.now().plus(Duration.ofDays(ttlDays)));
+        // Microseconds, as PostgreSQL stores them: Linux clocks give nanoseconds, so the response would otherwise
+        // differ from the invitation read back.
+        groupInvitation.setExpiresAt(Instant.now().truncatedTo(ChronoUnit.MICROS).plus(Duration.ofDays(ttlDays)));
         groupInvitation.setInvitedByUserId(
                 SecurityUtils.extractUserId(SecurityContextHolder.getContext().getAuthentication()));
 

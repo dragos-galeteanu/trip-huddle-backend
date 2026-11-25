@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
@@ -54,7 +55,7 @@ public class PromotionService {
         promotion.setLicense(license);
         applyTerms(promotion, request);
         promotion.setName(request.getName().strip());
-        promotion.setEndsAt(request.getEndsAt());
+        promotion.setEndsAt(micros(request.getEndsAt()));
         promotion.setMaxRedemptions(request.getMaxRedemptions());
         validate(promotion);
 
@@ -116,7 +117,7 @@ public class PromotionService {
             applyTerms(promotion, request);
         }
         promotion.setName(request.getName().strip());
-        promotion.setEndsAt(request.getEndsAt());
+        promotion.setEndsAt(micros(request.getEndsAt()));
         promotion.setMaxRedemptions(request.getMaxRedemptions());
         validate(promotion);
 
@@ -143,7 +144,7 @@ public class PromotionService {
         if (state == PromotionState.SCHEDULED) {
             throw new IllegalStateException("Promotion with id=%s has not started, delete it instead".formatted(id));
         }
-        promotion.setEndsAt(now);
+        promotion.setEndsAt(micros(now));
 
         Promotion saved = promotionRepository.saveAndFlush(promotion);
         log.info("Promotion ended [id={}, licenseId={}]", saved.getId(), licenseId);
@@ -176,7 +177,7 @@ public class PromotionService {
                 ? null : request.getCode().strip().toUpperCase(Locale.ROOT));
         promotion.setDiscountType(request.getDiscountType());
         promotion.setDiscountValue(request.getDiscountValue());
-        promotion.setStartsAt(request.getStartsAt());
+        promotion.setStartsAt(micros(request.getStartsAt()));
         promotion.setDurationPeriods(request.getDurationPeriods());
         promotion.setOncePerCustomer(request.getIsOncePerCustomer());
         promotion.setNewCustomersOnly(request.getIsNewCustomersOnly());
@@ -247,5 +248,11 @@ public class PromotionService {
 
     private ResourceNotFoundException licenseNotFound(UUID licenseId) {
         return new ResourceNotFoundException("License with id=%s not found".formatted(licenseId));
+    }
+
+    // PostgreSQL keeps microseconds and rounds the rest, so a time kept finer than that would not equal itself read
+    // back: a redeemed promotion's unchanged start would look changed, and back-to-back runs would overlap.
+    private static Instant micros(Instant value) {
+        return value == null ? null : value.truncatedTo(ChronoUnit.MICROS);
     }
 }
